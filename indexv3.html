@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0a1628">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bolão 2026">
+<link rel="manifest" href="manifest.json">
+<title>Bolão Copa 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --green:#00c853;--green-glow:rgba(0,200,83,.18);--gold:#ffd600;
+  --bg:#0a1628;--bg2:#111f38;--bg3:#162340;
+  --surface:#1a2b48;--surface2:#1f3356;--border:rgba(255,255,255,.08);
+  --text:#f0f4ff;--muted:#7a90b8;--red:#ff4757;--radius:14px;--radius-sm:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
+#app{max-width:430px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+#header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;position:sticky;top:0;z-index:100;}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.app-logo{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.06em;color:var(--gold);line-height:1;}
+.app-logo span{color:var(--green);}
+.sync-badge{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s;}
+.sync-dot.ok{background:var(--green);}
+.sync-dot.loading{background:var(--gold);animation:pulse 1s infinite;}
+.sync-dot.err{background:var(--red);}
+.groups-switcher{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;flex:1;}
+.groups-switcher::-webkit-scrollbar{display:none;}
+.group-tab{flex-shrink:0;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis;}
+.group-tab.active{color:#000;font-weight:600;}
+.group-tab-add{flex-shrink:0;width:30px;height:28px;border-radius:20px;border:1px dashed var(--border);background:transparent;color:var(--muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;margin-left:4px;}
+.group-tab-add:hover{border-color:var(--green);color:var(--green);}
+#main{flex:1;overflow-y:auto;padding:16px;}
+.screen{display:none;}
+.screen.active{display:block;}
+#bottomnav{background:var(--bg2);border-top:1px solid var(--border);display:flex;padding:6px 0 calc(6px + env(safe-area-inset-bottom));position:sticky;bottom:0;z-index:100;}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:10px;font-family:'DM Sans',sans-serif;transition:color .2s;}
+.nav-btn svg{width:22px;height:22px;}
+.nav-btn.active{color:var(--green);}
+.nav-btn.active svg{filter:drop-shadow(0 0 6px var(--green));}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;}
+.card-title{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;}
+.section-label{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--muted);margin:16px 0 8px;letter-spacing:.06em;}
+.home-hero{background:linear-gradient(135deg,var(--bg3) 0%,var(--surface2) 100%);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px;position:relative;overflow:hidden;}
+.home-hero::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:radial-gradient(circle,var(--green-glow) 0%,transparent 70%);pointer-events:none;}
+.hero-days{font-family:'Bebas Neue',sans-serif;font-size:52px;color:var(--green);line-height:1;}
+.hero-date{font-size:12px;color:var(--gold);margin-top:6px;}
+.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;}
+.stat-num{font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--text);line-height:1;}
+.stat-lbl{font-size:11px;color:var(--muted);margin-top:2px;}
+.next-match{background:var(--bg3);border:1px solid var(--green-glow);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;}
+.nm-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--green);margin-bottom:8px;font-weight:600;}
+.nm-teams{display:flex;align-items:center;justify-content:space-between;}
+.nm-team{text-align:center;flex:1;}
+.nm-flag{font-size:28px;display:block;line-height:1;}
+.nm-name{font-size:12px;color:var(--muted);margin-top:3px;}
+.nm-vs{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--muted);}
+.nm-time{text-align:center;margin-top:8px;font-size:12px;color:var(--gold);}
+.btn{display:block;width:100%;padding:13px;border-radius:var(--radius-sm);border:none;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;text-align:center;}
+.btn-green{background:var(--green);color:#000;}
+.btn-green:active{transform:scale(.97);}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+.btn-gold{background:var(--gold);color:#000;}
+.btn-red{background:rgba(255,71,87,.1);color:var(--red);border:1px solid rgba(255,71,87,.3);}
+.filter-row{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
+.filter-row::-webkit-scrollbar{display:none;}
+.filter-btn{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .2s;}
+.filter-btn.active{background:var(--green);color:#000;border-color:var(--green);font-weight:600;}
+.match-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;cursor:pointer;transition:border-color .2s;}
+.match-card:hover{border-color:var(--green);}
+.match-card.has-bet{border-left:3px solid var(--green);}
+.match-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.match-round{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+.match-status{font-size:10px;padding:3px 8px;border-radius:10px;font-weight:600;}
+.status-upcoming{background:rgba(255,214,0,.12);color:var(--gold);}
+.status-live{background:rgba(255,71,87,.15);color:var(--red);}
+.status-done{background:rgba(122,144,184,.12);color:var(--muted);}
+.match-teams{display:flex;align-items:center;justify-content:space-between;}
+.match-team{display:flex;align-items:center;gap:8px;flex:1;}
+.match-team.right{flex-direction:row-reverse;text-align:right;}
+.team-flag{font-size:22px;line-height:1;}
+.team-name{font-size:14px;font-weight:600;}
+.match-score{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--green);padding:0 12px;min-width:66px;text-align:center;}
+.match-score.pending{font-size:16px;color:var(--muted);}
+.match-footer{margin-top:8px;display:flex;justify-content:space-between;align-items:center;}
+.match-time{font-size:11px;color:var(--muted);}
+.bet-indicator{font-size:11px;color:var(--green);font-weight:600;}
+.rank-list{display:flex;flex-direction:column;gap:8px;}
+.rank-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:12px;}
+.rank-item.me{border-color:var(--green);background:linear-gradient(90deg,var(--bg3),var(--surface));}
+.rank-pos{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--muted);min-width:28px;text-align:center;}
+.rank-pos.gold{color:var(--gold);}
+.rank-pos.silver{color:#c0c0c0;}
+.rank-pos.bronze{color:#cd7f32;}
+.rank-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;}
+.rank-info{flex:1;}
+.rank-name{font-weight:600;font-size:14px;}
+.rank-detail{font-size:11px;color:var(--muted);margin-top:2px;}
+.rank-pts{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--green);}
+.rank-badge{font-size:10px;padding:2px 8px;border-radius:10px;background:var(--green-glow);color:var(--green);font-weight:600;border:1px solid rgba(0,200,83,.2);}
+.badge-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.badge-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;text-align:center;}
+.badge-icon{font-size:26px;display:block;margin-bottom:6px;}
+.badge-name{font-size:11px;font-weight:600;color:var(--muted);}
+.badge-item.earned{border-color:var(--gold);background:rgba(255,214,0,.05);}
+.badge-item.earned .badge-name{color:var(--gold);}
+.group-code-box{border-radius:var(--radius);padding:18px;text-align:center;margin-bottom:12px;border:1px dashed;}
+.group-code{font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:.14em;}
+.group-code-label{font-size:12px;color:var(--muted);margin-top:4px;}
+.members-list{display:flex;flex-direction:column;gap:8px;}
+.member-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;gap:10px;}
+.member-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;}
+.member-name{font-size:13px;font-weight:600;flex:1;}
+.member-pts{font-size:13px;color:var(--green);font-weight:600;}
+.rules-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;}
+.rule-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.rule-item:last-child{border:none;}
+.rule-pts{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--gold);min-width:36px;}
+.rule-desc{color:var(--muted);}
+.rule-desc b{color:var(--text);}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
+.modal{background:var(--bg2);border-radius:20px 20px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom));width:100%;max-width:430px;max-height:90vh;overflow-y:auto;}
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px;}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:16px;}
+.bet-teams{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:18px;background:var(--surface);border-radius:var(--radius-sm);padding:14px;}
+.bet-team{text-align:center;}
+.bet-flag{font-size:34px;display:block;}
+.bet-name{font-size:12px;color:var(--muted);margin-top:4px;}
+.bet-vs{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--muted);}
+.score-input-row{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:18px;}
+.score-input-group{display:flex;align-items:center;gap:10px;}
+.score-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.score-btn:active{background:var(--green);color:#000;border-color:var(--green);}
+.score-val{font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--text);min-width:36px;text-align:center;}
+.score-sep{font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--muted);}
+.points-preview{background:var(--surface);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:18px;}
+.points-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:13px;color:var(--muted);}
+.points-row:last-child{margin:0;}
+.points-row b{color:var(--text);font-weight:600;}
+.groups-manager{display:flex;flex-direction:column;gap:10px;}
+.group-item-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .2s;}
+.group-item-card:hover,.group-item-card.active-group{border-color:var(--green);}
+.group-item-card.active-group{background:linear-gradient(90deg,var(--bg3),var(--surface));}
+.group-color-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.group-item-info{flex:1;min-width:0;}
+.group-item-name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.group-item-code{font-size:11px;color:var(--muted);margin-top:2px;}
+.group-item-bets{font-size:11px;color:var(--green);font-weight:600;}
+.icon-btn{width:28px;height:28px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .2s;}
+.icon-btn:hover{border-color:var(--red);color:var(--red);}
+.icon-btn.copy:hover{border-color:var(--green);color:var(--green);}
+.new-group-form,.join-form{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;}
+.form-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;display:block;}
+.form-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s;}
+.form-input:focus{border-color:var(--green);}
+.color-picker{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.color-opt{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .2s;}
+.color-opt.selected{border-color:white;transform:scale(1.2);}
+.export-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.divider{height:1px;background:var(--border);margin:16px 0;}
+.section-mini{font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted);}
+.info-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;}
+.info-box b{color:var(--text);}
+/* ONBOARDING */
+.onboarding{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;align-items:center;justify-content:center;padding:24px;}
+.onboarding-box{width:100%;max-width:380px;}
+.onboarding-logo{font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--gold);letter-spacing:.06em;margin-bottom:4px;}
+.onboarding-logo span{color:var(--green);}
+.onboarding-sub{font-size:13px;color:var(--muted);margin-bottom:32px;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+.screen.active>*{animation:fadeUp .28s ease both;}
+.screen.active>*:nth-child(2){animation-delay:.05s;}
+.screen.active>*:nth-child(3){animation-delay:.1s;}
+.screen.active>*:nth-child(4){animation-delay:.15s;}
+.pulse{animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="header">
+    <div class="header-top">
+      <div class="app-logo">BOLÃO<span>⚽</span>2026</div>
+      <div class="sync-badge">
+        <div class="sync-dot" id="sync-dot"></div>
+        <span id="sync-label">—</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;">
+      <div class="groups-switcher" id="groups-switcher"></div>
+      <button class="group-tab-add" onclick="openGroupsModal()" title="Gerenciar grupos">+</button>
+    </div>
+  </div>
+
+  <div id="main">
+
+    <!-- HOME -->
+    <div id="screen-home" class="screen active">
+      <div class="home-hero">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:4px;">Copa do Mundo FIFA</div>
+        <div style="display:flex;align-items:baseline;gap:8px;">
+          <div class="hero-days" id="countdown-days">—</div>
+          <div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--green);">DIAS</div>
+            <div style="font-size:11px;color:var(--muted);">para o início</div>
+          </div>
+        </div>
+        <div class="hero-date">🗓 11 de Junho de 2026 · EUA / CAN / MEX</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-num" id="stat-pts">0</div><div class="stat-lbl">Seus pontos</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--gold);" id="stat-pos">—</div><div class="stat-lbl">Posição no grupo</div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-bets">0</div><div class="stat-lbl">Apostas feitas</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--green);" id="stat-hits">0</div><div class="stat-lbl">Acertos</div></div>
+      </div>
+      <div class="next-match" id="next-match-box">
+        <div class="nm-label">⚡ Próximo jogo sem aposta</div>
+        <div class="nm-teams">
+          <div class="nm-team"><span class="nm-flag" id="nm-f1">⚽</span><div class="nm-name" id="nm-n1">—</div></div>
+          <div class="nm-vs">VS</div>
+          <div class="nm-team"><span class="nm-flag" id="nm-f2">⚽</span><div class="nm-name" id="nm-n2">—</div></div>
+        </div>
+        <div class="nm-time" id="nm-hint">Carregando jogos...</div>
+      </div>
+      <button class="btn btn-green" onclick="goScreen('jogos')">Ver jogos e apostar →</button>
+      <div style="height:10px;"></div>
+      <button class="btn btn-outline" onclick="goScreen('ranking')">Ver ranking do grupo</button>
+    </div>
+
+    <!-- JOGOS -->
+    <div id="screen-jogos" class="screen">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <span style="font-size:12px;color:var(--muted);">Resultados via <b style="color:var(--green)">Google Sheets</b></span>
+        <button onclick="syncAll(true)" style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 12px;color:var(--text);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;" onmouseover="this.style.borderColor='var(--green)'" onmouseout="this.style.borderColor='var(--border)'">↻ Sincronizar</button>
+      </div>
+      <div class="filter-row">
+        <button class="filter-btn active" onclick="filterMatches(this,'todos')">Todos</button>
+        <button class="filter-btn" onclick="filterMatches(this,'abertos')">Abertos</button>
+        <button class="filter-btn" onclick="filterMatches(this,'apostados')">Apostados</button>
+        <button class="filter-btn" onclick="filterMatches(this,'finalizados')">Finalizados</button>
+        <button class="filter-btn" onclick="filterMatches(this,'ao-vivo')">Ao vivo</button>
+      </div>
+      <div id="matches-list"><div class="empty-state">Carregando jogos...</div></div>
+    </div>
+
+    <!-- RANKING -->
+    <div id="screen-ranking" class="screen">
+      <div class="section-label">PLACAR GERAL</div>
+      <div class="rank-list" id="rank-list"><div class="empty-state">Carregando ranking...</div></div>
+      <div class="section-label" style="margin-top:20px;">BADGES</div>
+      <div class="badge-grid">
+        <div class="badge-item" id="badge-rei"><span class="badge-icon">👑</span><div class="badge-name">Rei do Placar</div></div>
+        <div class="badge-item" id="badge-sniper"><span class="badge-icon" style="opacity:.4">🎯</span><div class="badge-name">Sniper</div></div>
+        <div class="badge-item"><span class="badge-icon" style="opacity:.3">🔥</span><div class="badge-name">Em Chamas</div></div>
+        <div class="badge-item"><span class="badge-icon" style="opacity:.3">🦅</span><div class="badge-name">Vidente</div></div>
+      </div>
+
+    </div>
+
+    <!-- GRUPO -->
+    <div id="screen-grupo" class="screen">
+      <div class="section-label">GRUPO ATIVO</div>
+      <div class="group-code-box" id="grupo-code-box" style="background:var(--surface);">
+        <div class="group-code" id="grupo-code-txt">—</div>
+        <div class="group-code-label">Compartilhe o código com seus amigos</div>
+        <button class="btn btn-outline" style="margin-top:12px;" onclick="copyActiveCode()">📋 Copiar código</button>
+      </div>
+      <div class="section-label">SEU PERFIL</div>
+      <div class="card">
+        <div class="card-title">Seu nome no grupo</div>
+        <input id="user-name-input" type="text" placeholder="Digite seu nome..." class="form-input" oninput="saveName()">
+      </div>
+      <div class="section-label">MEMBROS (<span id="member-count">0</span>)</div>
+      <div class="members-list" id="members-list"></div>
+      <div class="divider"></div>
+      <div class="section-label">REGRAS</div>
+      <div class="rules-card">
+        <div class="rule-item"><div class="rule-pts">3</div><div class="rule-desc"><b>Placar exato</b> — acertou os dois gols</div></div>
+        <div class="rule-item"><div class="rule-pts">2</div><div class="rule-desc"><b>Saldo de gols</b> — acertou a diferença</div></div>
+        <div class="rule-item"><div class="rule-pts">1</div><div class="rule-desc"><b>Vencedor</b> — acertou quem ganhou</div></div>
+        <div class="rule-item"><div class="rule-pts" style="color:var(--red);">0</div><div class="rule-desc"><b>Errou tudo</b> — resultado diferente</div></div>
+      </div>
+      <div class="divider"></div>
+
+      <button class="btn btn-red" onclick="leaveGroup()">Sair do grupo</button>
+    </div>
+
+  </div>
+
+  <div id="bottomnav">
+    <button class="nav-btn active" id="nav-home" onclick="goScreen('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Início
+    </button>
+    <button class="nav-btn" id="nav-jogos" onclick="goScreen('jogos')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 010 20M2 12h20M12 2c-2.76 4-4 8-4 10s1.24 6 4 10M12 2c2.76 4 4 8 4 10s-1.24 6-4 10"/></svg>Jogos
+    </button>
+    <button class="nav-btn" id="nav-ranking" onclick="goScreen('ranking')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Ranking
+    </button>
+    <button class="nav-btn" id="nav-grupo" onclick="goScreen('grupo')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Grupo
+    </button>
+  </div>
+</div>
+
+<!-- ONBOARDING: nome -->
+<div class="onboarding" id="onboarding" style="display:none;">
+  <div class="onboarding-box">
+    <div class="onboarding-logo">BOLÃO<span>⚽</span>2026</div>
+    <div class="onboarding-sub">Copa do Mundo FIFA · EUA / CAN / MEX</div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">Como quer ser chamado?</div>
+      <input id="onboard-name" type="text" placeholder="Seu nome..." class="form-input" maxlength="30">
+    </div>
+    <button class="btn btn-green" onclick="finishOnboarding()">Entrar no bolão →</button>
+  </div>
+</div>
+
+<!-- MODAL APOSTA -->
+<div class="modal-backdrop" id="bet-modal" style="display:none;" onclick="if(event.target===this)closeBetModal()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">Sua Aposta</div>
+    <div class="bet-teams">
+      <div class="bet-team"><span class="bet-flag" id="modal-flag1">⚽</span><div class="bet-name" id="modal-team1">—</div></div>
+      <div class="bet-vs">VS</div>
+      <div class="bet-team"><span class="bet-flag" id="modal-flag2">⚽</span><div class="bet-name" id="modal-team2">—</div></div>
+    </div>
+    <div style="font-size:12px;text-align:center;color:var(--muted);margin-bottom:14px;">Qual será o placar final?</div>
+    <div class="score-input-row">
+      <div class="score-input-group">
+        <button class="score-btn" onclick="changeScore('h',-1)">−</button>
+        <div class="score-val" id="score-h">0</div>
+        <button class="score-btn" onclick="changeScore('h',1)">+</button>
+      </div>
+      <div class="score-sep">×</div>
+      <div class="score-input-group">
+        <button class="score-btn" onclick="changeScore('a',-1)">−</button>
+        <div class="score-val" id="score-a">0</div>
+        <button class="score-btn" onclick="changeScore('a',1)">+</button>
+      </div>
+    </div>
+    <div class="points-preview">
+      <div class="card-title">Pontos possíveis</div>
+      <div class="points-row"><span>Placar exato</span><b>+3 pts</b></div>
+      <div class="points-row"><span>Saldo de gols</span><b>+2 pts</b></div>
+      <div class="points-row"><span>Vencedor certo</span><b>+1 pt</b></div>
+    </div>
+    <button class="btn btn-green" id="confirm-btn" onclick="confirmBet()">Confirmar aposta ✓</button>
+    <div style="height:8px;"></div>
+    <button class="btn btn-red" id="remove-btn" onclick="removeBet()" style="display:none;">Remover aposta</button>
+  </div>
+</div>
+
+<!-- MODAL GRUPOS -->
+<div class="modal-backdrop" id="groups-modal" style="display:none;" onclick="if(event.target===this)closeGroupsModal()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Meus Grupos</div>
+    <div class="groups-manager" id="groups-manager-list"></div>
+    <div class="divider"></div>
+    <div class="section-mini">➕ Criar novo grupo</div>
+    <div class="new-group-form">
+      <label class="form-label">Nome do grupo</label>
+      <input id="new-group-name" type="text" placeholder="Ex: Família, Trabalho, Amigos..." class="form-input" maxlength="30">
+      <label class="form-label" style="margin-top:12px;">Cor do grupo</label>
+      <div class="color-picker" id="color-picker"></div>
+      <button class="btn btn-green" onclick="createGroup()" style="margin-top:12px;">Criar grupo</button>
+    </div>
+    <div class="divider"></div>
+    <div class="section-mini">🔗 Entrar em um grupo existente</div>
+    <div class="join-form">
+      <label class="form-label">Código do grupo</label>
+      <input id="join-code-input" type="text" placeholder="Ex: FAM26" class="form-input" maxlength="8" style="text-transform:uppercase;">
+      <button class="btn btn-outline" onclick="joinGroup()" style="margin-top:10px;">Entrar no grupo →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  ▼▼▼  COLE AQUI A URL DO SEU APPS SCRIPT  ▼▼▼
+//
+//  Como obter:
+//  1. Apps Script → Implantar → Nova implantação
+//  2. Tipo: App da Web
+//  3. Executar como: Eu
+//  4. Quem tem acesso: Qualquer pessoa
+//  5. Copie a URL gerada e cole abaixo
+// ════════════════════════════════════════════════════════
+const API_URL = 'https://script.google.com/macros/s/AKfycbxMV9a5WPgNDjIGeiz6lKvTFTGJSmc5rti9TXafxzK6z7z3qnzyYvDo8jO0L8RCnMcktg/exec';
+// ════════════════════════════════════════════════════════
+
+const COLORS = ['#00c853','#1e90ff','#ff4757','#ffd600','#9b59b6','#e67e22','#1abc9c','#e91e63'];
+
+const FLAG_MAP = {
+  // nomes em português
+  'brasil':'🇧🇷','argentina':'🇦🇷','portugal':'🇵🇹','frança':'🇫🇷','franca':'🇫🇷',
+  'alemanha':'🇩🇪','espanha':'🇪🇸','itália':'🇮🇹','italia':'🇮🇹','inglaterra':'🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'marrocos':'🇲🇦','senegal':'🇸🇳','japão':'🇯🇵','japao':'🇯🇵','coreia do sul':'🇰🇷',
+  'méxico':'🇲🇽','mexico':'🇲🇽','eua':'🇺🇸','estados unidos':'🇺🇸','croácia':'🇭🇷','croacia':'🇭🇷',
+  'países baixos':'🇳🇱','paises baixos':'🇳🇱','holanda':'🇳🇱','bélgica':'🇧🇪','belgica':'🇧🇪',
+  'uruguai':'🇺🇾','colômbia':'🇨🇴','colombia':'🇨🇴','chile':'🇨🇱','equador':'🇪🇨','peru':'🇵🇪',
+  'austrália':'🇦🇺','australia':'🇦🇺','egito':'🇪🇬','gana':'🇬🇭','nigéria':'🇳🇬','nigeria':'🇳🇬',
+  'camarões':'🇨🇲','camaroes':'🇨🇲','tunísia':'🇹🇳','tunisia':'🇹🇳','suíça':'🇨🇭','suica':'🇨🇭',
+  'polônia':'🇵🇱','polonia':'🇵🇱','dinamarca':'🇩🇰','sérvia':'🇷🇸','serbia':'🇷🇸','turquia':'🇹🇷',
+  'canada':'🇨🇦','canadá':'🇨🇦','costa rica':'🇨🇷','panamá':'🇵🇦','panama':'🇵🇦',
+  'escócia':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','escocia':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','gales':'🏴󠁧󠁢󠁷󠁬󠁳󠁿','irlanda':'🇮🇪',
+  // siglas de 2 letras (como o Sheets exporta)
+  'br':'🇧🇷','ar':'🇦🇷','pt':'🇵🇹','fr':'🇫🇷','de':'🇩🇪','es':'🇪🇸',
+  'it':'🇮🇹','en':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','gb-eng':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','ma':'🇲🇦','sn':'🇸🇳',
+  'jp':'🇯🇵','kr':'🇰🇷','mx':'🇲🇽','us':'🇺🇸','hr':'🇭🇷','nl':'🇳🇱',
+  'be':'🇧🇪','uy':'🇺🇾','co':'🇨🇴','cl':'🇨🇱','ec':'🇪🇨','pe':'🇵🇪',
+  'au':'🇦🇺','eg':'🇪🇬','gh':'🇬🇭','ng':'🇳🇬','cm':'🇨🇲','tn':'🇹🇳',
+  'ch':'🇨🇭','pl':'🇵🇱','dk':'🇩🇰','rs':'🇷🇸','tr':'🇹🇷','ca':'🇨🇦',
+  'cr':'🇨🇷','pa':'🇵🇦','ma':'🇲🇦','ir':'🇮🇷','sa':'🇸🇦','cn':'🇨🇳',
+  'eg':'🇪🇬','ua':'🇺🇦','hu':'🇭🇺','sk':'🇸🇰','si':'🇸🇮','ro':'🇷🇴',
+  'gr':'🇬🇷','cz':'🇨🇿','at':'🇦🇹','se':'🇸🇪','no':'🇳🇴','fi':'🇫🇮',
+  'nz':'🇳🇿','za':'🇿🇦','ng':'🇳🇬','ci':'🇨🇮','ml':'🇲🇱','sn':'🇸🇳',
+};
+
+function getFlag(v) {
+  if (!v) return '⚽';
+  const s = String(v).trim();
+  // já é emoji de bandeira
+  if ([...s][0]?.codePointAt(0) >= 0x1F1E6) return s;
+  // busca pelo valor em minúsculo (cobre siglas BR, AR, PT... e nomes por extenso)
+  return FLAG_MAP[s.toLowerCase()] || FLAG_MAP[s.toUpperCase()] || s;
+}
+
+// ── STORAGE ──
+const S = {
+  get: (k,d) => { try { const v=localStorage.getItem('b26_'+k); return v!==null?JSON.parse(v):d; } catch{return d;} },
+  set: (k,v) => { try { localStorage.setItem('b26_'+k, JSON.stringify(v)); } catch{} }
+};
+
+// ── ESTADO ──
+let matches       = [];
+let ranking       = [];
+let groups        = S.get('groups', []);
+let activeGid     = S.get('activeGid', null);
+let userName      = S.get('userName', '');
+let currentFilter = 'todos';
+let currentMatch  = null;
+let scoreH = 0, scoreA = 0;
+let selectedColor = COLORS[0];
+let syncTimer     = null;
+
+// ── API ──
+// Chama o Apps Script com fetch + fallback JSONP
+function api(params) {
+  // Tenta fetch direto primeiro (funciona quando hospedado)
+  const url = API_URL + '?' + new URLSearchParams(params).toString();
+  return fetch(url, { redirect: 'follow' })
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .catch(() => {
+      // Fallback: JSONP (funciona em arquivo local e quando há CORS)
+      return jsonp(params);
+    });
+}
+
+function jsonp(params) {
+  return new Promise((resolve, reject) => {
+    const cbName = '_cb' + Date.now() + Math.random().toString(36).slice(2);
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error('Timeout — reimplante o Apps Script: Implantar → Gerenciar → Nova versão'));
+    }, 15000);
+    function cleanup() { clearTimeout(timer); delete window[cbName]; if (script.parentNode) script.remove(); }
+    window[cbName] = (data) => { cleanup(); resolve(data); };
+    const script = document.createElement('script');
+    params.callback = cbName;
+    script.src = API_URL + '?' + new URLSearchParams(params).toString();
+    script.onerror = () => { cleanup(); reject(new Error('Script bloqueado — verifique se o Apps Script permite "Qualquer pessoa"')); };
+    document.head.appendChild(script);
+  });
+}
+
+// ── SYNC ──
+function setSyncStatus(state, label) {
+  document.getElementById('sync-dot').className = 'sync-dot ' + state;
+  document.getElementById('sync-label').textContent = label;
+}
+
+async function syncAll(manual = false) {
+  setSyncStatus('loading', 'Sincronizando...');
+  hideDiag();
+  try {
+    const grupo = activeGroup()?.code || '';
+    const [rJogos, rRanking] = await Promise.all([
+      api({ action: 'getJogos' }),
+      grupo ? api({ action: 'getRanking', grupo }) : Promise.resolve({ ok: true, ranking: [] }),
+    ]);
+    if (!rJogos.ok) throw new Error(rJogos.error || 'Erro ao buscar jogos');
+    matches = rJogos.jogos.map(rowToMatch).filter(m => m.id > 0);
+    ranking = rRanking.ranking || [];
+    S.set('matches_cache', matches);
+    S.set('ranking_cache_'+grupo, ranking);
+    const now = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+    setSyncStatus('ok', 'Atualizado ' + now);
+    renderMatches();
+    updateHome();
+    if (document.getElementById('screen-ranking').classList.contains('active')) renderRanking();
+    if (manual) showToast('✅ Sincronizado!');
+  } catch(e) {
+    setSyncStatus('err', 'Sem conexão');
+    matches = S.get('matches_cache', []);
+    const grupo = activeGroup()?.code || '';
+    ranking = S.get('ranking_cache_'+grupo, []);
+    renderMatches();
+    updateHome();
+    showDiag(e.message);
+  }
+}
+
+function showDiag(erro) {
+  let d = document.getElementById('diag-box');
+  if (!d) {
+    d = document.createElement('div');
+    d.id = 'diag-box';
+    d.style.cssText = 'margin:12px 0;background:#162340;border:1px solid rgba(255,71,87,.4);border-radius:12px;padding:14px 16px;font-size:12px;line-height:1.7;';
+    // insere depois do hero na tela home
+    const hero = document.querySelector('.home-hero');
+    if (hero) hero.after(d);
+  }
+  d.innerHTML = `
+    <div style="color:#ff4757;font-weight:600;margin-bottom:8px;">⚠️ Problema de conexão</div>
+    <div style="color:#7a90b8;margin-bottom:10px;word-break:break-word;">${erro}</div>
+    <div style="color:#f0f4ff;font-weight:600;margin-bottom:6px;">Checklist:</div>
+    <div id="diag-checks" style="color:#7a90b8;"></div>
+    <button onclick="runDiag()" style="margin-top:10px;width:100%;padding:8px;background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#f0f4ff;cursor:pointer;font-size:12px;">🔍 Diagnosticar agora</button>
+  `;
+  d.style.display = 'block';
+}
+
+function hideDiag() {
+  const d = document.getElementById('diag-box');
+  if (d) d.style.display = 'none';
+}
+
+async function runDiag() {
+  const el = document.getElementById('diag-checks');
+  if (!el) return;
+  el.innerHTML = 'Testando...';
+  const steps = [];
+
+  // 1. URL configurada?
+  const urlOk = API_URL && !API_URL.includes('COLE_AQUI');
+  steps.push({ ok: urlOk, msg: urlOk ? 'URL do Apps Script configurada' : 'URL do Apps Script não configurada no código' });
+
+  // 2. Alcança o servidor?
+  if (urlOk) {
+    try {
+      const r = await fetch(API_URL + '?action=ping', { redirect:'follow', signal: AbortSignal.timeout(5000) });
+      steps.push({ ok: true, msg: 'Servidor alcançável (HTTP ' + r.status + ')' });
+    } catch(e) {
+      steps.push({ ok: false, msg: 'Servidor inacessível: ' + e.message });
+    }
+  }
+
+  // 3. JSONP responde?
+  if (urlOk) {
+    try {
+      const r = await Promise.race([
+        jsonp({ action: 'getJogos' }),
+        new Promise((_,rj) => setTimeout(() => rj(new Error('timeout')), 8000))
+      ]);
+      steps.push({ ok: r.ok, msg: r.ok ? 'Apps Script respondeu corretamente ✓' : 'Apps Script respondeu com erro: ' + r.error });
+      if (r.ok) {
+        steps.push({ ok: r.jogos.length > 0, msg: r.jogos.length > 0 ? r.jogos.length + ' jogos carregados da planilha' : 'Planilha vazia — adicione jogos na aba Jogos' });
+      }
+    } catch(e) {
+      steps.push({ ok: false, msg: 'Apps Script não respondeu: ' + e.message });
+      steps.push({ ok: false, msg: 'Solução: Apps Script → Implantar → Gerenciar implantações → editar → Nova versão → Implantar' });
+    }
+  }
+
+  el.innerHTML = steps.map(s =>
+    `<div style="color:${s.ok?'#00c853':'#ff4757'};margin-bottom:4px;">${s.ok?'✓':'✗'} ${s.msg}</div>`
+  ).join('');
+}
+
+function startAutoSync() {
+  syncAll(false);
+  clearInterval(syncTimer);
+  syncTimer = setInterval(() => syncAll(false), 60000);
+}
+
+function cleanDate(raw) {
+  if (!raw) return '';
+  // Se vier formato longo do Google Sheets (ex: "Sat Jun 13 2026 00:00:00 GMT+0100...")
+  // extrai só "Jun 13"
+  const m = String(raw).match(/([A-Za-z]{3})\s+([A-Za-z]{3})\s+(\d{1,2})\s+(\d{4})/);
+  if (m) return m[2] + ' ' + m[3]; // ex: "Jun 13"
+  // Se vier formato "jun. 13" do Sheets em PT
+  const m2 = String(raw).match(/([a-zA-Záéíóúàèìòùâêîôûãõç.]+)\s+(\d{1,2})/);
+  if (m2) {
+    const mon = m2[1].replace('.','').toLowerCase();
+    const months = {jan:'Jan',fev:'Fev',mar:'Mar',abr:'Abr',mai:'Mai',jun:'Jun',jul:'Jul',ago:'Ago',set:'Set',out:'Out',nov:'Nov',dez:'Dez'};
+    return (months[mon]||m2[1])+' '+m2[2];
+  }
+  return String(raw).split(' ')[0]; // fallback: pega primeira palavra
+}
+
+function rowToMatch(row) {
+  const gh = parseInt(row.gol_casa), ga = parseInt(row.gol_visit);
+  const status = (row.status || 'upcoming').toLowerCase().trim();
+  const hasScore = (status === 'done' || status === 'live') && !isNaN(gh) && !isNaN(ga);
+  const dataLimpa = cleanDate(row.data);
+  const hora = (row.hora || '').trim();
+  return {
+    id:    parseInt(row.id) || 0,
+    home:  row.time_casa  || '—',
+    hFlag: getFlag(row.flag_casa || row.time_casa),
+    away:  row.time_visit || '—',
+    aFlag: getFlag(row.flag_visit || row.time_visit),
+    round: row.fase || '',
+    date:  dataLimpa && hora ? `${dataLimpa} · ${hora}` : dataLimpa || hora || '—',
+    status,
+    score: hasScore ? {h: gh, a: ga} : null,
+  };
+}
+
+// ── INIT ──
+function init() {
+  if (!userName) { document.getElementById('onboarding').style.display = 'flex'; return; }
+  if (!groups.length) createDefaultGroup();
+  if (!activeGid || !groups.find(g => g.id === activeGid)) { activeGid = groups[0].id; S.set('activeGid', activeGid); }
+  buildColorPicker();
+  renderGroupTabs();
+  updateCountdown();
+  startAutoSync();
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+function finishOnboarding() {
+  const name = document.getElementById('onboard-name').value.trim();
+  if (!name) { showToast('⚠️ Digite seu nome'); return; }
+  userName = name; S.set('userName', userName);
+  document.getElementById('onboarding').style.display = 'none';
+  createDefaultGroup();
+  buildColorPicker();
+  renderGroupTabs();
+  updateCountdown();
+  startAutoSync();
+}
+
+function createDefaultGroup() {
+  if (groups.length) return;
+  const g = makeGroup('Meu Grupo', COLORS[0]);
+  // cria no servidor também
+  api({ action:'saveGrupo', nome: g.name, codigo: g.code, cor: g.color, criador: userName }).catch(()=>{});
+  groups = [g]; S.set('groups', groups);
+  activeGid = g.id; S.set('activeGid', activeGid);
+}
+
+function makeGroup(name, color) {
+  return { id: Date.now()+'_'+Math.random().toString(36).slice(2,6), name, color, code: genCode(name), createdAt: new Date().toISOString() };
+}
+function genCode(name) {
+  const b = name.replace(/[^a-zA-Z0-9]/g,'').toUpperCase().slice(0,3).padEnd(3,'X');
+  return b + Math.floor(10 + Math.random()*89);
+}
+function activeGroup() { return groups.find(g => g.id === activeGid); }
+
+// ── TABS DE GRUPOS ──
+function renderGroupTabs() {
+  document.getElementById('groups-switcher').innerHTML = groups.map(g => {
+    const a = g.id === activeGid;
+    return `<button class="group-tab${a?' active':''}" style="${a?`background:${g.color};border-color:${g.color};`:''}" onclick="switchGroup('${g.id}')" title="${g.name}">${g.name}</button>`;
+  }).join('');
+}
+
+function switchGroup(gid) {
+  activeGid = gid; S.set('activeGid', activeGid);
+  renderGroupTabs(); syncAll(false); closeGroupsModal();
+}
+
+// ── NAVEGAÇÃO ──
+function goScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  if (name === 'home')    updateHome();
+  if (name === 'jogos')   renderMatches();
+  if (name === 'ranking') renderRanking();
+  if (name === 'grupo')   renderGrupo();
+}
+
+function updateCountdown() {
+  document.getElementById('countdown-days').textContent =
+    Math.floor(Math.max(0, new Date('2026-06-11T20:00:00Z') - new Date()) / 864e5);
+}
+
+// ── PONTUAÇÃO ──
+function calcPoints(bet, result) {
+  if (!result || !bet) return null;
+  if (bet.h === result.h && bet.a === result.a) return 3;
+  if ((bet.h-bet.a) === (result.h-result.a) && result.h !== result.a) return 2;
+  const w = r => r.h>r.a?1:r.h<r.a?-1:0;
+  if (w(bet) === w(result)) return 1;
+  return 0;
+}
+
+function myBetsStats() {
+  const bets = myBets();
+  let pts=0, hits=0, exact=0, betCount=Object.keys(bets).length;
+  matches.forEach(m => {
+    const p = calcPoints(bets[m.id], m.score);
+    if (p !== null) { pts+=p; if(p>0)hits++; if(p===3)exact++; }
+  });
+  return { pts, hits, exact, betCount };
+}
+
+function myBets() { return S.get('bets_'+(activeGid||''), {}); }
+function saveMyBets(b) { S.set('bets_'+(activeGid||''), b); }
+
+// ── HOME ──
+function updateHome() {
+  const { pts, hits, betCount } = myBetsStats();
+  document.getElementById('stat-pts').textContent  = pts;
+  document.getElementById('stat-bets').textContent = betCount;
+  document.getElementById('stat-hits').textContent = hits;
+  // posição baseada no ranking real
+  const myPos = ranking.filter(r => r.pts > pts).length + 1;
+  document.getElementById('stat-pos').textContent = ranking.length ? myPos+'º' : '—';
+  const bets = myBets();
+  const next = matches.find(m => m.status === 'upcoming' && !bets[m.id]);
+  if (next) {
+    document.getElementById('nm-f1').textContent   = next.hFlag;
+    document.getElementById('nm-n1').textContent   = next.home;
+    document.getElementById('nm-f2').textContent   = next.aFlag;
+    document.getElementById('nm-n2').textContent   = next.away;
+    document.getElementById('nm-hint').textContent = '⏱ '+next.date+' — Você ainda não apostou!';
+  } else if (matches.length) {
+    document.getElementById('nm-f1').textContent  = '✅';
+    document.getElementById('nm-n1').textContent  = '';
+    document.getElementById('nm-f2').textContent  = '';
+    document.getElementById('nm-n2').textContent  = '';
+    document.getElementById('nm-hint').textContent = 'Todas as apostas feitas!';
+  }
+}
+
+// ── JOGOS ──
+function renderMatches() {
+  const bets = myBets();
+  const filtered = matches.filter(m => {
+    if (currentFilter === 'todos')       return true;
+    if (currentFilter === 'abertos')     return m.status === 'upcoming' && !bets[m.id];
+    if (currentFilter === 'apostados')   return !!bets[m.id];
+    if (currentFilter === 'finalizados') return m.status === 'done';
+    if (currentFilter === 'ao-vivo')     return m.status === 'live';
+    return true;
+  });
+  const list = document.getElementById('matches-list');
+  if (!matches.length) { list.innerHTML = '<div class="empty-state">Aguardando conexão com a planilha...</div>'; return; }
+  if (!filtered.length) { list.innerHTML = '<div class="empty-state">Nenhum jogo nesta categoria</div>'; return; }
+  list.innerHTML = filtered.map(m => {
+    const bet = bets[m.id], pts = bet && m.score ? calcPoints(bet, m.score) : null;
+    const sl  = m.status==='upcoming'?'Não iniciado':m.status==='live'?'Ao vivo ●':'Finalizado';
+    const hint = bet ? `✓ ${bet.h}×${bet.a}${pts!==null?' · +'+pts+'pts':''}` : m.status==='upcoming'?'Toque para apostar':'';
+    return `<div class="match-card ${bet?'has-bet':''}" onclick="openBet(${m.id})">
+      <div class="match-header"><span class="match-round">${m.round}</span><span class="match-status status-${m.status}">${m.status==='live'?`<span class="pulse">${sl}</span>`:sl}</span></div>
+      <div class="match-teams">
+        <div class="match-team"><span class="team-flag">${m.hFlag}</span><span class="team-name">${m.home}</span></div>
+        <div class="match-score ${m.score?'':'pending'}">${m.score?m.score.h+' – '+m.score.a:'–'}</div>
+        <div class="match-team right"><span class="team-name">${m.away}</span><span class="team-flag">${m.aFlag}</span></div>
+      </div>
+      <div class="match-footer"><span class="match-time">🕐 ${m.date}</span><span class="bet-indicator">${hint}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function filterMatches(btn, f) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active'); currentFilter = f; renderMatches();
+}
+
+// ── APOSTAS ──
+function openBet(id) {
+  const m = matches.find(x => x.id === id); if (!m) return;
+  if (m.status === 'done') { showToast('Jogo finalizado — apostas encerradas'); return; }
+  currentMatch = m;
+  const bets = myBets(), saved = bets[id];
+  scoreH = saved?saved.h:0; scoreA = saved?saved.a:0;
+  document.getElementById('modal-flag1').textContent = m.hFlag;
+  document.getElementById('modal-team1').textContent = m.home;
+  document.getElementById('modal-flag2').textContent = m.aFlag;
+  document.getElementById('modal-team2').textContent = m.away;
+  document.getElementById('score-h').textContent = scoreH;
+  document.getElementById('score-a').textContent = scoreA;
+  document.getElementById('modal-title').textContent = m.status==='live'?'Ao Vivo':'Sua Aposta';
+  const can = m.status === 'upcoming';
+  document.getElementById('confirm-btn').style.display = can ? 'block' : 'none';
+  document.getElementById('remove-btn').style.display  = can && saved ? 'block' : 'none';
+  document.querySelectorAll('.score-btn').forEach(b => b.disabled = !can);
+  document.getElementById('bet-modal').style.display = 'flex';
+}
+function closeBetModal() { document.getElementById('bet-modal').style.display = 'none'; }
+function changeScore(side, d) {
+  if (side==='h') { scoreH=Math.max(0,scoreH+d); document.getElementById('score-h').textContent=scoreH; }
+  else            { scoreA=Math.max(0,scoreA+d); document.getElementById('score-a').textContent=scoreA; }
+}
+
+async function confirmBet() {
+  if (!currentMatch || !userName) return;
+  const g = activeGroup(); if (!g) return;
+  const btn = document.getElementById('confirm-btn');
+  btn.textContent = 'Salvando...'; btn.disabled = true;
+  try {
+    const result = await api({
+      action:    'saveAposta',
+      usuario:   userName,
+      grupo:     g.code,
+      jogo_id:   currentMatch.id,
+      gol_casa:  scoreH,
+      gol_visit: scoreA,
+    });
+    if (!result.ok) throw new Error(result.error);
+    // salva também local para resposta rápida
+    const bets = myBets();
+    bets[currentMatch.id] = { h: scoreH, a: scoreA, ts: new Date().toISOString() };
+    saveMyBets(bets);
+    closeBetModal();
+    showToast(`✅ Aposta salva: ${currentMatch.home} ${scoreH}×${scoreA} ${currentMatch.away}`);
+    renderMatches(); updateHome();
+  } catch(e) {
+    showToast('⚠️ Erro ao salvar: ' + e.message);
+  } finally {
+    btn.textContent = 'Confirmar aposta ✓'; btn.disabled = false;
+  }
+}
+
+async function removeBet() {
+  if (!currentMatch) return;
+  // Remove localmente (no servidor fica registrada mas sem valor — simplificação)
+  const bets = myBets(); delete bets[currentMatch.id]; saveMyBets(bets);
+  closeBetModal(); showToast('🗑 Aposta removida localmente'); renderMatches(); updateHome();
+}
+
+// ── RANKING ──
+function renderRanking() {
+  const { pts, exact, hits } = myBetsStats();
+  const medals = ['🥇','🥈','🥉'];
+  // Mescla ranking do servidor com dado local do usuário
+  let all = [...ranking];
+  const meIdx = all.findIndex(r => r.usuario === userName);
+  const meObj = { usuario: userName, pts, exatos: exact, acertos: hits, isMe: true };
+  if (meIdx >= 0) all[meIdx] = { ...all[meIdx], ...meObj };
+  else all.push(meObj);
+  all = all.sort((a,b) => b.pts - a.pts);
+
+  document.getElementById('rank-list').innerHTML = all.length ? all.map((m,i) => {
+    const color = COLORS[i % COLORS.length];
+    const ini   = (m.usuario||'?').slice(0,2).toUpperCase();
+    return `<div class="rank-item ${m.isMe?'me':''}">
+      <div class="rank-pos ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i<3?medals[i]:i+1}</div>
+      <div class="rank-avatar" style="background:${color}22;color:${color}">${ini}</div>
+      <div class="rank-info">
+        <div class="rank-name">${m.usuario} ${m.isMe?'<span class="rank-badge">Você</span>':''}</div>
+        <div class="rank-detail">${m.exatos||0} exatos · ${m.acertos||0} acertos</div>
+      </div>
+      <div class="rank-pts">${m.pts||0}</div>
+    </div>`;
+  }).join('') : '<div class="empty-state">Sem apostas registradas ainda</div>';
+
+  document.getElementById('badge-rei').className    = 'badge-item'+(exact>=3?' earned':'');
+  document.getElementById('badge-sniper').className = 'badge-item'+(exact>=1?' earned':'');
+}
+
+// ── GRUPO ──
+function renderGrupo() {
+  const g = activeGroup(); if (!g) return;
+  document.getElementById('grupo-code-txt').textContent   = g.code;
+  document.getElementById('grupo-code-txt').style.color   = g.color;
+  document.getElementById('grupo-code-box').style.borderColor = g.color+'66';
+  document.getElementById('user-name-input').value = userName;
+  // membros a partir do ranking
+  const all = ranking.length ? ranking : [{ usuario: userName, pts: 0 }];
+  document.getElementById('member-count').textContent = all.length;
+  document.getElementById('members-list').innerHTML = all.map(m => {
+    const color = COLORS[Math.abs(hashStr(m.usuario||'')) % COLORS.length];
+    const ini   = (m.usuario||'?').slice(0,2).toUpperCase();
+    return `<div class="member-item">
+      <div class="member-avatar" style="background:${color}22;color:${color}">${ini}</div>
+      <div class="member-name">${m.usuario}</div>
+      <div class="member-pts">${m.pts||0} pts</div>
+    </div>`;
+  }).join('');
+}
+
+function hashStr(s) { let h=0; for(let c of s){h=(h<<5)-h+c.charCodeAt(0);h|=0;} return h; }
+
+function saveName() {
+  userName = document.getElementById('user-name-input').value;
+  S.set('userName', userName);
+}
+function copyActiveCode() {
+  const g = activeGroup(); if (!g) return;
+  navigator.clipboard.writeText(g.code).catch(()=>{});
+  showToast('📋 Código ' + g.code + ' copiado!');
+}
+function leaveGroup() {
+  if (groups.length <= 1) { showToast('⚠️ Você precisa ter ao menos um grupo'); return; }
+  const g = activeGroup();
+  if (!confirm('Sair do grupo "'+g.name+'"?')) return;
+  groups = groups.filter(x => x.id !== activeGid); S.set('groups', groups);
+  activeGid = groups[0].id; S.set('activeGid', activeGid);
+  renderGroupTabs(); goScreen('home'); syncAll(false); showToast('Você saiu do grupo');
+}
+
+// ── MODAL GRUPOS ──
+function buildColorPicker() {
+  document.getElementById('color-picker').innerHTML = COLORS.map((c,i) =>
+    `<div class="color-opt${i===0?' selected':''}" style="background:${c}" onclick="pickColor(this,'${c}')"></div>`
+  ).join('');
+}
+function pickColor(el, c) {
+  document.querySelectorAll('.color-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected'); selectedColor = c;
+}
+function openGroupsModal()  { renderGroupsManager(); document.getElementById('groups-modal').style.display = 'flex'; }
+function closeGroupsModal() { document.getElementById('groups-modal').style.display = 'none'; }
+
+function renderGroupsManager() {
+  const el = document.getElementById('groups-manager-list');
+  el.innerHTML = groups.map(g => {
+    const bc = Object.keys(S.get('bets_'+g.id,{})).length, isA = g.id === activeGid;
+    return `<div class="group-item-card${isA?' active-group':''}" onclick="switchGroup('${g.id}')">
+      <div class="group-color-dot" style="background:${g.color}"></div>
+      <div class="group-item-info">
+        <div class="group-item-name">${g.name}${isA?' <span style="font-size:10px;color:var(--green)">● ativo</span>':''}</div>
+        <div class="group-item-code">Código: <b style="color:var(--text)">${g.code}</b></div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="group-item-bets">${bc} apostas</div>
+        <div style="display:flex;gap:4px;margin-top:6px;justify-content:flex-end">
+          <button class="icon-btn copy" onclick="event.stopPropagation();copyCode('${g.code}')" title="Copiar">📋</button>
+          ${groups.length>1?`<button class="icon-btn" onclick="event.stopPropagation();deleteGroup('${g.id}')" title="Excluir">✕</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function copyCode(code) { navigator.clipboard.writeText(code).catch(()=>{}); showToast('📋 ' + code + ' copiado!'); }
+
+async function createGroup() {
+  const name = document.getElementById('new-group-name').value.trim();
+  if (!name || name.length < 2) { showToast('⚠️ Digite um nome'); return; }
+  const g = makeGroup(name, selectedColor);
+  try {
+    const r = await api({ action:'saveGrupo', nome:g.name, codigo:g.code, cor:g.color, criador:userName });
+    if (!r.ok) throw new Error(r.error);
+  } catch(e) { showToast('⚠️ '+e.message); return; }
+  groups.push(g); S.set('groups', groups);
+  activeGid = g.id; S.set('activeGid', activeGid);
+  document.getElementById('new-group-name').value = '';
+  renderGroupTabs(); renderGroupsManager(); closeGroupsModal(); goScreen('home'); syncAll(false);
+  showToast('✅ Grupo "'+g.name+'" criado! Código: '+g.code);
+}
+
+async function joinGroup() {
+  const code = document.getElementById('join-code-input').value.trim().toUpperCase();
+  if (code.length < 4) { showToast('⚠️ Digite o código'); return; }
+  const exists = groups.find(g => g.code === code);
+  if (exists) { switchGroup(exists.id); showToast('Você já está neste grupo'); document.getElementById('join-code-input').value=''; return; }
+  try {
+    const r = await api({ action:'joinGrupo', codigo: code });
+    if (!r.ok) throw new Error(r.error);
+    const gd = r.grupo;
+    const g = { id: Date.now()+'_'+Math.random().toString(36).slice(2,6), name: gd.nome, color: gd.cor||COLORS[groups.length%COLORS.length], code: gd.codigo, createdAt: gd.criado_em||new Date().toISOString() };
+    groups.push(g); S.set('groups', groups);
+    activeGid = g.id; S.set('activeGid', activeGid);
+    document.getElementById('join-code-input').value = '';
+    renderGroupTabs(); renderGroupsManager(); closeGroupsModal(); goScreen('home'); syncAll(false);
+    showToast('✅ Entrou no grupo "'+g.name+'"!');
+  } catch(e) { showToast('⚠️ '+e.message); }
+}
+
+function deleteGroup(gid) {
+  if (groups.length <= 1) { showToast('⚠️ Ao menos um grupo é necessário'); return; }
+  const g = groups.find(x => x.id === gid);
+  if (!confirm('Sair do grupo "'+g.name+'"?')) return;
+  groups = groups.filter(x => x.id !== gid); S.set('groups', groups);
+  if (activeGid === gid) { activeGid = groups[0].id; S.set('activeGid', activeGid); }
+  renderGroupTabs(); renderGroupsManager(); updateHome(); showToast('Grupo removido da lista');
+}
+
+// ── EXPORTAR ──
+function exportExcel() {
+  const g = activeGroup(), bets = myBets();
+  const wb = XLSX.utils.book_new();
+  const rows = [['Jogo','Time Casa','Time Visitante','Aposta Casa','Aposta Visit.','Resultado','Pontos','Quando']];
+  matches.forEach(m => {
+    const bet=bets[m.id], pts=bet&&m.score?calcPoints(bet,m.score):'';
+    rows.push([m.round,m.home,m.away,bet?bet.h:'',bet?bet.a:'',m.score?`${m.score.h}-${m.score.a}`:'Não iniciado',pts!==''?pts:'',bet?new Date(bet.ts).toLocaleString('pt-BR'):'']);
+  });
+  const ws1=XLSX.utils.aoa_to_sheet(rows);
+  ws1['!cols']=[{wch:12},{wch:14},{wch:14},{wch:12},{wch:12},{wch:14},{wch:8},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,ws1,'Minhas Apostas');
+  const rank=[['Posição','Usuário','Pontos','Exatos','Acertos']];
+  ranking.sort((a,b)=>b.pts-a.pts).forEach((m,i)=>rank.push([i+1,m.usuario,m.pts||0,m.exatos||0,m.acertos||0]));
+  const ws2=XLSX.utils.aoa_to_sheet(rank);
+  ws2['!cols']=[{wch:8},{wch:18},{wch:10},{wch:10},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,ws2,'Ranking');
+  const fn=`bolao-${(g?g.name:'grupo').replace(/[^a-zA-Z0-9]/g,'-')}-${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.xlsx`;
+  XLSX.writeFile(wb,fn); showToast('📊 Excel exportado!');
+}
+function exportCSV() {
+  const bets=myBets();
+  let csv='Jogo,Time Casa,Visitante,Aposta Casa,Aposta Visit.,Resultado,Pontos\n';
+  matches.forEach(m=>{const bet=bets[m.id],pts=bet&&m.score?calcPoints(bet,m.score):'';csv+=`${m.round},${m.home},${m.away},${bet?bet.h:''},${bet?bet.a:''},${m.score?m.score.h+'-'+m.score.a:''},${pts}\n`;});
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download='bolao-2026.csv';a.click();showToast('📄 CSV exportado!');
+}
+
+// ── TOAST ──
+let toastTimer;
+function showToast(msg) {
+  let t=document.getElementById('toast');
+  if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1a2b48;border:1px solid rgba(0,200,83,.3);color:#f0f4ff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:999;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 20px rgba(0,0,0,.4);transition:opacity .3s;';document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity='1';clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.style.opacity='0',3500);
+}
+
+init();
+</script>
+</body>
+</html>
