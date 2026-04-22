@@ -403,17 +403,29 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxMV9a5WPgNDjIGeiz6lKvT
 const COLORS = ['#00c853','#1e90ff','#ff4757','#ffd600','#9b59b6','#e67e22','#1abc9c','#e91e63'];
 
 const FLAG_MAP = {
+  // nomes em português
   'brasil':'🇧🇷','argentina':'🇦🇷','portugal':'🇵🇹','frança':'🇫🇷','franca':'🇫🇷',
   'alemanha':'🇩🇪','espanha':'🇪🇸','itália':'🇮🇹','italia':'🇮🇹','inglaterra':'🏴󠁧󠁢󠁥󠁮󠁧󠁿',
   'marrocos':'🇲🇦','senegal':'🇸🇳','japão':'🇯🇵','japao':'🇯🇵','coreia do sul':'🇰🇷',
-  'méxico':'🇲🇽','mexico':'🇲🇽','eua':'🇺🇸','croácia':'🇭🇷','croacia':'🇭🇷',
-  'países baixos':'🇳🇱','paises baixos':'🇳🇱','holanda':'🇳🇱','bélgica':'🇧🇪',
-  'belgica':'🇧🇪','uruguai':'🇺🇾','colômbia':'🇨🇴','colombia':'🇨🇴','chile':'🇨🇱',
-  'equador':'🇪🇨','peru':'🇵🇪','austrália':'🇦🇺','australia':'🇦🇺','egito':'🇪🇬',
-  'gana':'🇬🇭','nigéria':'🇳🇬','nigeria':'🇳🇬','camarões':'🇨🇲','camaroes':'🇨🇲',
-  'tunísia':'🇹🇳','tunisia':'🇹🇳','suíça':'🇨🇭','suica':'🇨🇭','polônia':'🇵🇱',
-  'polonia':'🇵🇱','dinamarca':'🇩🇰','sérvia':'🇷🇸','serbia':'🇷🇸','turquia':'🇹🇷',
+  'méxico':'🇲🇽','mexico':'🇲🇽','eua':'🇺🇸','estados unidos':'🇺🇸','croácia':'🇭🇷','croacia':'🇭🇷',
+  'países baixos':'🇳🇱','paises baixos':'🇳🇱','holanda':'🇳🇱','bélgica':'🇧🇪','belgica':'🇧🇪',
+  'uruguai':'🇺🇾','colômbia':'🇨🇴','colombia':'🇨🇴','chile':'🇨🇱','equador':'🇪🇨','peru':'🇵🇪',
+  'austrália':'🇦🇺','australia':'🇦🇺','egito':'🇪🇬','gana':'🇬🇭','nigéria':'🇳🇬','nigeria':'🇳🇬',
+  'camarões':'🇨🇲','camaroes':'🇨🇲','tunísia':'🇹🇳','tunisia':'🇹🇳','suíça':'🇨🇭','suica':'🇨🇭',
+  'polônia':'🇵🇱','polonia':'🇵🇱','dinamarca':'🇩🇰','sérvia':'🇷🇸','serbia':'🇷🇸','turquia':'🇹🇷',
   'canada':'🇨🇦','canadá':'🇨🇦','costa rica':'🇨🇷','panamá':'🇵🇦','panama':'🇵🇦',
+  'escócia':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','escocia':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','gales':'🏴󠁧󠁢󠁷󠁬󠁳󠁿','irlanda':'🇮🇪',
+  // siglas de 2 letras (como o Sheets exporta)
+  'br':'🇧🇷','ar':'🇦🇷','pt':'🇵🇹','fr':'🇫🇷','de':'🇩🇪','es':'🇪🇸',
+  'it':'🇮🇹','en':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','gb-eng':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','ma':'🇲🇦','sn':'🇸🇳',
+  'jp':'🇯🇵','kr':'🇰🇷','mx':'🇲🇽','us':'🇺🇸','hr':'🇭🇷','nl':'🇳🇱',
+  'be':'🇧🇪','uy':'🇺🇾','co':'🇨🇴','cl':'🇨🇱','ec':'🇪🇨','pe':'🇵🇪',
+  'au':'🇦🇺','eg':'🇪🇬','gh':'🇬🇭','ng':'🇳🇬','cm':'🇨🇲','tn':'🇹🇳',
+  'ch':'🇨🇭','pl':'🇵🇱','dk':'🇩🇰','rs':'🇷🇸','tr':'🇹🇷','ca':'🇨🇦',
+  'cr':'🇨🇷','pa':'🇵🇦','ma':'🇲🇦','ir':'🇮🇷','sa':'🇸🇦','cn':'🇨🇳',
+  'eg':'🇪🇬','ua':'🇺🇦','hu':'🇭🇺','sk':'🇸🇰','si':'🇸🇮','ro':'🇷🇴',
+  'gr':'🇬🇷','cz':'🇨🇿','at':'🇦🇹','se':'🇸🇪','no':'🇳🇴','fi':'🇫🇮',
+  'nz':'🇳🇿','za':'🇿🇦','ng':'🇳🇬','ci':'🇨🇮','ml':'🇲🇱','sn':'🇸🇳',
 };
 
 function getFlag(v) {
@@ -583,10 +595,28 @@ function startAutoSync() {
   syncTimer = setInterval(() => syncAll(false), 60000);
 }
 
+function cleanDate(raw) {
+  if (!raw) return '';
+  // Se vier formato longo do Google Sheets (ex: "Sat Jun 13 2026 00:00:00 GMT+0100...")
+  // extrai só "Jun 13"
+  const m = String(raw).match(/([A-Za-z]{3})\s+([A-Za-z]{3})\s+(\d{1,2})\s+(\d{4})/);
+  if (m) return m[2] + ' ' + m[3]; // ex: "Jun 13"
+  // Se vier formato "jun. 13" do Sheets em PT
+  const m2 = String(raw).match(/([a-zA-Záéíóúàèìòùâêîôûãõç.]+)\s+(\d{1,2})/);
+  if (m2) {
+    const mon = m2[1].replace('.','').toLowerCase();
+    const months = {jan:'Jan',fev:'Fev',mar:'Mar',abr:'Abr',mai:'Mai',jun:'Jun',jul:'Jul',ago:'Ago',set:'Set',out:'Out',nov:'Nov',dez:'Dez'};
+    return (months[mon]||m2[1])+' '+m2[2];
+  }
+  return String(raw).split(' ')[0]; // fallback: pega primeira palavra
+}
+
 function rowToMatch(row) {
   const gh = parseInt(row.gol_casa), ga = parseInt(row.gol_visit);
   const status = (row.status || 'upcoming').toLowerCase().trim();
   const hasScore = (status === 'done' || status === 'live') && !isNaN(gh) && !isNaN(ga);
+  const dataLimpa = cleanDate(row.data);
+  const hora = (row.hora || '').trim();
   return {
     id:    parseInt(row.id) || 0,
     home:  row.time_casa  || '—',
@@ -594,7 +624,7 @@ function rowToMatch(row) {
     away:  row.time_visit || '—',
     aFlag: getFlag(row.flag_visit || row.time_visit),
     round: row.fase || '',
-    date:  `${row.data||''} · ${row.hora||''}`,
+    date:  dataLimpa && hora ? `${dataLimpa} · ${hora}` : dataLimpa || hora || '—',
     status,
     score: hasScore ? {h: gh, a: ga} : null,
   };
