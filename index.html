@@ -312,16 +312,17 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   </div>
 </div>
 
-<!-- ONBOARDING: nome -->
+<!-- ONBOARDING: login por nome -->
 <div class="onboarding" id="onboarding" style="display:none;">
   <div class="onboarding-box">
     <div class="onboarding-logo">BOLÃO<span>⚽</span>2026</div>
     <div class="onboarding-sub">Copa do Mundo FIFA · EUA / CAN / MEX</div>
     <div class="card" style="margin-bottom:16px;">
-      <div class="card-title">Como quer ser chamado?</div>
-      <input id="onboard-name" type="text" placeholder="Seu nome..." class="form-input" maxlength="30">
+      <div class="card-title" id="onboard-title">Como quer ser chamado?</div>
+      <input id="onboard-name" type="text" placeholder="Seu nome..." class="form-input" maxlength="30" onkeydown="if(event.key==='Enter')finishOnboarding()">
+      <div id="onboard-status" style="font-size:12px;margin-top:10px;min-height:18px;text-align:center;"></div>
     </div>
-    <button class="btn btn-green" onclick="finishOnboarding()">Entrar no bolão →</button>
+    <button class="btn btn-green" id="onboard-btn" onclick="finishOnboarding()">Entrar no bolão →</button>
   </div>
 </div>
 
@@ -665,23 +666,110 @@ function init() {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
 
-function finishOnboarding() {
+async function finishOnboarding() {
   const name = document.getElementById('onboard-name').value.trim();
   if (!name) { showToast('⚠️ Digite seu nome'); return; }
-  userName = name; S.set('userName', userName);
-  document.getElementById('onboarding').style.display = 'none';
-  createDefaultGroup();
-  buildColorPicker();
-  renderGroupTabs();
-  updateCountdown();
-  startAutoSync();
+
+  const btn = document.getElementById('onboard-btn');
+  const status = document.getElementById('onboard-status');
+  btn.textContent = 'Verificando...'; btn.disabled = true;
+  status.style.color = 'var(--muted)';
+  status.textContent = 'Buscando seu histórico na planilha...';
+
+  try {
+    const r = await api({ action: 'getUsuario', nome: name });
+
+    if (r.ok && r.existe) {
+      // Usuário já existe — restaura apostas e grupos da planilha
+      status.style.color = 'var(--green)';
+      status.textContent = '✓ Conta encontrada! Restaurando dados...';
+
+      userName = name; S.set('userName', userName);
+
+      // Restaura apostas por grupo
+      if (r.apostas && r.apostas.length) {
+        // agrupa apostas por grupo
+        const byGroup = {};
+        r.apostas.forEach(a => {
+          if (!byGroup[a.grupo]) byGroup[a.grupo] = {};
+          byGroup[a.grupo][a.jogo_id] = {
+            h: parseInt(a.gol_casa),
+            a: parseInt(a.gol_visit),
+            ts: a.criado_em || new Date().toISOString()
+          };
+        });
+        // salva localmente por grupo
+        Object.entries(byGroup).forEach(([codigo, apostas]) => {
+          const g = groups.find(x => x.code === codigo);
+          if (g) saveMyBetsForGroup(g.id, apostas);
+        });
+      }
+
+      // Restaura grupos que o usuário criou e ainda não tem localmente
+      if (r.grupos && r.grupos.length) {
+        r.grupos.forEach(gd => {
+          if (!groups.find(x => x.code === gd.codigo)) {
+            groups.push({
+              id: Date.now()+'_'+Math.random().toString(36).slice(2,6),
+              name: gd.nome, color: gd.cor || COLORS[0],
+              code: gd.codigo, createdAt: gd.criado_em
+            });
+          }
+        });
+        S.set('groups', groups);
+      }
+
+      await new Promise(r => setTimeout(r, 800));
+    } else {
+      // Usuário novo
+      status.style.color = 'var(--green)';
+      status.textContent = '✓ Bem-vindo! Criando sua conta...';
+      userName = name; S.set('userName', userName);
+      await new Promise(r => setTimeout(r, 600));
+    }
+
+    // Garante ao menos um grupo
+    if (!groups.length) await createDefaultGroup();
+    if (!activeGid || !groups.find(g => g.id === activeGid)) {
+      activeGid = groups[0].id; S.set('activeGid', activeGid);
+    }
+
+    document.getElementById('onboarding').style.display = 'none';
+    buildColorPicker();
+    renderGroupTabs();
+    updateCountdown();
+    startAutoSync();
+
+  } catch(e) {
+    // Se falhar a verificação, entra mesmo assim (offline)
+    status.style.color = 'var(--gold)';
+    status.textContent = '⚠️ Sem conexão — entrando no modo offline';
+    await new Promise(r => setTimeout(r, 1000));
+    userName = name; S.set('userName', userName);
+    if (!groups.length) {
+      const g = makeGroup('Meu Grupo', COLORS[0]);
+      groups = [g]; S.set('groups', groups);
+      activeGid = g.id; S.set('activeGid', activeGid);
+    }
+    document.getElementById('onboarding').style.display = 'none';
+    buildColorPicker();
+    renderGroupTabs();
+    updateCountdown();
+    startAutoSync();
+  } finally {
+    btn.textContent = 'Entrar no bolão →'; btn.disabled = false;
+  }
 }
 
-function createDefaultGroup() {
-  if (groups.length) return;
+function saveMyBetsForGroup(gid, bets) {
+  S.set('bets_'+gid, bets);
+}
+
+async function createDefaultGroup() {
   const g = makeGroup('Meu Grupo', COLORS[0]);
-  // cria no servidor também
-  api({ action:'saveGrupo', nome: g.name, codigo: g.code, cor: g.color, criador: userName }).catch(()=>{});
+  try {
+    await api({ action:'saveGrupo', nome: g.name, codigo: g.code, cor: g.color, criador: userName });
+  } catch(e) {}
   groups = [g]; S.set('groups', groups);
   activeGid = g.id; S.set('activeGid', activeGid);
 }
@@ -813,6 +901,7 @@ function filterMatches(btn, f) {
 function openBet(id) {
   const m = matches.find(x => x.id === id); if (!m) return;
   if (m.status === 'done') { showToast('Jogo finalizado — apostas encerradas'); return; }
+  if (m.status === 'live') { showToast('Jogo ao vivo — apostas encerradas'); return; }
   currentMatch = m;
   const bets = myBets(), saved = bets[id];
   scoreH = saved?saved.h:0; scoreA = saved?saved.a:0;
