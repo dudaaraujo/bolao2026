@@ -435,23 +435,24 @@ const FLAG_MAP = {
   'nz':'🇳🇿','za':'🇿🇦','ng':'🇳🇬','ci':'🇨🇮','ml':'🇲🇱','sn':'🇸🇳',
 };
 
-function normalizeStr(s) {
-  // remove acentos e converte para minúsculo
-  return String(s).trim().toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-}
-
 function getFlag(v) {
   if (!v) return '⚽';
   const s = String(v).trim();
-  // já é emoji de bandeira (regional indicator)
+  // já é emoji de bandeira
   if ([...s][0]?.codePointAt(0) >= 0x1F1E6) return s;
-  const key = normalizeStr(s);
-  // busca direta
-  if (FLAG_MAP[key]) return FLAG_MAP[key];
-  // busca por qualquer chave do mapa que normalize igual
+  // tenta lowercase direto
+  const low = s.toLowerCase();
+  if (FLAG_MAP[low]) return FLAG_MAP[low];
+  // tenta removendo acentos manualmente
+  const sem = low
+    .replace(/[áàãâä]/g,'a').replace(/[éèêë]/g,'e')
+    .replace(/[íìîï]/g,'i').replace(/[óòõôö]/g,'o')
+    .replace(/[úùûü]/g,'u').replace(/[ç]/g,'c')
+    .replace(/[ñ]/g,'n').replace(/[ý]/g,'y');
+  if (FLAG_MAP[sem]) return FLAG_MAP[sem];
+  // busca parcial — se o nome do time contém uma chave conhecida
   for (const k of Object.keys(FLAG_MAP)) {
-    if (normalizeStr(k) === key) return FLAG_MAP[k];
+    if (low.includes(k) || k.includes(low)) return FLAG_MAP[k];
   }
   return s;
 }
@@ -634,13 +635,6 @@ function cleanDate(raw) {
 }
 
 function rowToMatch(row) {
-  // DEBUG — remove depois de resolver as bandeiras
-  if (Object.keys(row).length && !window._debugDone) {
-    window._debugDone = true;
-    const info = `time_casa: "${row.time_casa}" (${[...String(row.time_casa||'')].map(c=>c.codePointAt(0).toString(16)).join(',')})`;
-    console.log('[DEBUG rowToMatch]', info);
-    alert('DEBUG bandeiras:\n' + info + '\n\nSe aparecer código >= 1f1e6 é emoji.\nSe aparecer texto normal, o FLAG_MAP deve encontrar.');
-  }
   const gh = parseInt(row.gol_casa), ga = parseInt(row.gol_visit);
   const status = (row.status || 'upcoming').toLowerCase().trim();
   const hasScore = (status === 'done' || status === 'live') && !isNaN(gh) && !isNaN(ga);
