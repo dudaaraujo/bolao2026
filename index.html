@@ -642,9 +642,9 @@ function rowToMatch(row) {
   return {
     id:    parseInt(row.id) || 0,
     home:  row.time_casa  || '—',
-    hFlag: getFlag(row.flag_casa || row.time_casa),
+    hFlag: getFlag(row.time_casa),
     away:  row.time_visit || '—',
-    aFlag: getFlag(row.flag_visit || row.time_visit),
+    aFlag: getFlag(row.time_visit),
     round: row.fase || '',
     date:  dataLimpa && hora ? `${dataLimpa} · ${hora}` : dataLimpa || hora || '—',
     status,
