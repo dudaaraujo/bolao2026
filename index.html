@@ -634,6 +634,13 @@ function cleanDate(raw) {
 }
 
 function rowToMatch(row) {
+  // DEBUG — remove depois de resolver as bandeiras
+  if (Object.keys(row).length && !window._debugDone) {
+    window._debugDone = true;
+    const info = `time_casa: "${row.time_casa}" (${[...String(row.time_casa||'')].map(c=>c.codePointAt(0).toString(16)).join(',')})`;
+    console.log('[DEBUG rowToMatch]', info);
+    alert('DEBUG bandeiras:\n' + info + '\n\nSe aparecer código >= 1f1e6 é emoji.\nSe aparecer texto normal, o FLAG_MAP deve encontrar.');
+  }
   const gh = parseInt(row.gol_casa), ga = parseInt(row.gol_visit);
   const status = (row.status || 'upcoming').toLowerCase().trim();
   const hasScore = (status === 'done' || status === 'live') && !isNaN(gh) && !isNaN(ga);
