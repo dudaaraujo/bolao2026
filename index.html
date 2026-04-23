@@ -340,7 +340,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         <div class="card-title">Qual é seu nome?</div>
         <input id="ob-name" type="text" placeholder="Seu nome..." class="form-input" maxlength="30" onkeydown="if(event.key==='Enter')obNext()">
       </div>
-      <button class="btn btn-green" id="ob-next-btn" onclick="obNext()">Continuar →</button>
+      <button class="btn btn-green" id="ob-next-btn" onclick="obNext()" type="button">Continuar →</button>
     </div>
 
     <!-- Passo 2: PIN -->
@@ -589,75 +589,55 @@ function getPin(){return['p1','p2','p3','p4'].map(id=>document.getElementById(id
 function clearPin(){['p1','p2','p3','p4'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});}
 function setObStatus(msg,color='var(--muted)'){const e=document.getElementById('ob-status');if(e){e.textContent=msg;e.style.color=color;}}
 
-async function obNext() {
-  const name=document.getElementById('ob-name').value.trim();
-  if(!name){setObStatus('⚠️ Digite seu nome','var(--red)');return;}
-  const btn=document.getElementById('ob-next-btn');
-  btn.textContent='Aguarde...';btn.disabled=true;
-  setObStatus('Conectando...','var(--muted)');
-
-  // Avança para o PIN independente da resposta do servidor
-  // (o servidor valida o PIN na próxima etapa)
-  function showPin(isNew, msg, color) {
-    obIsNew=isNew;
-    document.getElementById('ob-pin-title').textContent=isNew?'Crie um PIN de 4 dígitos':'Digite seu PIN';
-    setObStatus(msg,color);
-    document.getElementById('step-nome').style.display='none';
-    document.getElementById('step-pin').style.display='block';
-    document.getElementById('p1').focus();
-    btn.textContent='Continuar →';btn.disabled=false;
-  }
-
-  // Timeout de 8s — se demorar vai pro modo offline
-  const timeout=new Promise((_,rj)=>setTimeout(()=>rj(new Error('timeout')),8000));
-
-  try {
-    const r=await Promise.race([api({action:'getUsuario',nome:name}),timeout]);
-    if(r.isNew||(!r.ok&&!r.needPin&&!r.error?.includes('PIN'))) {
-      showPin(true,'Novo usuário — crie um PIN para sua conta','var(--gold)');
-    } else {
-      showPin(false,'Conta encontrada! Digite seu PIN','var(--green)');
-    }
-  } catch(e) {
-    // Offline ou timeout — deixa criar PIN e tenta autenticar depois
-    showPin(true,'Sem conexão — crie um PIN (sincroniza depois)','var(--gold)');
-  }
+function obNext() {
+  const name = document.getElementById('ob-name').value.trim();
+  if (!name) { setObStatus('⚠️ Digite seu nome', 'var(--red)'); return; }
+  // Vai direto para o PIN — o servidor valida na próxima etapa
+  obIsNew = true; // será corrigido em obEnter se usuário existir
+  document.getElementById('ob-pin-title').textContent = 'PIN de 4 dígitos';
+  setObStatus('Digite um PIN para proteger sua conta', 'var(--muted)');
+  document.getElementById('step-nome').style.display = 'none';
+  document.getElementById('step-pin').style.display = 'block';
+  document.getElementById('ob-enter-btn').style.display = 'block';
+  setTimeout(() => document.getElementById('p1').focus(), 100);
 }
 
 async function obEnter() {
-  const name=document.getElementById('ob-name').value.trim();
-  const pin=getPin();
-  if(pin.length<4){setObStatus('⚠️ PIN deve ter 4 dígitos','var(--red)');return;}
-  const btn=document.getElementById('ob-enter-btn');
-  btn.textContent='Entrando...';btn.disabled=true;
-  setObStatus('Verificando...','var(--muted)');
+  const name = document.getElementById('ob-name').value.trim();
+  const pin  = getPin();
+  if (pin.length < 4) { setObStatus('⚠️ PIN deve ter 4 dígitos', 'var(--red)'); return; }
+  const btn = document.getElementById('ob-enter-btn');
+  btn.textContent = 'Entrando...'; btn.disabled = true;
+  setObStatus('Verificando...', 'var(--muted)');
   try {
-    const r=await api({action:'getUsuario',nome:name,pin});
-    if(!r.ok&&r.error==='PIN incorreto'){
-      setObStatus('❌ PIN incorreto. Tente novamente.','var(--red)');
-      clearPin();document.getElementById('p1').focus();
-      btn.textContent='Entrar no bolão →';btn.disabled=false;
+    const t = new Promise((_,rj) => setTimeout(() => rj(new Error('timeout')), 10000));
+    const r = await Promise.race([api({action:'getUsuario',nome:name,pin}), t]);
+    if (!r.ok && r.error === 'PIN incorreto') {
+      setObStatus('❌ PIN incorreto. Tente novamente.', 'var(--red)');
+      clearPin(); document.getElementById('p1').focus();
+      btn.textContent = 'Entrar no bolão →'; btn.disabled = false;
       return;
     }
-    userName=name;userPin=pin;S.set('userName',userName);S.set('userPin',userPin);
-    // restaura dados
-    if(r.apostas&&r.apostas.length){
-      const bg={};
-      r.apostas.forEach(a=>{if(!bg[a.grupo])bg[a.grupo]={};bg[a.grupo][a.jogo_id]={h:parseInt(a.gol_casa),a:parseInt(a.gol_visit),ts:a.criado_em||''};});
-      Object.entries(bg).forEach(([code,bets])=>{const g=groups.find(x=>x.code===code);if(g)S.set('bets_'+g.id,bets);});
+    if (r.ok && r.apostas && r.apostas.length) {
+      const bg = {};
+      r.apostas.forEach(a => { if(!bg[a.grupo])bg[a.grupo]={}; bg[a.grupo][a.jogo_id]={h:parseInt(a.gol_casa),a:parseInt(a.gol_visit),ts:a.criado_em||''}; });
+      Object.entries(bg).forEach(([code,bets]) => { const g=groups.find(x=>x.code===code); if(g)S.set('bets_'+g.id,bets); });
     }
-    if(r.grupos&&r.grupos.length){
-      r.grupos.forEach(gd=>{if(!groups.find(x=>x.code===gd.codigo)){groups.push({id:Date.now()+'_'+Math.random().toString(36).slice(2,6),name:gd.nome,color:gd.cor||COLORS[0],code:gd.codigo,createdAt:gd.criado_em});}});
-      S.set('groups',groups);
+    if (r.ok && r.grupos && r.grupos.length) {
+      r.grupos.forEach(gd => { if(!groups.find(x=>x.code===gd.codigo)){groups.push({id:Date.now()+'_'+Math.random().toString(36).slice(2,6),name:gd.nome,color:gd.cor||COLORS[0],code:gd.codigo,createdAt:gd.criado_em});} });
+      S.set('groups', groups);
     }
-    setObStatus(r.existe?'✓ Bem-vindo de volta!':'✓ Conta criada!','var(--green)');
-    await new Promise(res=>setTimeout(res,700));
+    setObStatus(r.existe ? '✓ Bem-vindo de volta!' : '✓ Conta criada!', 'var(--green)');
+    await new Promise(res => setTimeout(res, 600));
   } catch(e) {
-    userName=name;userPin=pin;S.set('userName',userName);S.set('userPin',userPin);
-    setObStatus('⚠️ Offline — dados sincronizados depois','var(--gold)');
-    await new Promise(res=>setTimeout(res,800));
+    setObStatus('⚠️ Offline — entrando no modo local', 'var(--gold)');
+    await new Promise(res => setTimeout(res, 600));
   }
-  document.getElementById('onboarding').style.display='none';
+  userName = name; userPin = pin;
+  S.set('userName', userName); S.set('userPin', userPin);
+  if (!groups.length) await createDefaultGroup();
+  if (!activeGid || !groups.find(g => g.id === activeGid)) { activeGid = groups[0].id; S.set('activeGid', activeGid); }
+  document.getElementById('onboarding').style.display = 'none';
   boot();
 }
 
