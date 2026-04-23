@@ -484,33 +484,36 @@ function setSyncStatus(state,label){
 
 async function syncAll(manual=false) {
   setSyncStatus('loading','Sincronizando...');
+  // Carrega cache imediatamente para não travar a tela
+  const grupo = activeGroup()?.code||'';
+  if (!matches.length) {
+    matches = S.get('matches_cache', []);
+    ranking = S.get('rank_cache_'+grupo, []);
+    rankingGeral = S.get('rank_cache_geral', []);
+    renderMatches(); updateHome();
+  }
   try {
-    const grupo=activeGroup()?.code||'';
-    const [rJ,rR,rG]=await Promise.all([
+    const [rJ, rR, rG] = await Promise.all([
       api({action:'getJogos'}),
-      grupo?api({action:'getRanking',grupo}):Promise.resolve({ok:true,ranking:[]}),
+      grupo ? api({action:'getRanking', grupo}) : Promise.resolve({ok:true, ranking:[]}),
       api({action:'getRanking'}),
     ]);
-    if(!rJ.ok) throw new Error(rJ.error||'Erro jogos');
-    matches=rJ.jogos.map(rowToMatch).filter(m=>m.id>0);
-    ranking=rR.ranking||[];
-    rankingGeral=rG.ranking||[];
-    S.set('matches_cache',matches);
-    S.set('rank_cache_'+grupo,ranking);
-    S.set('rank_cache_geral',rankingGeral);
-    const now=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    if (!rJ.ok) throw new Error(rJ.error||'Erro jogos');
+    matches = rJ.jogos.map(rowToMatch).filter(m=>m.id>0);
+    ranking = rR.ranking||[];
+    rankingGeral = rG.ranking||[];
+    S.set('matches_cache', matches);
+    S.set('rank_cache_'+grupo, ranking);
+    S.set('rank_cache_geral', rankingGeral);
+    const now = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     setSyncStatus('ok','Atualizado '+now);
     renderMatches(); updateHome();
-    if(document.getElementById('screen-ranking').classList.contains('active')) renderRanking();
-    if(manual) showToast('✅ Sincronizado!');
+    if (document.getElementById('screen-ranking').classList.contains('active')) renderRanking();
+    if (manual) showToast('✅ Sincronizado!');
   } catch(e) {
     setSyncStatus('err','Sem conexão');
-    matches=S.get('matches_cache',[]);
-    const grupo=activeGroup()?.code||'';
-    ranking=S.get('rank_cache_'+grupo,[]);
-    rankingGeral=S.get('rank_cache_geral',[]);
     renderMatches(); updateHome();
-    if(manual) showToast('⚠️ '+e.message);
+    if (manual) showToast('⚠️ Sem conexão com a planilha');
   }
 }
 
@@ -563,10 +566,13 @@ function boot() {
   if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
 
-async function createDefaultGroup() {
-  const g=makeGroup('Meu Grupo',COLORS[0]);
-  try{await api({action:'saveGrupo',nome:g.name,codigo:g.code,cor:g.color,criador:userName});}catch(e){}
-  groups=[g];S.set('groups',groups);activeGid=g.id;S.set('activeGid',activeGid);boot();
+function createDefaultGroup() {
+  const g = makeGroup('Meu Grupo', COLORS[0]);
+  groups = [g]; S.set('groups', groups);
+  activeGid = g.id; S.set('activeGid', activeGid);
+  // salva no servidor em background, sem travar
+  api({action:'saveGrupo', nome:g.name, codigo:g.code, cor:g.color, criador:userName}).catch(()=>{});
+  boot();
 }
 
 // ── ONBOARDING COM PIN ──
@@ -581,35 +587,23 @@ function getPin(){return['p1','p2','p3','p4'].map(id=>document.getElementById(id
 function clearPin(){['p1','p2','p3','p4'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});}
 function setObStatus(msg,color='var(--muted)'){const e=document.getElementById('ob-status');if(e){e.textContent=msg;e.style.color=color;}}
 
-async function obEnter() {
+function obEnter() {
   const name = document.getElementById('ob-name').value.trim();
   if (!name) { setObStatus('⚠️ Digite seu nome', 'var(--red)'); return; }
-  const btn = document.getElementById('ob-enter-btn');
-  btn.textContent = 'Entrando...'; btn.disabled = true;
-  setObStatus('Conectando...', 'var(--muted)');
-  try {
-    const t = new Promise((_,rj) => setTimeout(() => rj(new Error('timeout')), 8000));
-    const r = await Promise.race([api({action:'getUsuario', nome:name, pin:'0000'}), t]);
+  // Entra imediatamente — sincroniza dados em background
+  userName = name; S.set('userName', userName);
+  document.getElementById('onboarding').style.display = 'none';
+  if (!groups.length) createDefaultGroup();
+  else boot();
+  // tenta restaurar dados do servidor em background
+  api({action:'getUsuario', nome:name}).then(r => {
     if (r.ok && r.apostas && r.apostas.length) {
       const bg = {};
       r.apostas.forEach(a => { if(!bg[a.grupo])bg[a.grupo]={}; bg[a.grupo][a.jogo_id]={h:parseInt(a.gol_casa),a:parseInt(a.gol_visit),ts:a.criado_em||''}; });
       Object.entries(bg).forEach(([code,bets]) => { const g=groups.find(x=>x.code===code); if(g)S.set('bets_'+g.id,bets); });
+      renderMatches(); updateHome();
     }
-    if (r.ok && r.grupos && r.grupos.length) {
-      r.grupos.forEach(gd => { if(!groups.find(x=>x.code===gd.codigo)){groups.push({id:Date.now()+'_'+Math.random().toString(36).slice(2,6),name:gd.nome,color:gd.cor||COLORS[0],code:gd.codigo,createdAt:gd.criado_em});} });
-      S.set('groups', groups);
-    }
-    setObStatus(r.existe ? '✓ Dados restaurados!' : '✓ Bem-vindo!', 'var(--green)');
-    await new Promise(res => setTimeout(res, 500));
-  } catch(e) {
-    setObStatus('Entrando no modo offline...', 'var(--gold)');
-    await new Promise(res => setTimeout(res, 400));
-  }
-  userName = name; S.set('userName', userName);
-  if (!groups.length) await createDefaultGroup();
-  if (!activeGid || !groups.find(g => g.id === activeGid)) { activeGid=groups[0].id; S.set('activeGid',activeGid); }
-  document.getElementById('onboarding').style.display = 'none';
-  boot();
+  }).catch(()=>{});
 }
 
 
@@ -784,8 +778,6 @@ function removeBet(){
 }
 
 // ── RANKING ──
-let rankTab='grupo';
-
 function switchRankTab(tab){
   rankTab=tab;
   document.getElementById('rank-tab-grupo').className='filter-btn'+(tab==='grupo'?' active':'');
@@ -898,14 +890,15 @@ function renderGroupsList(){
   }).join('');
 }
 
-async function createGroup(){
+function createGroup(){
   const name=document.getElementById('new-group-name').value.trim();
   if(!name||name.length<2){showToast('⚠️ Digite um nome');return;}
   const g=makeGroup(name,selectedColor);
-  try{const r=await api({action:'saveGrupo',nome:g.name,codigo:g.code,cor:g.color,criador:userName});if(!r.ok)throw new Error(r.error);}catch(e){showToast('⚠️ '+e.message);return;}
   groups.push(g);S.set('groups',groups);activeGid=g.id;S.set('activeGid',activeGid);
   document.getElementById('new-group-name').value='';
   renderGroupTabs();renderGroupsList();closeGroupsModal();goScreen('home');syncAll(false);
+  // salva no servidor em background
+  api({action:'saveGrupo',nome:g.name,codigo:g.code,cor:g.color,criador:userName}).catch(()=>{});
   showToast('✅ Grupo "'+g.name+'" criado! Código: '+g.code);
 }
 
