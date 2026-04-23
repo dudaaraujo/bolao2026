@@ -104,7 +104,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .match-footer{margin-top:8px;display:flex;justify-content:space-between;align-items:center;}
 .match-time{font-size:11px;color:var(--muted);}
 .bet-label{font-size:11px;color:var(--green);font-weight:600;}
-.pts-badge{position:absolute;bottom:10px;right:12px;font-family:'Bebas Neue',sans-serif;font-size:19px;}
+.pts-badge{display:inline-block;margin-top:6px;font-family:'Bebas Neue',sans-serif;font-size:14px;padding:2px 8px;border-radius:6px;letter-spacing:.04em;}
 
 /* RANKING */
 .rank-list{display:flex;flex-direction:column;gap:8px;}
@@ -269,7 +269,17 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 
     <!-- RANKING -->
     <div id="screen-ranking" class="screen">
-      <div class="filter-row" style="margin-bottom:16px;">
+      <!-- Resumo do usuário -->
+      <div id="rank-my-summary" style="background:var(--bg3);border:1px solid var(--green-glow);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--green);margin-bottom:8px;font-weight:600;">Seu desempenho</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;">
+          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--text);" id="rs-pts">0</div><div style="font-size:10px;color:var(--muted);">Pontos</div></div>
+          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--gold);" id="rs-pos">—</div><div style="font-size:10px;color:var(--muted);">Posição</div></div>
+          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--green);" id="rs-exact">0</div><div style="font-size:10px;color:var(--muted);">Exatos</div></div>
+          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--text);" id="rs-hits">0</div><div style="font-size:10px;color:var(--muted);">Acertos</div></div>
+        </div>
+      </div>
+      <div class="filter-row" style="margin-bottom:12px;">
         <button class="filter-btn active" id="rank-tab-grupo" onclick="switchRankTab('grupo')">Meu Grupo</button>
         <button class="filter-btn" id="rank-tab-geral" onclick="switchRankTab('geral')">Ranking Geral</button>
       </div>
@@ -457,8 +467,9 @@ let userName=S.get('userName',''), userPin=S.get('userPin','');
 let currentFilter='todos', currentMatch=null, scoreH=0, scoreA=0;
 let selectedColor=COLORS[0], rankTab='grupo', syncTimer=null;
 
-const myBets=()=>S.get('bets_'+(activeGid||''),{});
-const saveBets=b=>S.set('bets_'+(activeGid||''),b);
+// Apostas são globais (não por grupo) — grupos servem só para ranking
+const myBets=()=>S.get('bets_global',{});
+const saveBets=b=>S.set('bets_global',b);
 const activeGroup=()=>groups.find(g=>g.id===activeGid);
 
 // ── API (JSONP) ──
@@ -706,8 +717,9 @@ function renderMatches(){
       const bet=bets[m.id],pts=bet&&m.score?calcPoints(bet,m.score):null;
       const sl=m.status==='upcoming'?'Não iniciado':m.status==='live'?'Ao vivo ●':'Finalizado';
       const betLine=bet?`Sua aposta: ${bet.h}×${bet.a}`:(m.status==='upcoming'?'Toque para apostar':'');
-      const ptsColor=pts===3?'var(--gold)':pts>0?'var(--green)':'var(--muted)';
-      const ptsBadge=pts!==null?`<div class="pts-badge" style="color:${ptsColor};">${pts===3?'⭐ ':''}<b>+${pts}</b>pts</div>`:'';
+      const ptsColor=pts===3?'var(--gold)':pts>0?'var(--green)':'var(--red)';
+      const ptsLabel=pts===3?'⭐ +3 pts':pts===2?'+2 pts':pts===1?'+1 pt':'✗ 0 pts';
+      const ptsBadge=pts!==null?`<div class="pts-badge" style="color:${ptsColor};background:${ptsColor}18;border:1px solid ${ptsColor}44;">${ptsLabel}</div>`:'';
       return `<div class="match-card ${bet?'has-bet':''}" onclick="openBet(${m.id})">
         <div class="match-header"><span class="match-round">${m.round}</span><span class="match-status status-${m.status}">${m.status==='live'?`<span class="pulse">${sl}</span>`:sl}</span></div>
         <div class="match-teams">
@@ -719,7 +731,7 @@ function renderMatches(){
           <span class="match-time">🕐 ${m.date}</span>
           <span class="bet-label">${betLine}</span>
         </div>
-        ${ptsBadge}
+        ${ptsBadge?`<div style="padding:4px 0 2px;">${ptsBadge}</div>`:''}
       </div>`;
     }).join('');
     return `<div><div class="fase-header">${fase.toUpperCase()}</div>${cards}</div>`;
@@ -758,17 +770,21 @@ function chgScore(side,d){
 
 async function confirmBet(){
   if(!currentMatch)return;
-  const g=activeGroup();if(!g)return;
   const btn=document.getElementById('confirm-btn');
   btn.textContent='Salvando...';btn.disabled=true;
-  try{
-    const r=await api({action:'saveAposta',usuario:userName,grupo:g.code,jogo_id:currentMatch.id,gol_casa:scoreH,gol_visit:scoreA});
-    if(!r.ok)throw new Error(r.error);
-    const bets=myBets();bets[currentMatch.id]={h:scoreH,a:scoreA,ts:new Date().toISOString()};saveBets(bets);
-    closeBetModal();showToast(`✅ ${currentMatch.home} ${scoreH}×${scoreA} ${currentMatch.away}`);
-    renderMatches();updateHome();
-  }catch(e){showToast('⚠️ '+e.message);}
-  finally{btn.textContent='Confirmar aposta ✓';btn.disabled=false;}
+  // Salva local imediatamente
+  const bets=myBets();
+  bets[currentMatch.id]={h:scoreH,a:scoreA,ts:new Date().toISOString()};
+  saveBets(bets);
+  closeBetModal();
+  showToast(`✅ ${currentMatch.home} ${scoreH}×${scoreA} ${currentMatch.away}`);
+  renderMatches();updateHome();
+  btn.textContent='Confirmar aposta ✓';btn.disabled=false;
+  // Envia para todos os grupos no servidor em background
+  const gruposCodes=groups.map(g=>g.code);
+  const grupoAlvo=activeGroup()?.code||gruposCodes[0]||'GERAL';
+  api({action:'saveAposta',usuario:userName,grupo:grupoAlvo,jogo_id:currentMatch.id,gol_casa:scoreH,gol_visit:scoreA})
+    .catch(()=>{});
 }
 
 function removeBet(){
@@ -789,30 +805,63 @@ function switchRankTab(tab){
 function hashStr(s){let h=0;for(const c of String(s)){h=(h<<5)-h+c.charCodeAt(0);h|=0;}return Math.abs(h);}
 
 function renderRanking(){
-  const{pts,exact,hits}=myStats();
+  const{pts,exact,hits,betCount}=myStats();
   const medals=['🥇','🥈','🥉'];
+  const posColors=['gold','silver','bronze'];
   const source=rankTab==='geral'?rankingGeral:ranking;
   let all=[...source];
+
+  // Sempre inclui o usuário atual com dados locais atualizados
   const meIdx=all.findIndex(r=>(r.usuario||'').toLowerCase()===(userName||'').toLowerCase());
   const meObj={usuario:userName||'Você',pts,exatos:exact,acertos:hits};
-  if(meIdx>=0)all[meIdx]={...all[meIdx],...meObj};
+  if(meIdx>=0) all[meIdx]={...all[meIdx],...meObj};
   else all.push(meObj);
   all=all.sort((a,b)=>(b.pts||0)-(a.pts||0));
 
-  document.getElementById('rank-list').innerHTML=all.length?all.map((m,i)=>{
+  if(!all.length){
+    document.getElementById('rank-list').innerHTML='<div class="empty-state">Nenhuma aposta registrada ainda</div>';
+    return;
+  }
+
+  document.getElementById('rank-list').innerHTML=all.map((m,i)=>{
     const color=COLORS[hashStr(m.usuario||'?')%COLORS.length];
     const ini=(m.usuario||'?').slice(0,2).toUpperCase();
     const isMe=(m.usuario||'').toLowerCase()===(userName||'').toLowerCase();
+    const ptsNum=m.pts||0;
+    const totalJogos=matches.filter(x=>x.status==='done').length;
+    const acPct=totalJogos>0?Math.round(((m.acertos||0)/totalJogos)*100):0;
     return `<div class="rank-item ${isMe?'me':''}">
-      <div class="rank-pos ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i<3?medals[i]:i+1}</div>
+      <div class="rank-pos ${posColors[i]||''}">${i<3?medals[i]:i+1}</div>
       <div class="rank-avatar" style="background:${color}22;color:${color}">${ini}</div>
-      <div class="rank-info"><div class="rank-name">${m.usuario||'?'} ${isMe?'<span class="rank-badge">Você</span>':''}</div><div class="rank-detail">${m.exatos||0} exatos · ${m.acertos||0} acertos</div></div>
-      <div class="rank-pts">${m.pts||0}</div>
+      <div class="rank-info">
+        <div class="rank-name">${m.usuario||'?'} ${isMe?'<span class="rank-badge">Você</span>':''}</div>
+        <div class="rank-detail">${m.exatos||0} exatos · ${m.acertos||0} acertos${totalJogos>0?' · '+acPct+'%':''}</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="rank-pts">${ptsNum}</div>
+        <div style="font-size:10px;color:var(--muted);">pts</div>
+      </div>
     </div>`;
-  }).join(''):'<div class="empty-state">Sem apostas ainda</div>';
+  }).join('');
+
+  // Minha posição destacada se fora da tela
+  const myPos=all.findIndex(r=>(r.usuario||'').toLowerCase()===(userName||'').toLowerCase());
+  const rankLabel=document.getElementById('rank-label');
+  if(rankLabel){
+    const label=rankTab==='geral'?'RANKING GERAL':'PLACAR DO GRUPO';
+    rankLabel.textContent=label+(myPos>=0?' — Você: '+(myPos+1)+'º':'');
+  }
 
   document.getElementById('badge-rei').className='badge-item'+(exact>=3?' earned':'');
   document.getElementById('badge-sniper').className='badge-item'+(exact>=1?' earned':'');
+
+  // Atualiza resumo do usuário
+  const myRankPos=all.findIndex(r=>(r.usuario||'').toLowerCase()===(userName||'').toLowerCase());
+  const el=id=>document.getElementById(id);
+  if(el('rs-pts'))  el('rs-pts').textContent=pts;
+  if(el('rs-pos'))  el('rs-pos').textContent=myRankPos>=0?(myRankPos+1)+'º':'—';
+  if(el('rs-exact'))el('rs-exact').textContent=exact;
+  if(el('rs-hits')) el('rs-hits').textContent=hits;
 }
 
 // ── GRUPO ──
@@ -875,7 +924,7 @@ function closeGroupsModal(){document.getElementById('groups-modal').style.displa
 
 function renderGroupsList(){
   document.getElementById('groups-list').innerHTML=groups.map(g=>{
-    const bc=Object.keys(S.get('bets_'+g.id,{})).length,isA=g.id===activeGid;
+    const bc=Object.keys(myBets()).length,isA=g.id===activeGid;
     return `<div class="group-item-card${isA?' active-group':''}" onclick="switchGroup('${g.id}')">
       <div class="group-dot" style="background:${g.color}"></div>
       <div class="group-item-info">
