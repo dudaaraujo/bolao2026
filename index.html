@@ -764,6 +764,15 @@ function logout() {
 }
 
 function boot() {
+  // Remove grupos duplicados pelo código
+  const seen = new Set();
+  groups = groups.filter(g => {
+    if (seen.has(g.code)) return false;
+    seen.add(g.code);
+    return true;
+  });
+  S.set('groups', groups);
+
   buildColorPicker();
   if(!activeGid||!groups.find(g=>g.id===activeGid)){
     activeGid=groups.length?groups[0].id:null;
@@ -1046,7 +1055,8 @@ function renderRanking(){
 
   document.getElementById('rank-list').innerHTML=all.map((m,i)=>{
     const color=COLORS[hashStr(m.usuario||'?')%COLORS.length];
-    const ini=(m.usuario||'?').slice(0,2).toUpperCase();
+    const dName=m.displayName||(m.usuario&&m.usuario.includes('@')?m.usuario.split('@')[0]:m.usuario)||'?';
+    const ini=dName.slice(0,2).toUpperCase();
     const isMe=(m.usuario||'').toLowerCase()===(userEmail||'').toLowerCase()||
              (m.usuario||'').toLowerCase()===(userName||'').toLowerCase();
     const ptsNum=m.pts||0;
@@ -1056,7 +1066,7 @@ function renderRanking(){
       <div class="rank-pos ${posColors[i]||''}">${i<3?medals[i]:i+1}</div>
       <div class="rank-avatar" style="background:${color}22;color:${color}">${ini}</div>
       <div class="rank-info">
-        <div class="rank-name">${m.displayName||m.usuario||'?'} ${isMe?'<span class="rank-badge">Você</span>':''}</div>
+        <div class="rank-name">${dName} ${isMe?'<span class="rank-badge">Você</span>':''}</div>
         <div class="rank-detail">${m.exatos||0} exatos · ${m.acertos||0} acertos${totalJogos>0?' · '+acPct+'%':''}</div>
       </div>
       <div style="text-align:right;">
