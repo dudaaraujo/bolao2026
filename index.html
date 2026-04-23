@@ -124,8 +124,11 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .badge-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;text-align:center;}
 .badge-icon{font-size:26px;display:block;margin-bottom:6px;}
 .badge-name{font-size:11px;font-weight:600;color:var(--muted);}
+.badge-rule{font-size:10px;color:var(--muted);margin-top:3px;opacity:.7;line-height:1.3;}
 .badge-item.earned{border-color:var(--gold);background:rgba(255,214,0,.05);}
 .badge-item.earned .badge-name{color:var(--gold);}
+.badge-item.earned .badge-rule{color:var(--gold);opacity:.8;}
+.badge-item.earned .badge-icon{filter:drop-shadow(0 0 6px var(--gold));}
 
 /* GRUPO */
 .group-code-box{border-radius:var(--radius);padding:18px;text-align:center;margin-bottom:12px;border:1px dashed;}
@@ -264,6 +267,11 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         <button class="filter-btn" onclick="filterMatches(this,'finalizados')">Finalizados</button>
         <button class="filter-btn" onclick="filterMatches(this,'ao-vivo')">Ao vivo</button>
       </div>
+      <!-- Filtro por seleção -->
+      <div style="position:relative;margin-bottom:12px;">
+        <input id="team-search" type="text" placeholder="🔍 Filtrar por seleção..." class="form-input" style="padding-left:14px;font-size:13px;" oninput="filterByTeam()" autocomplete="off">
+        <button id="team-search-clear" onclick="clearTeamFilter()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;">✕</button>
+      </div>
       <div id="matches-list"><div class="empty-state">Carregando jogos...</div></div>
     </div>
 
@@ -287,10 +295,26 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
       <div class="rank-list" id="rank-list"><div class="empty-state">Carregando...</div></div>
       <div class="section-label" style="margin-top:20px;">BADGES</div>
       <div class="badge-grid">
-        <div class="badge-item" id="badge-rei"><span class="badge-icon">👑</span><div class="badge-name">Rei do Placar</div></div>
-        <div class="badge-item" id="badge-sniper"><span class="badge-icon" style="opacity:.4">🎯</span><div class="badge-name">Sniper</div></div>
-        <div class="badge-item"><span class="badge-icon" style="opacity:.3">🔥</span><div class="badge-name">Em Chamas</div></div>
-        <div class="badge-item"><span class="badge-icon" style="opacity:.3">🦅</span><div class="badge-name">Vidente</div></div>
+        <div class="badge-item" id="badge-rei">
+          <span class="badge-icon">👑</span>
+          <div class="badge-name">Rei do Placar</div>
+          <div class="badge-rule">1º lugar no ranking geral</div>
+        </div>
+        <div class="badge-item" id="badge-sniper">
+          <span class="badge-icon">🎯</span>
+          <div class="badge-name">Sniper</div>
+          <div class="badge-rule">3 ou mais placares exatos</div>
+        </div>
+        <div class="badge-item" id="badge-fogo">
+          <span class="badge-icon">🔥</span>
+          <div class="badge-name">Em Chamas</div>
+          <div class="badge-rule">Acertos em 3 jogos seguidos</div>
+        </div>
+        <div class="badge-item" id="badge-vidente">
+          <span class="badge-icon">🦅</span>
+          <div class="badge-name">Vidente</div>
+          <div class="badge-rule">Acertou 70% ou mais dos jogos</div>
+        </div>
       </div>
     </div>
 
@@ -464,7 +488,7 @@ const S = {
 let matches=[], ranking=[], rankingGeral=[];
 let groups=S.get('groups',[]), activeGid=S.get('activeGid',null);
 let userName=S.get('userName',''), userPin=S.get('userPin','');
-let currentFilter='todos', currentMatch=null, scoreH=0, scoreA=0;
+let currentFilter='todos', teamFilter='', currentMatch=null, scoreH=0, scoreA=0;
 let selectedColor=COLORS[0], rankTab='grupo', syncTimer=null;
 
 // Apostas são globais (não por grupo) — grupos servem só para ranking
@@ -687,16 +711,19 @@ function renderMatches(){
   const statusOrd={live:0,upcoming:1,done:2};
 
   let pool=matches.filter(m=>{
-    if(currentFilter==='abertos')    return m.status==='upcoming'&&!bets[m.id];
-    if(currentFilter==='apostados')  return !!bets[m.id];
+    // filtro por status
+    if(currentFilter==='abertos')     return m.status==='upcoming'&&!bets[m.id];
+    if(currentFilter==='apostados')   return !!bets[m.id];
     if(currentFilter==='finalizados') return m.status==='done';
-    if(currentFilter==='ao-vivo')    return m.status==='live';
-    // todos: oculta jogos finalizados há mais de 1 dia
-    if(m.status==='done'){
-      const hasBet=!!bets[m.id];
-      return hasBet; // mantém se apostou, oculta se não
-    }
+    if(currentFilter==='ao-vivo')     return m.status==='live';
+    // todos: oculta jogos finalizados sem aposta
+    if(m.status==='done' && !bets[m.id]) return false;
     return true;
+  }).filter(m=>{
+    // filtro por seleção
+    if(!teamFilter) return true;
+    const q=teamFilter.toLowerCase();
+    return m.home.toLowerCase().includes(q) || m.away.toLowerCase().includes(q);
   });
 
   const list=document.getElementById('matches-list');
@@ -741,6 +768,23 @@ function renderMatches(){
 function filterMatches(btn,f){
   document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');currentFilter=f;renderMatches();
+}
+
+function filterByTeam(){
+  const inp=document.getElementById('team-search');
+  const clr=document.getElementById('team-search-clear');
+  teamFilter=inp?inp.value.trim():'';
+  if(clr) clr.style.display=teamFilter?'block':'none';
+  renderMatches();
+}
+
+function clearTeamFilter(){
+  teamFilter='';
+  const inp=document.getElementById('team-search');
+  const clr=document.getElementById('team-search-clear');
+  if(inp) inp.value='';
+  if(clr) clr.style.display='none';
+  renderMatches();
 }
 
 // ── APOSTAS ──
@@ -852,8 +896,33 @@ function renderRanking(){
     rankLabel.textContent=label+(myPos>=0?' — Você: '+(myPos+1)+'º':'');
   }
 
-  document.getElementById('badge-rei').className='badge-item'+(exact>=3?' earned':'');
-  document.getElementById('badge-sniper').className='badge-item'+(exact>=1?' earned':'');
+  // ── BADGES com regras corretas ──
+  const totalDone=matches.filter(m=>m.status==='done').length;
+
+  // 👑 Rei do Placar — 1º lugar no ranking geral
+  const geralSorted=[...rankingGeral].sort((a,b)=>(b.pts||0)-(a.pts||0));
+  const isFirst=geralSorted.length>0&&(geralSorted[0].usuario||'').toLowerCase()===(userName||'').toLowerCase();
+  document.getElementById('badge-rei').className='badge-item'+(isFirst?' earned':'');
+
+  // 🎯 Sniper — 3 ou mais placares exatos
+  document.getElementById('badge-sniper').className='badge-item'+(exact>=3?' earned':'');
+
+  // 🔥 Em Chamas — acertos em 3 jogos consecutivos
+  const bets=myBets();
+  const doneMatches=matches.filter(m=>m.status==='done'&&m.score);
+  let streak=0,maxStreak=0;
+  doneMatches.forEach(m=>{
+    const p=calcPoints(bets[m.id],m.score);
+    if(p!==null&&p>0){streak++;maxStreak=Math.max(maxStreak,streak);}
+    else streak=0;
+  });
+  const badgeFogo=document.getElementById('badge-fogo');
+  if(badgeFogo) badgeFogo.className='badge-item'+(maxStreak>=3?' earned':'');
+
+  // 🦅 Vidente — 70% ou mais de acertos nos jogos finalizados
+  const acPct=totalDone>0?Math.round((hits/totalDone)*100):0;
+  const badgeVidente=document.getElementById('badge-vidente');
+  if(badgeVidente) badgeVidente.className='badge-item'+(acPct>=70&&totalDone>=3?' earned':'');
 
   // Atualiza resumo do usuário
   const myRankPos=all.findIndex(r=>(r.usuario||'').toLowerCase()===(userName||'').toLowerCase());
