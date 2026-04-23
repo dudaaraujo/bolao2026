@@ -334,30 +334,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <div class="onboarding-logo">BOLÃO<span>⚽</span>2026</div>
     <div class="onboarding-sub">Copa do Mundo FIFA · EUA / CAN / MEX</div>
 
-    <!-- Passo 1: nome -->
-    <div id="step-nome">
-      <div class="card" style="margin-bottom:16px;">
-        <div class="card-title">Qual é seu nome?</div>
-        <input id="ob-name" type="text" placeholder="Seu nome..." class="form-input" maxlength="30" onkeydown="if(event.key==='Enter')obNext()">
-      </div>
-      <button class="btn btn-green" id="ob-next-btn" onclick="obNext()" type="button">Continuar →</button>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">Qual é seu nome?</div>
+      <input id="ob-name" type="text" placeholder="Seu nome..." class="form-input" maxlength="30" onkeydown="if(event.key==='Enter')obEnter()">
+      <div id="ob-status" style="font-size:12px;margin-top:10px;min-height:16px;text-align:center;color:var(--muted);"></div>
     </div>
-
-    <!-- Passo 2: PIN -->
-    <div id="step-pin" style="display:none;">
-      <div class="card" style="margin-bottom:16px;">
-        <div class="card-title" id="ob-pin-title">Digite seu PIN (4 dígitos)</div>
-        <div class="pin-row">
-          <input class="pin-input" id="p1" type="tel" maxlength="1" oninput="pNav(this,'p2')">
-          <input class="pin-input" id="p2" type="tel" maxlength="1" oninput="pNav(this,'p3')">
-          <input class="pin-input" id="p3" type="tel" maxlength="1" oninput="pNav(this,'p4')">
-          <input class="pin-input" id="p4" type="tel" maxlength="1" oninput="pNav(this,null)">
-        </div>
-      </div>
-      <button class="btn btn-green" id="ob-enter-btn" onclick="obEnter()">Entrar no bolão →</button>
-    </div>
-
-    <div id="ob-status" style="font-size:12px;margin-top:12px;min-height:18px;text-align:center;color:var(--muted);"></div>
+    <button class="btn btn-green" id="ob-enter-btn" onclick="obEnter()" type="button">Entrar no bolão →</button>
   </div>
 </div>
 
@@ -558,7 +540,7 @@ function rowToMatch(row) {
 // ── INIT ──
 function init() {
   const ob = document.getElementById('onboarding');
-  if (!userName || !userPin) {
+  if (!userName) {
     ob.style.display = 'flex';
   } else {
     ob.style.display = 'none';
@@ -591,35 +573,15 @@ function getPin(){return['p1','p2','p3','p4'].map(id=>document.getElementById(id
 function clearPin(){['p1','p2','p3','p4'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});}
 function setObStatus(msg,color='var(--muted)'){const e=document.getElementById('ob-status');if(e){e.textContent=msg;e.style.color=color;}}
 
-function obNext() {
-  const name = document.getElementById('ob-name').value.trim();
-  if (!name) { setObStatus('⚠️ Digite seu nome', 'var(--red)'); return; }
-  // Vai direto para o PIN — o servidor valida na próxima etapa
-  obIsNew = true; // será corrigido em obEnter se usuário existir
-  document.getElementById('ob-pin-title').textContent = 'PIN de 4 dígitos';
-  setObStatus('Digite um PIN para proteger sua conta', 'var(--muted)');
-  document.getElementById('step-nome').style.display = 'none';
-  document.getElementById('step-pin').style.display = 'block';
-  document.getElementById('ob-enter-btn').style.display = 'block';
-  setTimeout(() => document.getElementById('p1').focus(), 100);
-}
-
 async function obEnter() {
   const name = document.getElementById('ob-name').value.trim();
-  const pin  = getPin();
-  if (pin.length < 4) { setObStatus('⚠️ PIN deve ter 4 dígitos', 'var(--red)'); return; }
+  if (!name) { setObStatus('⚠️ Digite seu nome', 'var(--red)'); return; }
   const btn = document.getElementById('ob-enter-btn');
   btn.textContent = 'Entrando...'; btn.disabled = true;
-  setObStatus('Verificando...', 'var(--muted)');
+  setObStatus('Conectando...', 'var(--muted)');
   try {
-    const t = new Promise((_,rj) => setTimeout(() => rj(new Error('timeout')), 10000));
-    const r = await Promise.race([api({action:'getUsuario',nome:name,pin}), t]);
-    if (!r.ok && r.error === 'PIN incorreto') {
-      setObStatus('❌ PIN incorreto. Tente novamente.', 'var(--red)');
-      clearPin(); document.getElementById('p1').focus();
-      btn.textContent = 'Entrar no bolão →'; btn.disabled = false;
-      return;
-    }
+    const t = new Promise((_,rj) => setTimeout(() => rj(new Error('timeout')), 8000));
+    const r = await Promise.race([api({action:'getUsuario', nome:name, pin:'0000'}), t]);
     if (r.ok && r.apostas && r.apostas.length) {
       const bg = {};
       r.apostas.forEach(a => { if(!bg[a.grupo])bg[a.grupo]={}; bg[a.grupo][a.jogo_id]={h:parseInt(a.gol_casa),a:parseInt(a.gol_visit),ts:a.criado_em||''}; });
@@ -629,19 +591,19 @@ async function obEnter() {
       r.grupos.forEach(gd => { if(!groups.find(x=>x.code===gd.codigo)){groups.push({id:Date.now()+'_'+Math.random().toString(36).slice(2,6),name:gd.nome,color:gd.cor||COLORS[0],code:gd.codigo,createdAt:gd.criado_em});} });
       S.set('groups', groups);
     }
-    setObStatus(r.existe ? '✓ Bem-vindo de volta!' : '✓ Conta criada!', 'var(--green)');
-    await new Promise(res => setTimeout(res, 600));
+    setObStatus(r.existe ? '✓ Dados restaurados!' : '✓ Bem-vindo!', 'var(--green)');
+    await new Promise(res => setTimeout(res, 500));
   } catch(e) {
-    setObStatus('⚠️ Offline — entrando no modo local', 'var(--gold)');
-    await new Promise(res => setTimeout(res, 600));
+    setObStatus('Entrando no modo offline...', 'var(--gold)');
+    await new Promise(res => setTimeout(res, 400));
   }
-  userName = name; userPin = pin;
-  S.set('userName', userName); S.set('userPin', userPin);
+  userName = name; S.set('userName', userName);
   if (!groups.length) await createDefaultGroup();
-  if (!activeGid || !groups.find(g => g.id === activeGid)) { activeGid = groups[0].id; S.set('activeGid', activeGid); }
+  if (!activeGid || !groups.find(g => g.id === activeGid)) { activeGid=groups[0].id; S.set('activeGid',activeGid); }
   document.getElementById('onboarding').style.display = 'none';
   boot();
 }
+
 
 function logout(){
   if(!confirm('Sair da conta? Precisará do PIN para entrar novamente.'))return;
