@@ -209,6 +209,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .pulse{animation:pulse 2s ease-in-out infinite;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 <div id="app">
@@ -242,7 +244,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
           <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:#00c853;line-height:1;letter-spacing:.04em;">DORME</div>
         </div>
       </div>
-      <div class="sync-badge"><div class="sync-dot" id="sync-dot"></div><span id="sync-label">—</span></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="sync-badge"><div class="sync-dot" id="sync-dot"></div><span id="sync-label">—</span></div>
+        <div id="header-user-display" onclick="showUserMenu()" style="cursor:pointer;"></div>
+      </div>
     </div>
     <div class="groups-row">
       <div class="groups-switcher" id="groups-switcher"></div>
@@ -355,8 +360,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
       </div>
       <div class="section-label">SEU PERFIL</div>
       <div class="card">
-        <div style="font-size:13px;color:var(--muted);">Conectado como <b style="color:var(--text)" id="profile-name">—</b></div>
-        <button class="btn btn-outline" style="margin-top:10px;font-size:12px;padding:8px;" onclick="logout()">Sair da conta</button>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <div id="profile-photo" style="width:44px;height:44px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#000;flex-shrink:0;overflow:hidden;"></div>
+          <div>
+            <div style="font-weight:600;font-size:15px;" id="profile-name">—</div>
+            <div style="font-size:12px;color:var(--muted);" id="profile-email">—</div>
+          </div>
+        </div>
+        <button class="btn btn-red" style="font-size:13px;padding:10px;" onclick="logout()">Sair da conta</button>
       </div>
       <div class="section-label">MEMBROS (<span id="member-count">0</span>)</div>
       <div class="members-list" id="members-list"></div>
@@ -389,11 +400,13 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   </div>
 </div>
 
-<!-- ONBOARDING -->
+<!-- ONBOARDING / LOGIN -->
 <div class="onboarding" id="onboarding" style="display:none;">
   <div class="onboarding-box">
-    <div style="display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:32px;">
-      <svg width="72" height="72" viewBox="0 0 32 32" fill="none" style="margin-bottom:16px;">
+
+    <!-- Logo -->
+    <div style="display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:40px;">
+      <svg width="80" height="80" viewBox="0 0 32 32" fill="none" style="margin-bottom:16px;">
         <ellipse cx="16" cy="18" rx="10" ry="12" fill="#1f3356"/>
         <polygon points="9,8 11,3 14,8" fill="#1f3356"/>
         <polygon points="23,8 21,3 18,8" fill="#1f3356"/>
@@ -408,17 +421,28 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         <polygon points="16,17 14,20 18,20" fill="#ffd600"/>
         <path d="M4,27 Q16,24 28,27" stroke="#2a3f60" stroke-width="2.5" stroke-linecap="round" fill="none"/>
       </svg>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:#f0f4ff;line-height:1;letter-spacing:.04em;">ONDE A CORUJA</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:#00c853;line-height:1;letter-spacing:.04em;margin-bottom:8px;">DORME</div>
-      <div class="onboarding-sub" style="margin:0;">Palpites de futebol · entre amigos</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:38px;color:#f0f4ff;line-height:1;letter-spacing:.04em;">ONDE A CORUJA</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:38px;color:#00c853;line-height:1;letter-spacing:.04em;margin-bottom:8px;">DORME</div>
+      <div style="font-size:13px;color:var(--muted);">Palpites de futebol · entre amigos</div>
     </div>
 
-    <div class="card" style="margin-bottom:16px;">
-      <div class="card-title">Qual é seu nome?</div>
-      <input id="ob-name" type="text" placeholder="Seu nome..." class="form-input" maxlength="30" onkeydown="if(event.key==='Enter')obEnter()">
-      <div id="ob-status" style="font-size:12px;margin-top:10px;min-height:16px;text-align:center;color:var(--muted);"></div>
+    <!-- Botão Google -->
+    <button id="btn-google" onclick="loginGoogle()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:12px;padding:14px;background:#fff;border:none;border-radius:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;color:#1f1f1f;transition:opacity .2s;">
+      <svg width="20" height="20" viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.5 30.2 0 24 0 14.6 0 6.6 5.4 2.6 13.3l7.9 6.1C12.4 13 17.8 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.1z"/>
+        <path fill="#FBBC05" d="M10.5 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.6L2.4 13.3A24 24 0 0 0 0 24c0 3.8.9 7.4 2.6 10.6l7.9-6z"/>
+        <path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.6-5.9c-2 1.4-4.7 2.2-7.6 2.2-6.2 0-11.5-4.2-13.5-9.9l-7.9 6C6.6 42.6 14.6 48 24 48z"/>
+      </svg>
+      Entrar com Google
+    </button>
+
+    <div id="ob-status" style="font-size:12px;margin-top:14px;min-height:16px;text-align:center;color:var(--muted);"></div>
+
+    <div style="margin-top:24px;text-align:center;font-size:11px;color:var(--muted);line-height:1.6;">
+      Ao entrar você concorda com os termos de uso.<br>Seus dados ficam associados à sua conta Google.
     </div>
-    <button class="btn btn-green" id="ob-enter-btn" onclick="obEnter()" type="button">Entrar →</button>
+
   </div>
 </div>
 
@@ -523,6 +547,19 @@ function getFlag(v) {
   return s;
 }
 
+// ── FIREBASE ──
+const firebaseConfig = {
+  apiKey: "AIzaSyBvs7i9wcmk-SPtBbuueLE1kwRrXX6qVFY",
+  authDomain: "onde-a-coruja-dorme-b8479.firebaseapp.com",
+  projectId: "onde-a-coruja-dorme-b8479",
+  storageBucket: "onde-a-coruja-dorme-b8479.firebasestorage.app",
+  messagingSenderId: "948608845384",
+  appId: "1:948608845384:web:6749287a7fe71944adba7d"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const googleProvider = new firebase.auth.GoogleAuthProvider();
+
 // ── STORAGE ──
 const S = {
   get:(k,d)=>{try{const v=localStorage.getItem('b26_'+k);return v!==null?JSON.parse(v):d;}catch{return d;}},
@@ -532,7 +569,7 @@ const S = {
 // ── ESTADO ──
 let matches=[], ranking=[], rankingGeral=[];
 let groups=S.get('groups',[]), activeGid=S.get('activeGid',null);
-let userName=S.get('userName',''), userPin=S.get('userPin','');
+let userName='', userEmail='', userPhoto='';
 let currentFilter='todos', teamFilter='', currentMatch=null, scoreH=0, scoreA=0;
 let selectedColor=COLORS[0], rankTab='grupo', syncTimer=null;
 
@@ -623,20 +660,60 @@ function rowToMatch(row) {
 // ── INIT ──
 function init() {
   const ob = document.getElementById('onboarding');
-  // v4 — limpa TODO o localStorage para começar do zero
-  if (!S.get('v4', false)) {
-    try { localStorage.clear(); } catch(e) {}
-    S.set('v4', true);
+  ob.style.display = 'none'; // Firebase onAuthStateChanged vai controlar
+
+  // Escuta mudanças de autenticação
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      // Usuário logado
+      userName  = user.displayName || user.email.split('@')[0];
+      userEmail = user.email;
+      userPhoto = user.photoURL || '';
+      updateHeaderUser();
+      ob.style.display = 'none';
+      groups    = S.get('groups', []);
+      activeGid = S.get('activeGid', null);
+      boot();
+    } else {
+      // Não logado — mostra tela de login
+      ob.style.display = 'flex';
+    }
+  });
+}
+
+function updateHeaderUser() {
+  const el = document.getElementById('header-user-display');
+  if (!el) return;
+  el.innerHTML = userPhoto
+    ? `<img src="${userPhoto}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;">`
+    : `<div style="width:26px;height:26px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#000;">${userName.slice(0,2).toUpperCase()}</div>`;
+}
+
+async function loginGoogle() {
+  const btn = document.getElementById('btn-google');
+  const status = document.getElementById('ob-status');
+  btn.style.opacity = '0.7'; btn.style.pointerEvents = 'none';
+  status.textContent = 'Abrindo login do Google...';
+  try {
+    await auth.signInWithPopup(googleProvider);
+    // onAuthStateChanged cuida do resto
+  } catch(e) {
+    btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
+    if (e.code === 'auth/popup-blocked') {
+      status.textContent = '⚠️ Popup bloqueado — permita popups para este site';
+    } else if (e.code === 'auth/cancelled-popup-request') {
+      status.textContent = '';
+    } else {
+      status.textContent = '⚠️ Erro: ' + e.message;
+    }
   }
-  userName = S.get('userName', '');
-  groups   = S.get('groups', []);
-  activeGid = S.get('activeGid', null);
-  if (!userName) {
-    ob.style.display = 'flex';
-  } else {
-    ob.style.display = 'none';
-    boot();
-  }
+}
+
+function logout() {
+  if (!confirm('Sair da conta?')) return;
+  auth.signOut();
+  S.set('groups', []); S.set('activeGid', null);
+  groups = []; activeGid = null;
 }
 
 function boot() {
@@ -687,10 +764,10 @@ function obEnter() {
 }
 
 
-function logout(){
-  if(!confirm('Sair da conta? Precisará do PIN para entrar novamente.'))return;
-  S.set('userName','');S.set('userPin','');
-  location.reload();
+function showUserMenu() {
+  const name = userName || 'Usuário';
+  const email = userEmail || '';
+  if (confirm(`${name}\n${email}\n\nSair da conta?`)) logout();
 }
 
 // ── NAVEGAÇÃO ──
@@ -872,7 +949,7 @@ async function confirmBet(){
   // Envia para todos os grupos no servidor em background
   const gruposCodes=groups.map(g=>g.code);
   const grupoAlvo=activeGroup()?.code||gruposCodes[0]||'GERAL';
-  api({action:'saveAposta',usuario:userName,grupo:grupoAlvo,jogo_id:currentMatch.id,gol_casa:scoreH,gol_visit:scoreA})
+  api({action:'saveAposta',usuario:userEmail||userName,grupo:grupoAlvo,jogo_id:currentMatch.id,gol_casa:scoreH,gol_visit:scoreA})
     .catch(()=>{});
 }
 
@@ -984,7 +1061,17 @@ function renderGrupo(){
   document.getElementById('grupo-code-txt').textContent=g.code;
   document.getElementById('grupo-code-txt').style.color=g.color;
   document.getElementById('grupo-code-box').style.borderColor=g.color+'66';
-  document.getElementById('profile-name').textContent=userName;
+  document.getElementById('profile-name').textContent = userName;
+  const emailEl = document.getElementById('profile-email');
+  if (emailEl) emailEl.textContent = userEmail;
+  const photoEl = document.getElementById('profile-photo');
+  if (photoEl) {
+    if (userPhoto) {
+      photoEl.innerHTML = `<img src="${userPhoto}" style="width:100%;height:100%;object-fit:cover;">`;
+    } else {
+      photoEl.textContent = userName.slice(0,2).toUpperCase();
+    }
+  }
   const{pts}=myStats();
   const gi=groups.findIndex(x=>x.id===activeGid);
   const me={usuario:userName||'Você',pts};
