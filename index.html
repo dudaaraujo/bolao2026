@@ -254,7 +254,11 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 
     <!-- RANKING -->
     <div id="screen-ranking" class="screen">
-      <div class="section-label">PLACAR GERAL</div>
+      <div class="filter-row" style="margin-bottom:16px;">
+        <button class="filter-btn active" id="rank-tab-grupo" onclick="switchRankTab('grupo')">Meu Grupo</button>
+        <button class="filter-btn" id="rank-tab-geral" onclick="switchRankTab('geral')">Ranking Geral</button>
+      </div>
+      <div class="section-label" id="rank-label">PLACAR DO GRUPO</div>
       <div class="rank-list" id="rank-list"><div class="empty-state">Carregando ranking...</div></div>
       <div class="section-label" style="margin-top:20px;">BADGES</div>
       <div class="badge-grid">
@@ -312,17 +316,28 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   </div>
 </div>
 
-<!-- ONBOARDING: login por nome -->
+<!-- ONBOARDING: login por nome + PIN -->
 <div class="onboarding" id="onboarding" style="display:none;">
   <div class="onboarding-box">
     <div class="onboarding-logo">BOLÃO<span>⚽</span>2026</div>
     <div class="onboarding-sub">Copa do Mundo FIFA · EUA / CAN / MEX</div>
     <div class="card" style="margin-bottom:16px;">
-      <div class="card-title" id="onboard-title">Como quer ser chamado?</div>
-      <input id="onboard-name" type="text" placeholder="Seu nome..." class="form-input" maxlength="30" onkeydown="if(event.key==='Enter')finishOnboarding()">
-      <div id="onboard-status" style="font-size:12px;margin-top:10px;min-height:18px;text-align:center;"></div>
+      <div class="card-title" id="onboard-title">Qual é seu nome?</div>
+      <input id="onboard-name" type="text" placeholder="Seu nome..." class="form-input" maxlength="30" style="margin-bottom:10px;">
+      <div id="onboard-pin-row" style="display:none;">
+        <div class="card-title" id="onboard-pin-label" style="margin-bottom:8px;">Digite seu PIN (4 dígitos)</div>
+        <div style="display:flex;gap:10px;justify-content:center;">
+          <input class="pin-input" id="pin1" type="number" min="0" max="9" maxlength="1" oninput="pinNav(this,'pin2')" style="width:52px;height:52px;text-align:center;font-size:22px;font-family:'Bebas Neue',sans-serif;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);">
+          <input class="pin-input" id="pin2" type="number" min="0" max="9" maxlength="1" oninput="pinNav(this,'pin3')" style="width:52px;height:52px;text-align:center;font-size:22px;font-family:'Bebas Neue',sans-serif;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);">
+          <input class="pin-input" id="pin3" type="number" min="0" max="9" maxlength="1" oninput="pinNav(this,'pin4')" style="width:52px;height:52px;text-align:center;font-size:22px;font-family:'Bebas Neue',sans-serif;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);">
+          <input class="pin-input" id="pin4" type="number" min="0" max="9" maxlength="1" oninput="pinNav(this,null)" style="width:52px;height:52px;text-align:center;font-size:22px;font-family:'Bebas Neue',sans-serif;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);">
+        </div>
+      </div>
+      <div id="onboard-status" style="font-size:12px;margin-top:12px;min-height:18px;text-align:center;"></div>
     </div>
-    <button class="btn btn-green" id="onboard-btn" onclick="finishOnboarding()">Entrar no bolão →</button>
+    <button class="btn btn-outline" id="onboard-next-btn" onclick="onboardNext()">Continuar →</button>
+    <div style="height:8px;"></div>
+    <button class="btn btn-green" id="onboard-btn" onclick="finishOnboarding()" style="display:none;">Entrar no bolão →</button>
   </div>
 </div>
 
@@ -520,15 +535,18 @@ async function syncAll(manual = false) {
   hideDiag();
   try {
     const grupo = activeGroup()?.code || '';
-    const [rJogos, rRanking] = await Promise.all([
+    const [rJogos, rRanking, rRankingGeral] = await Promise.all([
       api({ action: 'getJogos' }),
       grupo ? api({ action: 'getRanking', grupo }) : Promise.resolve({ ok: true, ranking: [] }),
+      api({ action: 'getRanking' }), // sem grupo = ranking geral
     ]);
     if (!rJogos.ok) throw new Error(rJogos.error || 'Erro ao buscar jogos');
     matches = rJogos.jogos.map(rowToMatch).filter(m => m.id > 0);
     ranking = rRanking.ranking || [];
+    rankingGeral = rRankingGeral.ranking || [];
     S.set('matches_cache', matches);
     S.set('ranking_cache_'+grupo, ranking);
+    S.set('ranking_cache_geral', rankingGeral);
     const now = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
     setSyncStatus('ok', 'Atualizado ' + now);
     renderMatches();
@@ -540,6 +558,7 @@ async function syncAll(manual = false) {
     matches = S.get('matches_cache', []);
     const grupo = activeGroup()?.code || '';
     ranking = S.get('ranking_cache_'+grupo, []);
+    rankingGeral = S.get('ranking_cache_geral', []);
     renderMatches();
     updateHome();
     showDiag(e.message);
@@ -865,29 +884,61 @@ function updateHome() {
 // ── JOGOS ──
 function renderMatches() {
   const bets = myBets();
-  const filtered = matches.filter(m => {
-    if (currentFilter === 'todos')       return true;
-    if (currentFilter === 'abertos')     return m.status === 'upcoming' && !bets[m.id];
-    if (currentFilter === 'apostados')   return !!bets[m.id];
-    if (currentFilter === 'finalizados') return m.status === 'done';
-    if (currentFilter === 'ao-vivo')     return m.status === 'live';
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1); yesterday.setHours(23,59,59,0);
+
+  let pool = matches.filter(m => {
+    // esconde jogos finalizados de ontem para trás (exceto filtro "finalizados")
+    if (m.status==='done' && currentFilter!=='finalizados' && currentFilter!=='apostados') {
+      if (m._ts && m._ts < yesterday.getTime()) return false;
+    }
+    if (currentFilter==='todos')       return true;
+    if (currentFilter==='abertos')     return m.status==='upcoming' && !bets[m.id];
+    if (currentFilter==='apostados')   return !!bets[m.id];
+    if (currentFilter==='finalizados') return m.status==='done';
+    if (currentFilter==='ao-vivo')     return m.status==='live';
     return true;
   });
+
   const list = document.getElementById('matches-list');
   if (!matches.length) { list.innerHTML = '<div class="empty-state">Aguardando conexão com a planilha...</div>'; return; }
-  if (!filtered.length) { list.innerHTML = '<div class="empty-state">Nenhum jogo nesta categoria</div>'; return; }
-  list.innerHTML = filtered.map(m => {
-    const bet = bets[m.id], pts = bet && m.score ? calcPoints(bet, m.score) : null;
-    const sl  = m.status==='upcoming'?'Não iniciado':m.status==='live'?'Ao vivo ●':'Finalizado';
-    const hint = bet ? `✓ ${bet.h}×${bet.a}${pts!==null?' · +'+pts+'pts':''}` : m.status==='upcoming'?'Toque para apostar':'';
-    return `<div class="match-card ${bet?'has-bet':''}" onclick="openBet(${m.id})">
-      <div class="match-header"><span class="match-round">${m.round}</span><span class="match-status status-${m.status}">${m.status==='live'?`<span class="pulse">${sl}</span>`:sl}</span></div>
-      <div class="match-teams">
-        <div class="match-team"><span class="team-flag">${m.hFlag}</span><span class="team-name">${m.home}</span></div>
-        <div class="match-score ${m.score?'':'pending'}">${m.score?m.score.h+' – '+m.score.a:'–'}</div>
-        <div class="match-team right"><span class="team-name">${m.away}</span><span class="team-flag">${m.aFlag}</span></div>
-      </div>
-      <div class="match-footer"><span class="match-time">🕐 ${m.date}</span><span class="bet-indicator">${hint}</span></div>
+  if (!pool.length) { list.innerHTML = '<div class="empty-state">Nenhum jogo nesta categoria</div>'; return; }
+
+  // Agrupa por fase
+  const groups_map = {};
+  pool.forEach(m => {
+    const key = m.round || 'Outros';
+    if (!groups_map[key]) groups_map[key] = [];
+    groups_map[key].push(m);
+  });
+
+  // Ordena jogos dentro de cada fase por data (ao vivo primeiro, depois upcoming, depois done)
+  const statusOrder = { live:0, upcoming:1, done:2 };
+  Object.values(groups_map).forEach(arr => arr.sort((a,b) => (statusOrder[a.status]||1)-(statusOrder[b.status]||1)));
+
+  list.innerHTML = Object.entries(groups_map).map(([fase, arr]) => {
+    const cards = arr.map(m => {
+      const bet = bets[m.id], pts = bet && m.score ? calcPoints(bet, m.score) : null;
+      const sl  = m.status==='upcoming'?'Não iniciado':m.status==='live'?'Ao vivo ●':'Finalizado';
+      const hint = bet ? `✓ ${bet.h}×${bet.a}${pts!==null?' · +'+pts+'pts':''}` : m.status==='upcoming'?'Toque para apostar':'';
+      // badge de pontuação no canto
+      const ptsBadge = pts!==null ? `<div style="position:absolute;bottom:10px;right:12px;font-family:'Bebas Neue',sans-serif;font-size:20px;color:${pts===3?'var(--gold)':pts>0?'var(--green)':'var(--muted)'};">${pts===3?'⭐':''} +${pts}pts</div>` : '';
+      return `<div class="match-card ${bet?'has-bet':''}" onclick="openBet(${m.id})" style="position:relative;">
+        <div class="match-header"><span class="match-round">${m.round}</span><span class="match-status status-${m.status}">${m.status==='live'?`<span class="pulse">${sl}</span>`:sl}</span></div>
+        <div class="match-teams">
+          <div class="match-team"><span class="team-flag">${m.hFlag}</span><span class="team-name">${m.home}</span></div>
+          <div class="match-score ${m.score?'':'pending'}">${m.score?m.score.h+' – '+m.score.a:'–'}</div>
+          <div class="match-team right"><span class="team-name">${m.away}</span><span class="team-flag">${m.aFlag}</span></div>
+        </div>
+        <div class="match-footer">
+          <span class="match-time">🕐 ${m.date}</span>
+          <span class="bet-indicator">${bet?`Aposta: ${bet.h}×${bet.a}`:(m.status==='upcoming'?'Toque para apostar':'')}</span>
+        </div>
+        ${ptsBadge}
+      </div>`;
+    }).join('');
+    return `<div style="margin-bottom:4px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--muted);letter-spacing:.1em;padding:10px 2px 6px;">${fase.toUpperCase()}</div>
+      ${cards}
     </div>`;
   }).join('');
 }
@@ -964,22 +1015,26 @@ async function removeBet() {
 function renderRanking() {
   const { pts, exact, hits } = myBetsStats();
   const medals = ['🥇','🥈','🥉'];
-  // Mescla ranking do servidor com dado local do usuário
-  let all = [...ranking];
-  const meIdx = all.findIndex(r => r.usuario === userName);
-  const meObj = { usuario: userName, pts, exatos: exact, acertos: hits, isMe: true };
+
+  // usa ranking do grupo ou geral dependendo da aba
+  const source = (typeof rankTab !== 'undefined' && rankTab === 'geral') ? rankingGeral : ranking;
+  let all = [...(source||[])];
+
+  const meIdx = all.findIndex(r => (r.usuario||'').toLowerCase() === (userName||'').toLowerCase());
+  const meObj = { usuario: userName||'Você', pts, exatos: exact, acertos: hits };
   if (meIdx >= 0) all[meIdx] = { ...all[meIdx], ...meObj };
   else all.push(meObj);
-  all = all.sort((a,b) => b.pts - a.pts);
+  all = all.sort((a,b) => (b.pts||0) - (a.pts||0));
 
   document.getElementById('rank-list').innerHTML = all.length ? all.map((m,i) => {
-    const color = COLORS[i % COLORS.length];
+    const color = COLORS[Math.abs(hashStr(m.usuario||'?')) % COLORS.length];
     const ini   = (m.usuario||'?').slice(0,2).toUpperCase();
-    return `<div class="rank-item ${m.isMe?'me':''}">
+    const isMe  = (m.usuario||'').toLowerCase() === (userName||'').toLowerCase();
+    return `<div class="rank-item ${isMe?'me':''}">
       <div class="rank-pos ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i<3?medals[i]:i+1}</div>
       <div class="rank-avatar" style="background:${color}22;color:${color}">${ini}</div>
       <div class="rank-info">
-        <div class="rank-name">${m.usuario} ${m.isMe?'<span class="rank-badge">Você</span>':''}</div>
+        <div class="rank-name">${m.usuario||'?'} ${isMe?'<span class="rank-badge">Você</span>':''}</div>
         <div class="rank-detail">${m.exatos||0} exatos · ${m.acertos||0} acertos</div>
       </div>
       <div class="rank-pts">${m.pts||0}</div>
@@ -1143,6 +1198,87 @@ function showToast(msg) {
   if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1a2b48;border:1px solid rgba(0,200,83,.3);color:#f0f4ff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:999;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 20px rgba(0,0,0,.4);transition:opacity .3s;';document.body.appendChild(t);}
   t.textContent=msg;t.style.opacity='1';clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.style.opacity='0',3500);
 }
+
+// ── PIN NAVIGATION ──
+function pinNav(el, nextId) {
+  const v = el.value.replace(/[^0-9]/g,'');
+  el.value = v.slice(-1);
+  if (v && nextId) document.getElementById(nextId)?.focus();
+}
+
+function getPin() {
+  return ['pin1','pin2','pin3','pin4'].map(id => {
+    const el = document.getElementById(id);
+    return el ? el.value : '';
+  }).join('');
+}
+
+function clearPin() {
+  ['pin1','pin2','pin3','pin4'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+}
+
+// ── ONBOARD STEP 1: verificar nome ──
+let onboardIsNew = false;
+
+async function onboardNext() {
+  const name = document.getElementById('onboard-name').value.trim();
+  if (!name) { showOnboardStatus('⚠️ Digite seu nome', 'var(--red)'); return; }
+
+  const btn = document.getElementById('onboard-next-btn');
+  btn.textContent = 'Verificando...'; btn.disabled = true;
+  showOnboardStatus('Buscando conta...', 'var(--muted)');
+
+  try {
+    const r = await api({ action: 'getUsuario', nome: name });
+    if (r.isNew) {
+      // usuário novo — pede criação de PIN
+      onboardIsNew = true;
+      document.getElementById('onboard-pin-label').textContent = 'Crie um PIN de 4 dígitos';
+      showOnboardStatus('Novo usuário — crie um PIN para proteger sua conta', 'var(--gold)');
+    } else if (r.needPin) {
+      // usuário existente — pede PIN
+      onboardIsNew = false;
+      document.getElementById('onboard-pin-label').textContent = 'Digite seu PIN';
+      showOnboardStatus('Conta encontrada! Digite seu PIN para entrar', 'var(--green)');
+    } else if (r.ok) {
+      // entrou direto (legado sem PIN)
+      await finishOnboarding();
+      return;
+    }
+    document.getElementById('onboard-name').disabled = true;
+    document.getElementById('onboard-pin-row').style.display = 'block';
+    document.getElementById('onboard-next-btn').style.display = 'none';
+    document.getElementById('onboard-btn').style.display = 'block';
+    document.getElementById('pin1').focus();
+  } catch(e) {
+    showOnboardStatus('⚠️ Sem conexão — entrando offline', 'var(--gold)');
+    onboardIsNew = true;
+    document.getElementById('onboard-pin-row').style.display = 'block';
+    document.getElementById('onboard-next-btn').style.display = 'none';
+    document.getElementById('onboard-btn').style.display = 'block';
+  } finally {
+    btn.textContent = 'Continuar →'; btn.disabled = false;
+  }
+}
+
+function showOnboardStatus(msg, color) {
+  const el = document.getElementById('onboard-status');
+  if (el) { el.textContent = msg; el.style.color = color; }
+}
+
+// ── ONBOARD STEP 2: entrar com PIN ──
+async 
+function switchRankTab(tab) {
+  rankTab = tab;
+  document.getElementById('rank-tab-grupo').className = 'filter-btn' + (tab==='grupo'?' active':'');
+  document.getElementById('rank-tab-geral').className = 'filter-btn' + (tab==='geral'?' active':'');
+  document.getElementById('rank-label').textContent = tab==='grupo' ? 'PLACAR DO GRUPO' : 'RANKING GERAL';
+  renderRanking();
+}
+
 
 init();
 </script>
