@@ -440,7 +440,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <div id="screen-quiz" class="screen">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
         <div class="section-title">Quiz da Copa</div>
-        <button class="icon-btn" onclick="testarQuizAPI()" title="Testar API" style="font-size:10px;padding:4px 8px;">🔧</button>
+
       </div>
       <div id="quiz-subtitle" style="font-size:13px;color:var(--muted);margin-bottom:16px;">Carregando...</div>
 
@@ -1421,21 +1421,6 @@ let quizIndex = 0;
 let quizSessaoAcertos = 0;
 let quizSessaoTotal = 0;
 let quizRespondida = false;
-
-async function testarQuizAPI() {
-  const sub = document.getElementById('quiz-subtitle');
-  if(sub) sub.textContent = 'Testando conexão...';
-  try {
-    const email = userEmail || userName || 'teste@teste.com';
-    const r = await api({action:'getQuiz', email});
-    const msg = JSON.stringify(r).slice(0, 300);
-    if(sub) sub.textContent = msg;
-    showToast(r.ok ? '✅ API OK — ' + (r.perguntas||[]).length + ' perguntas' : '❌ ' + r.error);
-  } catch(e) {
-    if(sub) sub.textContent = '⚠️ Erro: ' + e.message;
-    showToast('⚠️ ' + e.message);
-  }
-}
 
 async function initQuiz() {
   const active   = document.getElementById('quiz-active');
