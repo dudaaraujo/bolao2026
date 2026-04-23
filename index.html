@@ -543,14 +543,14 @@ function rowToMatch(row) {
 // ── INIT ──
 function init() {
   const ob = document.getElementById('onboarding');
-  // Força novo login se veio de versão antiga (sem flag v3)
-  if (!S.get('v3', false)) {
-    S.set('userName', '');
-    S.set('userPin', '');
-    userName = '';
-    S.set('v3', true);
+  // v4 — limpa TODO o localStorage para começar do zero
+  if (!S.get('v4', false)) {
+    try { localStorage.clear(); } catch(e) {}
+    S.set('v4', true);
   }
   userName = S.get('userName', '');
+  groups   = S.get('groups', []);
+  activeGid = S.get('activeGid', null);
   if (!userName) {
     ob.style.display = 'flex';
   } else {
