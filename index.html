@@ -6,9 +6,9 @@
 <meta name="theme-color" content="#0a1628">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Bolão 2026">
+<meta name="apple-mobile-web-app-title" content="Coruja">
 <link rel="manifest" href="manifest.json">
-<title>Bolão Copa 2026</title>
+<title>Onde a Coruja Dorme</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -214,7 +214,34 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <div id="app">
   <div id="header">
     <div class="header-top">
-      <div class="app-logo">BOLÃO<span>⚽</span>2026</div>
+      <div class="app-logo" style="display:flex;align-items:center;gap:8px;">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- corpo -->
+          <ellipse cx="16" cy="18" rx="10" ry="12" fill="#1f3356"/>
+          <!-- orelhas -->
+          <polygon points="9,8 11,3 14,8" fill="#1f3356"/>
+          <polygon points="23,8 21,3 18,8" fill="#1f3356"/>
+          <!-- rosto -->
+          <ellipse cx="16" cy="15" rx="8" ry="7" fill="#162340"/>
+          <!-- olho esq -->
+          <circle cx="12" cy="13" r="3.5" fill="#ffd600"/>
+          <circle cx="12" cy="13" r="2" fill="#0a1628"/>
+          <circle cx="11" cy="12" r="0.8" fill="white" opacity="0.9"/>
+          <!-- olho dir - bola -->
+          <circle cx="20" cy="13" r="3.5" fill="white"/>
+          <polygon points="20,9.5 21.5,11.5 20.8,13.5 19.2,13.5 18.5,11.5" fill="#1a2b48"/>
+          <circle cx="20" cy="13" r="1.5" fill="#00c853"/>
+          <circle cx="19" cy="12" r="0.7" fill="white" opacity="0.8"/>
+          <!-- bico -->
+          <polygon points="16,17 14,20 18,20" fill="#ffd600"/>
+          <!-- galho -->
+          <path d="M4,27 Q16,24 28,27" stroke="#2a3f60" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        </svg>
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:#f0f4ff;line-height:1;letter-spacing:.04em;">ONDE A CORUJA</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:#00c853;line-height:1;letter-spacing:.04em;">DORME</div>
+        </div>
+      </div>
       <div class="sync-badge"><div class="sync-dot" id="sync-dot"></div><span id="sync-label">—</span></div>
     </div>
     <div class="groups-row">
@@ -365,15 +392,35 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <!-- ONBOARDING -->
 <div class="onboarding" id="onboarding" style="display:none;">
   <div class="onboarding-box">
-    <div class="onboarding-logo">BOLÃO<span>⚽</span>2026</div>
-    <div class="onboarding-sub">Copa do Mundo FIFA · EUA / CAN / MEX</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+      <svg width="56" height="56" viewBox="0 0 32 32" fill="none">
+        <ellipse cx="16" cy="18" rx="10" ry="12" fill="#1f3356"/>
+        <polygon points="9,8 11,3 14,8" fill="#1f3356"/>
+        <polygon points="23,8 21,3 18,8" fill="#1f3356"/>
+        <ellipse cx="16" cy="15" rx="8" ry="7" fill="#162340"/>
+        <circle cx="12" cy="13" r="3.5" fill="#ffd600"/>
+        <circle cx="12" cy="13" r="2" fill="#0a1628"/>
+        <circle cx="11" cy="12" r="0.8" fill="white" opacity="0.9"/>
+        <circle cx="20" cy="13" r="3.5" fill="white"/>
+        <polygon points="20,9.5 21.5,11.5 20.8,13.5 19.2,13.5 18.5,11.5" fill="#1a2b48"/>
+        <circle cx="20" cy="13" r="1.5" fill="#00c853"/>
+        <circle cx="19" cy="12" r="0.7" fill="white" opacity="0.8"/>
+        <polygon points="16,17 14,20 18,20" fill="#ffd600"/>
+        <path d="M4,27 Q16,24 28,27" stroke="#2a3f60" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      </svg>
+      <div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#f0f4ff;line-height:1;letter-spacing:.04em;">ONDE A CORUJA</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#00c853;line-height:1;letter-spacing:.04em;">DORME</div>
+      </div>
+    </div>
+    <div class="onboarding-sub">Palpites de futebol · entre amigos</div>
 
     <div class="card" style="margin-bottom:16px;">
       <div class="card-title">Qual é seu nome?</div>
       <input id="ob-name" type="text" placeholder="Seu nome..." class="form-input" maxlength="30" onkeydown="if(event.key==='Enter')obEnter()">
       <div id="ob-status" style="font-size:12px;margin-top:10px;min-height:16px;text-align:center;color:var(--muted);"></div>
     </div>
-    <button class="btn btn-green" id="ob-enter-btn" onclick="obEnter()" type="button">Entrar no bolão →</button>
+    <button class="btn btn-green" id="ob-enter-btn" onclick="obEnter()" type="button">Entrar →</button>
   </div>
 </div>
 
