@@ -662,17 +662,9 @@ function init() {
   const ob = document.getElementById('onboarding');
   ob.style.display = 'none'; // Firebase onAuthStateChanged vai controlar
 
-  // Trata resultado de redirect (iOS/Safari)
-  auth.getRedirectResult().then(result => {
-    // resultado tratado pelo onAuthStateChanged abaixo
-  }).catch(e => {
-    if (e.code !== 'auth/no-current-user') console.warn('Redirect error:', e.message);
-  });
-
-  // Escuta mudanças de autenticação
+  // Escuta mudanças de autenticação — único ponto de controle
   auth.onAuthStateChanged(user => {
     if (user) {
-      // Usuário logado
       userName  = user.displayName || user.email.split('@')[0];
       userEmail = user.email;
       userPhoto = user.photoURL || '';
@@ -683,7 +675,6 @@ function init() {
       // Registra/busca usuário na planilha em background
       api({action:'getUsuario', nome:userName, email:userEmail}).then(r => {
         if (r.ok && r.apostas && r.apostas.length) {
-          // Restaura apostas salvas na planilha
           const bg = {};
           r.apostas.forEach(a => {
             if (!bg[a.grupo]) bg[a.grupo] = {};
@@ -698,8 +689,15 @@ function init() {
       }).catch(() => {});
       boot();
     } else {
-      // Não logado — mostra tela de login
-      ob.style.display = 'flex';
+      // Verifica se veio de um redirect antes de mostrar login
+      auth.getRedirectResult().then(result => {
+        if (!result || !result.user) {
+          ob.style.display = 'flex';
+        }
+        // se tem result.user, onAuthStateChanged vai disparar novamente com o usuário
+      }).catch(() => {
+        ob.style.display = 'flex';
+      });
     }
   });
 }
@@ -719,11 +717,10 @@ async function loginGoogle() {
   status.textContent = 'Redirecionando para o Google...';
   try {
     // Detecta mobile/Safari — usa redirect; desktop usa popup
+    // Usa redirect em todos os casos mobile (mais confiável que popup)
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    if (isMobile || isSafari) {
+    if (isMobile) {
       await auth.signInWithRedirect(googleProvider);
-      // página vai redirecionar — onAuthStateChanged cuida ao voltar
     } else {
       await auth.signInWithPopup(googleProvider);
     }
