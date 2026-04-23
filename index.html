@@ -68,9 +68,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .nm-teams{display:flex;align-items:center;justify-content:space-between;}
 .nm-team{text-align:center;flex:1;}
 .nm-flag{font-size:28px;display:block;line-height:1;}
-.nm-name{font-size:12px;color:var(--muted);margin-top:3px;}
+.nm-name{font-size:12px;color:var(--muted);margin-top:3px;text-align:center;}
 .nm-vs{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--muted);}
 .nm-time{text-align:center;margin-top:8px;font-size:12px;color:var(--gold);}
+.nm-hint{text-align:center;margin-top:8px;font-size:12px;color:var(--gold);}
 
 /* BUTTONS */
 .btn{display:block;width:100%;padding:13px;border-radius:var(--radius-sm);border:none;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;text-align:center;}
@@ -927,11 +928,13 @@ function renderMatches(){
   const list=document.getElementById('matches-list');
   if(!list) return;
 
-  // Salva estado de expansão antes de re-renderizar
+  // Salva quais fases estavam ABERTAS antes de re-renderizar
   const expandedFases = new Set();
   document.querySelectorAll('.fase-header:not(.collapsed)').forEach(el => {
     expandedFases.add(el.id.replace('hdr-',''));
   });
+  // Se nenhuma estava aberta, flag para manter tudo fechado
+  const hadAnyOpen = expandedFases.size > 0;
 
   if(!matches.length){list.innerHTML='<div class="empty-state">Aguardando conexão com a planilha...</div>';return;}
 
@@ -1001,16 +1004,18 @@ function renderMatches(){
     </div>`;
   }).join('');
 
-  // Restaura fases que estavam abertas antes do sync
-  expandedFases.forEach(faseId => {
-    const hdr  = document.getElementById('hdr-'+faseId);
-    const body = document.getElementById('body-'+faseId);
-    if (hdr && body) {
-      hdr.classList.remove('collapsed');
-      body.classList.remove('collapsed');
-      body.style.maxHeight = '2000px';
-    }
-  });
+  // Restaura apenas as fases que estavam abertas (o resto fica fechado)
+  if (hadAnyOpen) {
+    expandedFases.forEach(faseId => {
+      const hdr  = document.getElementById('hdr-'+faseId);
+      const body = document.getElementById('body-'+faseId);
+      if (hdr && body) {
+        hdr.classList.remove('collapsed');
+        body.classList.remove('collapsed');
+        body.style.maxHeight = '2000px';
+      }
+    });
+  }
 }
 
 function toggleFase(faseId) {
