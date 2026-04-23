@@ -329,7 +329,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <!-- ONBOARDING -->
-<div class="onboarding" id="onboarding">
+<div class="onboarding" id="onboarding" style="display:none;">
   <div class="onboarding-box">
     <div class="onboarding-logo">BOLÃO<span>⚽</span>2026</div>
     <div class="onboarding-sub">Copa do Mundo FIFA · EUA / CAN / MEX</div>
@@ -557,11 +557,13 @@ function rowToMatch(row) {
 
 // ── INIT ──
 function init() {
-  if(!userName||!userPin) {
-    document.getElementById('onboarding').style.display='flex';
-    return;
+  const ob = document.getElementById('onboarding');
+  if (!userName || !userPin) {
+    ob.style.display = 'flex';
+  } else {
+    ob.style.display = 'none';
+    boot();
   }
-  boot();
 }
 
 function boot() {
