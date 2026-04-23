@@ -88,7 +88,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .fase-header:hover{background:var(--surface2);}
 .fase-header .fase-arrow{font-size:10px;transition:transform .2s;color:var(--muted);}
 .fase-header.collapsed .fase-arrow{transform:rotate(-90deg);}
-.fase-body{overflow:hidden;transition:max-height .25s ease;max-height:0;}
+.fase-body{overflow:hidden;transition:max-height .25s ease;}
 .fase-body.collapsed{max-height:0 !important;}
 .match-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;cursor:pointer;transition:border-color .2s;position:relative;}
 .match-card:hover{border-color:var(--green);}
@@ -277,14 +277,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         <div class="stat-card"><div class="stat-num" id="stat-bets">0</div><div class="stat-lbl">Apostas feitas</div></div>
         <div class="stat-card"><div class="stat-num" style="color:var(--green);" id="stat-hits">0</div><div class="stat-lbl">Acertos</div></div>
       </div>
-      <div class="next-match">
+      <div class="next-match" onclick="goToNextMatch()" style="cursor:pointer;">
         <div class="nm-label">⚡ Próximo jogo sem aposta</div>
         <div class="nm-teams">
           <div class="nm-team"><span class="nm-flag" id="nm-f1">⚽</span><div class="nm-name" id="nm-n1">—</div></div>
           <div class="nm-vs">VS</div>
           <div class="nm-team"><span class="nm-flag" id="nm-f2">⚽</span><div class="nm-name" id="nm-n2">—</div></div>
         </div>
-        <div class="nm-time" id="nm-hint">Carregando...</div>
+        <div class="nm-hint" id="nm-hint">Carregando...</div>
       </div>
       <div id="no-group-banner" style="display:none;background:var(--bg3);border:1px dashed rgba(0,200,83,.4);border-radius:var(--radius);padding:20px;text-align:center;margin-bottom:12px;">
         <div style="font-size:32px;margin-bottom:8px;">🦉</div>
@@ -927,6 +927,12 @@ function renderMatches(){
   const list=document.getElementById('matches-list');
   if(!list) return;
 
+  // Salva estado de expansão antes de re-renderizar
+  const expandedFases = new Set();
+  document.querySelectorAll('.fase-header:not(.collapsed)').forEach(el => {
+    expandedFases.add(el.id.replace('hdr-',''));
+  });
+
   if(!matches.length){list.innerHTML='<div class="empty-state">Aguardando conexão com a planilha...</div>';return;}
 
   let pool=matches.filter(m=>{
@@ -984,16 +990,27 @@ function renderMatches(){
         ? `<span style="background:var(--green-glow);color:var(--green);font-size:10px;padding:2px 7px;border-radius:10px;font-family:'DM Sans',sans-serif;">${betCount}/${arr.length} apostas</span>`
         : `<span style="font-size:10px;color:var(--muted);font-family:'DM Sans',sans-serif;">${arr.length} jogos</span>`;
     return `<div style="margin-bottom:4px;">
-         <div class="fase-header collapsed" id="hdr-${faseId}" onclick="toggleFase('${faseId}')">
+      <div class="fase-header" id="hdr-${faseId}" onclick="toggleFase('${faseId}')">
         <span>${fase.toUpperCase()}</span>
         <div style="display:flex;align-items:center;gap:8px;">
           ${badge}
           <span class="fase-arrow">▼</span>
         </div>
       </div>
-      <div class="fase-body collapsed" id="body-${faseId}" style="max-height:0;">${cards}</div>
+      <div class="fase-body" id="body-${faseId}" style="max-height:2000px;">${cards}</div>
     </div>`;
   }).join('');
+
+  // Restaura fases que estavam abertas antes do sync
+  expandedFases.forEach(faseId => {
+    const hdr  = document.getElementById('hdr-'+faseId);
+    const body = document.getElementById('body-'+faseId);
+    if (hdr && body) {
+      hdr.classList.remove('collapsed');
+      body.classList.remove('collapsed');
+      body.style.maxHeight = '2000px';
+    }
+  });
 }
 
 function toggleFase(faseId) {
@@ -1014,6 +1031,15 @@ function toggleFase(faseId) {
       hdr.classList.add('collapsed');
     });
   }
+}
+
+function goToNextMatch(){
+  const bets = myBets();
+  const next = matches.find(m => m.status==='upcoming' && !bets[m.id]);
+  if (!next) { goScreen('jogos'); return; }
+  goScreen('jogos');
+  // Abre modal do próximo jogo sem aposta
+  setTimeout(() => openBet(next.id), 300);
 }
 
 function filterMatches(btn,f){
