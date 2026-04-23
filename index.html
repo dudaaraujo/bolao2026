@@ -297,17 +297,13 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         </div>
         <div class="nm-hint" id="nm-hint">Carregando...</div>
       </div>
-      <div id="no-group-banner" style="display:none;background:var(--bg3);border:1px dashed rgba(0,200,83,.4);border-radius:var(--radius);padding:20px;text-align:center;margin-bottom:12px;">
-        <div style="font-size:32px;margin-bottom:8px;">🦉</div>
-        <div style="font-weight:600;font-size:15px;margin-bottom:6px;">Você ainda não está em nenhum grupo</div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Crie um grupo ou entre com o código de um amigo</div>
-        <button class="btn btn-green" onclick="openGroupsModal()" style="margin-bottom:8px;">Criar ou entrar em grupo</button>
+      <div id="no-group-banner" style="display:none;background:var(--bg3);border:1px dashed rgba(0,200,83,.4);border-radius:var(--radius);padding:16px;text-align:center;margin-bottom:12px;">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Você ainda não está em nenhum grupo</div>
+        <button class="btn btn-outline" onclick="openGroupsModal()" style="padding:9px;font-size:13px;">➕ Criar ou entrar em grupo</button>
       </div>
-      <div id="has-group-actions">
-        <button class="btn btn-green" onclick="goScreen('jogos')">Ver jogos e apostar →</button>
-        <div style="height:10px;"></div>
-        <button class="btn btn-outline" onclick="goScreen('ranking')">Ver ranking do grupo</button>
-      </div>
+      <button class="btn btn-green" onclick="goScreen('jogos')">Ver jogos e apostar →</button>
+      <div style="height:10px;"></div>
+      <button class="btn btn-outline" onclick="goScreen('ranking')">Ver ranking</button>
     </div>
 
     <!-- JOGOS -->
@@ -958,7 +954,6 @@ function updateHome(){
     const noGroup = document.getElementById('no-group-banner');
     const hasGroup = document.getElementById('has-group-actions');
     if(noGroup) noGroup.style.display = groups.length ? 'none' : 'block';
-    if(hasGroup) hasGroup.style.display = groups.length ? 'block' : 'none';
 
     const{pts,hits,betCount}=myStats();
     const el=id=>document.getElementById(id);
