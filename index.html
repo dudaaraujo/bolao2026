@@ -540,6 +540,14 @@ function rowToMatch(row) {
 // ── INIT ──
 function init() {
   const ob = document.getElementById('onboarding');
+  // Força novo login se veio de versão antiga (sem flag v3)
+  if (!S.get('v3', false)) {
+    S.set('userName', '');
+    S.set('userPin', '');
+    userName = '';
+    S.set('v3', true);
+  }
+  userName = S.get('userName', '');
   if (!userName) {
     ob.style.display = 'flex';
   } else {
