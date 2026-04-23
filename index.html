@@ -281,9 +281,17 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         </div>
         <div class="nm-time" id="nm-hint">Carregando...</div>
       </div>
-      <button class="btn btn-green" onclick="goScreen('jogos')">Ver jogos e apostar →</button>
-      <div style="height:10px;"></div>
-      <button class="btn btn-outline" onclick="goScreen('ranking')">Ver ranking do grupo</button>
+      <div id="no-group-banner" style="display:none;background:var(--bg3);border:1px dashed rgba(0,200,83,.4);border-radius:var(--radius);padding:20px;text-align:center;margin-bottom:12px;">
+        <div style="font-size:32px;margin-bottom:8px;">🦉</div>
+        <div style="font-weight:600;font-size:15px;margin-bottom:6px;">Você ainda não está em nenhum grupo</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Crie um grupo ou entre com o código de um amigo</div>
+        <button class="btn btn-green" onclick="openGroupsModal()" style="margin-bottom:8px;">Criar ou entrar em grupo</button>
+      </div>
+      <div id="has-group-actions">
+        <button class="btn btn-green" onclick="goScreen('jogos')">Ver jogos e apostar →</button>
+        <div style="height:10px;"></div>
+        <button class="btn btn-outline" onclick="goScreen('ranking')">Ver ranking do grupo</button>
+      </div>
     </div>
 
     <!-- JOGOS -->
@@ -673,17 +681,45 @@ function init() {
       groups    = S.get('groups', []);
       activeGid = S.get('activeGid', null);
       api({action:'getUsuario', nome:userName, email:userEmail}).then(r => {
-        if (r.ok && r.apostas && r.apostas.length) {
-          const bg = {};
+        if (!r.ok) return;
+        // Restaura grupos do servidor (sem duplicar)
+        if (r.grupos && r.grupos.length) {
+          r.grupos.forEach(gd => {
+            if (!groups.find(x => x.code === gd.codigo)) {
+              groups.push({
+                id: Date.now()+'_'+Math.random().toString(36).slice(2,6),
+                name: gd.nome, color: gd.cor||COLORS[0],
+                code: gd.codigo, createdAt: gd.criado_em
+              });
+            }
+          });
+          S.set('groups', groups);
+          renderGroupTabs();
+          if (!activeGid || !groups.find(g=>g.id===activeGid)) {
+            activeGid = groups[0]?.id || null;
+            S.set('activeGid', activeGid);
+          }
+          updateHome();
+        }
+        // Restaura apostas
+        if (r.apostas && r.apostas.length) {
+          const globalBets = {...myBets()};
           r.apostas.forEach(a => {
-            if (!bg[a.grupo]) bg[a.grupo] = {};
-            bg[a.grupo][a.jogo_id] = {h:parseInt(a.gol_casa), a:parseInt(a.gol_visit), ts:a.criado_em||''};
+            const id = String(a.jogo_id);
+            const local = globalBets[id];
+            const serverTs = new Date(a.atualizado_em||a.criado_em||0).getTime();
+            const localTs  = local ? new Date(local.ts||0).getTime() : 0;
+            if (!local || serverTs >= localTs) {
+              globalBets[id] = {
+                h: parseInt(a.gol_casa),
+                a: parseInt(a.gol_visit),
+                ts: a.atualizado_em||a.criado_em||new Date().toISOString()
+              };
+            }
           });
-          Object.entries(bg).forEach(([code, bets]) => {
-            const g = groups.find(x => x.code === code);
-            if (g) S.set('bets_'+g.id, bets);
-          });
+          saveBets(globalBets);
           renderMatches(); updateHome();
+          showToast('✅ Dados sincronizados!');
         }
       }).catch(() => {});
       boot();
@@ -728,20 +764,17 @@ function logout() {
 }
 
 function boot() {
-  if(!groups.length){createDefaultGroup();return;}
-  if(!activeGid||!groups.find(g=>g.id===activeGid)){activeGid=groups[0].id;S.set('activeGid',activeGid);}
-  buildColorPicker();renderGroupTabs();updateCountdown();startAutoSync();
+  buildColorPicker();
+  if(!activeGid||!groups.find(g=>g.id===activeGid)){
+    activeGid=groups.length?groups[0].id:null;
+    S.set('activeGid',activeGid);
+  }
+  renderGroupTabs();
+  updateCountdown();
+  startAutoSync();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
 
-function createDefaultGroup() {
-  const g = makeGroup('Meu Grupo', COLORS[0]);
-  groups = [g]; S.set('groups', groups);
-  activeGid = g.id; S.set('activeGid', activeGid);
-  // salva no servidor em background, sem travar
-  api({action:'saveGrupo', nome:g.name, codigo:g.code, cor:g.color, criador:userName}).catch(()=>{});
-  boot();
-}
 
 // ── ONBOARDING COM PIN ──
 let obIsNew=false;
@@ -761,7 +794,6 @@ function obEnter() {
   // Entra imediatamente — sincroniza dados em background
   userName = name; S.set('userName', userName);
   document.getElementById('onboarding').style.display = 'none';
-  if (!groups.length) createDefaultGroup();
   else boot();
   // tenta restaurar dados do servidor em background
   api({action:'getUsuario', nome:name}).then(r => {
@@ -815,6 +847,12 @@ function myStats(){
 
 // ── HOME ──
 function updateHome(){
+  // Mostra/oculta banner de sem grupo
+  const noGroup = document.getElementById('no-group-banner');
+  const hasGroup = document.getElementById('has-group-actions');
+  if(noGroup) noGroup.style.display = groups.length ? 'none' : 'block';
+  if(hasGroup) hasGroup.style.display = groups.length ? 'block' : 'none';
+
   const{pts,hits,betCount}=myStats();
   document.getElementById('stat-pts').textContent=pts;
   document.getElementById('stat-bets').textContent=betCount;
@@ -1121,7 +1159,12 @@ const makeGroup=(name,color)=>({id:Date.now()+'_'+Math.random().toString(36).sli
 function genCode(name){const b=name.replace(/[^a-zA-Z0-9]/g,'').toUpperCase().slice(0,3).padEnd(3,'X');return b+Math.floor(10+Math.random()*89);}
 
 function renderGroupTabs(){
-  document.getElementById('groups-switcher').innerHTML=groups.map(g=>{
+  const sw = document.getElementById('groups-switcher');
+  if(!groups.length){
+    sw.innerHTML = '<span style="font-size:11px;color:var(--muted);padding:4px 0;">Nenhum grupo ainda</span>';
+    return;
+  }
+  sw.innerHTML=groups.map(g=>{
     const a=g.id===activeGid;
     return `<button class="group-tab${a?' active':''}" style="${a?`background:${g.color};border-color:${g.color};`:''}" onclick="switchGroup('${g.id}')" title="${g.name}">${g.name}</button>`;
   }).join('');
