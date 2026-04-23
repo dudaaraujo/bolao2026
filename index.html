@@ -209,8 +209,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .pulse{animation:pulse 2s ease-in-out infinite;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
 </style>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-app-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 <div id="app">
@@ -609,14 +609,14 @@ function setSyncStatus(state,label){
 
 async function syncAll(manual=false) {
   setSyncStatus('loading','Sincronizando...');
-  // Carrega cache imediatamente para não travar a tela
   const grupo = activeGroup()?.code||'';
+  // Mostra cache imediatamente
   if (!matches.length) {
     matches = S.get('matches_cache', []);
     ranking = S.get('rank_cache_'+grupo, []);
     rankingGeral = S.get('rank_cache_geral', []);
-    renderMatches(); updateHome();
   }
+  renderMatches(); updateHome();
   try {
     const [rJ, rR, rG] = await Promise.all([
       api({action:'getJogos'}),
@@ -628,7 +628,7 @@ async function syncAll(manual=false) {
     ranking = rR.ranking||[];
     rankingGeral = rG.ranking||[];
     S.set('matches_cache', matches);
-    S.set('rank_cache_'+grupo, ranking);
+    if (grupo) S.set('rank_cache_'+grupo, ranking);
     S.set('rank_cache_geral', rankingGeral);
     const now = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     setSyncStatus('ok','Atualizado '+now);
@@ -794,7 +794,7 @@ function obEnter() {
   // Entra imediatamente — sincroniza dados em background
   userName = name; S.set('userName', userName);
   document.getElementById('onboarding').style.display = 'none';
-  else boot();
+  boot();
   // tenta restaurar dados do servidor em background
   api({action:'getUsuario', nome:name}).then(r => {
     if (r.ok && r.apostas && r.apostas.length) {
@@ -847,58 +847,61 @@ function myStats(){
 
 // ── HOME ──
 function updateHome(){
-  // Mostra/oculta banner de sem grupo
-  const noGroup = document.getElementById('no-group-banner');
-  const hasGroup = document.getElementById('has-group-actions');
-  if(noGroup) noGroup.style.display = groups.length ? 'none' : 'block';
-  if(hasGroup) hasGroup.style.display = groups.length ? 'block' : 'none';
+  try {
+    // Banner sem grupo
+    const noGroup = document.getElementById('no-group-banner');
+    const hasGroup = document.getElementById('has-group-actions');
+    if(noGroup) noGroup.style.display = groups.length ? 'none' : 'block';
+    if(hasGroup) hasGroup.style.display = groups.length ? 'block' : 'none';
 
-  const{pts,hits,betCount}=myStats();
-  document.getElementById('stat-pts').textContent=pts;
-  document.getElementById('stat-bets').textContent=betCount;
-  document.getElementById('stat-hits').textContent=hits;
-  const pos=ranking.filter(r=>r.pts>pts).length+1;
-  document.getElementById('stat-pos').textContent=ranking.length?pos+'º':'—';
-  const bets=myBets();
-  const next=matches.find(m=>m.status==='upcoming'&&!bets[m.id]);
-  if(next){
-    document.getElementById('nm-f1').textContent=next.hFlag;
-    document.getElementById('nm-n1').textContent=next.home;
-    document.getElementById('nm-f2').textContent=next.aFlag;
-    document.getElementById('nm-n2').textContent=next.away;
-    document.getElementById('nm-hint').textContent='⏱ '+next.date+' — Aposte agora!';
-  } else if(matches.length){
-    document.getElementById('nm-f1').textContent='✅';
-    document.getElementById('nm-n1').textContent='';
-    document.getElementById('nm-f2').textContent='';
-    document.getElementById('nm-n2').textContent='';
-    document.getElementById('nm-hint').textContent='Todas as apostas feitas!';
-  }
+    const{pts,hits,betCount}=myStats();
+    const el=id=>document.getElementById(id);
+    if(el('stat-pts'))  el('stat-pts').textContent=pts;
+    if(el('stat-bets')) el('stat-bets').textContent=betCount;
+    if(el('stat-hits')) el('stat-hits').textContent=hits;
+    const pos=ranking.filter(r=>(r.pts||0)>pts).length+1;
+    if(el('stat-pos'))  el('stat-pos').textContent=ranking.length?pos+'º':'—';
+
+    const bets=myBets();
+    const next=matches.find(m=>m.status==='upcoming'&&!bets[m.id]);
+    if(next){
+      if(el('nm-f1')) el('nm-f1').textContent=next.hFlag;
+      if(el('nm-n1')) el('nm-n1').textContent=next.home;
+      if(el('nm-f2')) el('nm-f2').textContent=next.aFlag;
+      if(el('nm-n2')) el('nm-n2').textContent=next.away;
+      if(el('nm-hint')) el('nm-hint').textContent='⏱ '+next.date+' — Aposte agora!';
+    } else if(matches.length){
+      if(el('nm-f1')) el('nm-f1').textContent='✅';
+      if(el('nm-n1')) el('nm-n1').textContent='';
+      if(el('nm-f2')) el('nm-f2').textContent='';
+      if(el('nm-n2')) el('nm-n2').textContent='';
+      if(el('nm-hint')) el('nm-hint').textContent='Todas as apostas feitas!';
+    }
+  } catch(e) { console.warn('updateHome error:', e); }
 }
 
 // ── JOGOS ──
 function renderMatches(){
   const bets=myBets();
   const statusOrd={live:0,upcoming:1,done:2};
+  const list=document.getElementById('matches-list');
+  if(!list) return;
+
+  if(!matches.length){list.innerHTML='<div class="empty-state">Aguardando conexão com a planilha...</div>';return;}
 
   let pool=matches.filter(m=>{
-    // filtro por status
     if(currentFilter==='abertos')     return m.status==='upcoming'&&!bets[m.id];
     if(currentFilter==='apostados')   return !!bets[m.id];
     if(currentFilter==='finalizados') return m.status==='done';
     if(currentFilter==='ao-vivo')     return m.status==='live';
-    // todos: oculta jogos finalizados sem aposta
     if(m.status==='done' && !bets[m.id]) return false;
     return true;
   }).filter(m=>{
-    // filtro por seleção
     if(!teamFilter) return true;
     const q=teamFilter.toLowerCase();
     return m.home.toLowerCase().includes(q) || m.away.toLowerCase().includes(q);
   });
 
-  const list=document.getElementById('matches-list');
-  if(!matches.length){list.innerHTML='<div class="empty-state">Aguardando conexão com a planilha...</div>';return;}
   if(!pool.length){list.innerHTML='<div class="empty-state">Nenhum jogo nesta categoria</div>';return;}
 
   // Agrupa por fase
