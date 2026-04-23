@@ -662,6 +662,13 @@ function init() {
   const ob = document.getElementById('onboarding');
   ob.style.display = 'none'; // Firebase onAuthStateChanged vai controlar
 
+  // Trata resultado de redirect (iOS/Safari)
+  auth.getRedirectResult().then(result => {
+    // resultado tratado pelo onAuthStateChanged abaixo
+  }).catch(e => {
+    if (e.code !== 'auth/no-current-user') console.warn('Redirect error:', e.message);
+  });
+
   // Escuta mudanças de autenticação
   auth.onAuthStateChanged(user => {
     if (user) {
@@ -709,18 +716,29 @@ async function loginGoogle() {
   const btn = document.getElementById('btn-google');
   const status = document.getElementById('ob-status');
   btn.style.opacity = '0.7'; btn.style.pointerEvents = 'none';
-  status.textContent = 'Abrindo login do Google...';
+  status.textContent = 'Redirecionando para o Google...';
   try {
-    await auth.signInWithPopup(googleProvider);
-    // onAuthStateChanged cuida do resto
+    // Detecta mobile/Safari — usa redirect; desktop usa popup
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    if (isMobile || isSafari) {
+      await auth.signInWithRedirect(googleProvider);
+      // página vai redirecionar — onAuthStateChanged cuida ao voltar
+    } else {
+      await auth.signInWithPopup(googleProvider);
+    }
   } catch(e) {
     btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
     if (e.code === 'auth/popup-blocked') {
-      status.textContent = '⚠️ Popup bloqueado — permita popups para este site';
+      // fallback para redirect se popup bloqueado
+      status.textContent = 'Redirecionando...';
+      await auth.signInWithRedirect(googleProvider);
     } else if (e.code === 'auth/cancelled-popup-request') {
       status.textContent = '';
+      btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
     } else {
-      status.textContent = '⚠️ Erro: ' + e.message;
+      status.textContent = '⚠️ ' + e.message;
+      btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
     }
   }
 }
@@ -965,7 +983,7 @@ async function confirmBet(){
   // Envia para todos os grupos no servidor em background
   const gruposCodes=groups.map(g=>g.code);
   const grupoAlvo=activeGroup()?.code||gruposCodes[0]||'GERAL';
-  api({action:'saveAposta',usuario:userEmail||userName,grupo:grupoAlvo,jogo_id:currentMatch.id,gol_casa:scoreH,gol_visit:scoreA})
+  api({action:'saveAposta',usuario:userEmail||userName,display_name:userName,grupo:grupoAlvo,jogo_id:currentMatch.id,gol_casa:scoreH,gol_visit:scoreA})
     .catch(()=>{});
 }
 
@@ -994,8 +1012,11 @@ function renderRanking(){
   let all=[...source];
 
   // Sempre inclui o usuário atual com dados locais atualizados
-  const meIdx=all.findIndex(r=>(r.usuario||'').toLowerCase()===(userName||'').toLowerCase());
-  const meObj={usuario:userName||'Você',pts,exatos:exact,acertos:hits};
+  const meIdx=all.findIndex(r=>
+    (r.usuario||'').toLowerCase()===(userEmail||'').toLowerCase() ||
+    (r.usuario||'').toLowerCase()===(userName||'').toLowerCase()
+  );
+  const meObj={usuario:userEmail||userName||'Você', displayName:userName||'Você', pts,exatos:exact,acertos:hits};
   if(meIdx>=0) all[meIdx]={...all[meIdx],...meObj};
   else all.push(meObj);
   all=all.sort((a,b)=>(b.pts||0)-(a.pts||0));
@@ -1008,7 +1029,8 @@ function renderRanking(){
   document.getElementById('rank-list').innerHTML=all.map((m,i)=>{
     const color=COLORS[hashStr(m.usuario||'?')%COLORS.length];
     const ini=(m.usuario||'?').slice(0,2).toUpperCase();
-    const isMe=(m.usuario||'').toLowerCase()===(userName||'').toLowerCase();
+    const isMe=(m.usuario||'').toLowerCase()===(userEmail||'').toLowerCase()||
+             (m.usuario||'').toLowerCase()===(userName||'').toLowerCase();
     const ptsNum=m.pts||0;
     const totalJogos=matches.filter(x=>x.status==='done').length;
     const acPct=totalJogos>0?Math.round(((m.acertos||0)/totalJogos)*100):0;
@@ -1016,7 +1038,7 @@ function renderRanking(){
       <div class="rank-pos ${posColors[i]||''}">${i<3?medals[i]:i+1}</div>
       <div class="rank-avatar" style="background:${color}22;color:${color}">${ini}</div>
       <div class="rank-info">
-        <div class="rank-name">${m.usuario||'?'} ${isMe?'<span class="rank-badge">Você</span>':''}</div>
+        <div class="rank-name">${m.displayName||m.usuario||'?'} ${isMe?'<span class="rank-badge">Você</span>':''}</div>
         <div class="rank-detail">${m.exatos||0} exatos · ${m.acertos||0} acertos${totalJogos>0?' · '+acPct+'%':''}</div>
       </div>
       <div style="text-align:right;">
@@ -1090,8 +1112,11 @@ function renderGrupo(){
   }
   const{pts}=myStats();
   const gi=groups.findIndex(x=>x.id===activeGid);
-  const me={usuario:userName||'Você',pts};
-  const all=[me,...ranking.filter(r=>(r.usuario||'').toLowerCase()!==(userName||'').toLowerCase())].sort((a,b)=>(b.pts||0)-(a.pts||0));
+  const me={usuario:userEmail||userName||'Você', displayName:userName||'Você', pts};
+  const all=[me,...ranking.filter(r=>{
+    const u=(r.usuario||'').toLowerCase();
+    return u!==(userEmail||'').toLowerCase() && u!==(userName||'').toLowerCase();
+  })].sort((a,b)=>(b.pts||0)-(a.pts||0));
   document.getElementById('member-count').textContent=all.length;
   document.getElementById('members-list').innerHTML=all.map(m=>{
     const color=COLORS[hashStr(m.usuario||'?')%COLORS.length];
