@@ -662,7 +662,7 @@ function init() {
   const ob = document.getElementById('onboarding');
   ob.style.display = 'none'; // Firebase onAuthStateChanged vai controlar
 
-  // Escuta mudanças de autenticação — único ponto de controle
+  // Escuta mudanças de autenticação
   auth.onAuthStateChanged(user => {
     if (user) {
       userName  = user.displayName || user.email.split('@')[0];
@@ -672,7 +672,6 @@ function init() {
       ob.style.display = 'none';
       groups    = S.get('groups', []);
       activeGid = S.get('activeGid', null);
-      // Registra/busca usuário na planilha em background
       api({action:'getUsuario', nome:userName, email:userEmail}).then(r => {
         if (r.ok && r.apostas && r.apostas.length) {
           const bg = {};
@@ -689,15 +688,7 @@ function init() {
       }).catch(() => {});
       boot();
     } else {
-      // Verifica se veio de um redirect antes de mostrar login
-      auth.getRedirectResult().then(result => {
-        if (!result || !result.user) {
-          ob.style.display = 'flex';
-        }
-        // se tem result.user, onAuthStateChanged vai disparar novamente com o usuário
-      }).catch(() => {
-        ob.style.display = 'flex';
-      });
+      ob.style.display = 'flex';
     }
   });
 }
@@ -714,28 +705,17 @@ async function loginGoogle() {
   const btn = document.getElementById('btn-google');
   const status = document.getElementById('ob-status');
   btn.style.opacity = '0.7'; btn.style.pointerEvents = 'none';
-  status.textContent = 'Redirecionando para o Google...';
+  status.textContent = 'Conectando...';
   try {
-    // Detecta mobile/Safari — usa redirect; desktop usa popup
-    // Usa redirect em todos os casos mobile (mais confiável que popup)
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile) {
-      await auth.signInWithRedirect(googleProvider);
-    } else {
-      await auth.signInWithPopup(googleProvider);
-    }
+    await auth.signInWithPopup(googleProvider);
   } catch(e) {
     btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
     if (e.code === 'auth/popup-blocked') {
-      // fallback para redirect se popup bloqueado
-      status.textContent = 'Redirecionando...';
-      await auth.signInWithRedirect(googleProvider);
-    } else if (e.code === 'auth/cancelled-popup-request') {
+      status.textContent = '⚠️ Permita popups neste site e tente novamente';
+    } else if (e.code === 'auth/cancelled-popup-request' || e.code === 'auth/popup-closed-by-user') {
       status.textContent = '';
-      btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
     } else {
       status.textContent = '⚠️ ' + e.message;
-      btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
     }
   }
 }
