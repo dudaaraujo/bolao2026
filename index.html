@@ -593,22 +593,35 @@ async function obNext() {
   const name=document.getElementById('ob-name').value.trim();
   if(!name){setObStatus('⚠️ Digite seu nome','var(--red)');return;}
   const btn=document.getElementById('ob-next-btn');
-  btn.textContent='Verificando...';btn.disabled=true;
-  setObStatus('Buscando conta...','var(--muted)');
-  try {
-    const r=await api({action:'getUsuario',nome:name});
-    obIsNew=!!r.isNew;
-    document.getElementById('ob-pin-title').textContent=r.isNew?'Crie um PIN de 4 dígitos':'Digite seu PIN';
-    setObStatus(r.isNew?'Novo usuário — crie um PIN para sua conta':'Conta encontrada! Digite seu PIN',r.isNew?'var(--gold)':'var(--green)');
-  } catch(e) {
-    obIsNew=true;
-    document.getElementById('ob-pin-title').textContent='Crie um PIN de 4 dígitos';
-    setObStatus('Modo offline — crie um PIN','var(--gold)');
+  btn.textContent='Aguarde...';btn.disabled=true;
+  setObStatus('Conectando...','var(--muted)');
+
+  // Avança para o PIN independente da resposta do servidor
+  // (o servidor valida o PIN na próxima etapa)
+  function showPin(isNew, msg, color) {
+    obIsNew=isNew;
+    document.getElementById('ob-pin-title').textContent=isNew?'Crie um PIN de 4 dígitos':'Digite seu PIN';
+    setObStatus(msg,color);
+    document.getElementById('step-nome').style.display='none';
+    document.getElementById('step-pin').style.display='block';
+    document.getElementById('p1').focus();
+    btn.textContent='Continuar →';btn.disabled=false;
   }
-  document.getElementById('step-nome').style.display='none';
-  document.getElementById('step-pin').style.display='block';
-  document.getElementById('p1').focus();
-  btn.textContent='Continuar →';btn.disabled=false;
+
+  // Timeout de 8s — se demorar vai pro modo offline
+  const timeout=new Promise((_,rj)=>setTimeout(()=>rj(new Error('timeout')),8000));
+
+  try {
+    const r=await Promise.race([api({action:'getUsuario',nome:name}),timeout]);
+    if(r.isNew||(!r.ok&&!r.needPin&&!r.error?.includes('PIN'))) {
+      showPin(true,'Novo usuário — crie um PIN para sua conta','var(--gold)');
+    } else {
+      showPin(false,'Conta encontrada! Digite seu PIN','var(--green)');
+    }
+  } catch(e) {
+    // Offline ou timeout — deixa criar PIN e tenta autenticar depois
+    showPin(true,'Sem conexão — crie um PIN (sincroniza depois)','var(--gold)');
+  }
 }
 
 async function obEnter() {
