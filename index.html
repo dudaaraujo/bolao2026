@@ -360,26 +360,54 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 
     <!-- GRUPO -->
     <div id="screen-grupo" class="screen">
-      <div class="section-label">GRUPO ATIVO</div>
-      <div class="group-code-box" id="grupo-code-box" style="background:var(--surface);">
-        <div class="group-code" id="grupo-code-txt">—</div>
-        <div class="group-code-label">Compartilhe o código com seus amigos</div>
-        <button class="btn btn-outline" style="margin-top:12px;" onclick="copyActiveCode()">📋 Copiar código</button>
-      </div>
+
+      <!-- Perfil sempre visível -->
       <div class="section-label">SEU PERFIL</div>
-      <div class="card">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-          <div id="profile-photo" style="width:44px;height:44px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#000;flex-shrink:0;overflow:hidden;"></div>
-          <div>
-            <div style="font-weight:600;font-size:15px;" id="profile-name">—</div>
-            <div style="font-size:12px;color:var(--muted);" id="profile-email">—</div>
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div id="profile-photo" style="width:52px;height:52px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#000;flex-shrink:0;overflow:hidden;"></div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:16px;margin-bottom:2px;" id="profile-name">—</div>
+            <div style="font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="profile-email">—</div>
           </div>
         </div>
-        <button class="btn btn-red" style="font-size:13px;padding:10px;" onclick="logout()">Sair da conta</button>
+        <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;" id="profile-stats">
+          <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:10px;text-align:center;">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--text);" id="ps-pts">0</div>
+            <div style="font-size:11px;color:var(--muted);">Pontos</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:10px;text-align:center;">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--green);" id="ps-exact">0</div>
+            <div style="font-size:11px;color:var(--muted);">Exatos</div>
+          </div>
+        </div>
+        <button class="btn btn-red" style="font-size:13px;padding:10px;margin-top:14px;" onclick="logout()">Sair da conta</button>
       </div>
-      <div class="section-label">MEMBROS (<span id="member-count">0</span>)</div>
-      <div class="members-list" id="members-list"></div>
-      <div class="divider"></div>
+
+      <!-- Grupo ativo — só aparece se tiver grupo -->
+      <div id="grupo-active-section">
+        <div class="section-label">GRUPO ATIVO</div>
+        <div class="group-code-box" id="grupo-code-box" style="background:var(--surface);">
+          <div class="group-code" id="grupo-code-txt">—</div>
+          <div class="group-code-label">Compartilhe o código com seus amigos</div>
+          <button class="btn btn-outline" style="margin-top:12px;" onclick="copyActiveCode()">📋 Copiar código</button>
+        </div>
+        <div class="section-label">MEMBROS (<span id="member-count">0</span>)</div>
+        <div class="members-list" id="members-list"></div>
+        <div class="divider"></div>
+        <button class="btn btn-red" style="margin-bottom:12px;" onclick="leaveGroup()">Sair do grupo</button>
+      </div>
+
+      <!-- Sem grupo — convite para criar/entrar -->
+      <div id="grupo-empty-section" style="display:none;">
+        <div style="background:var(--bg3);border:1px dashed rgba(0,200,83,.3);border-radius:var(--radius);padding:24px;text-align:center;margin-bottom:12px;">
+          <div style="font-size:36px;margin-bottom:10px;">🦉</div>
+          <div style="font-weight:600;font-size:15px;margin-bottom:6px;">Você não está em nenhum grupo</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Crie um grupo com seus amigos ou entre com o código de alguém</div>
+          <button class="btn btn-green" onclick="openGroupsModal()">Criar ou entrar em grupo →</button>
+        </div>
+      </div>
+
       <div class="section-label">REGRAS</div>
       <div class="rules-card">
         <div class="rule-item"><div class="rule-pts">3</div><div class="rule-desc"><b>Placar exato</b> — acertou os dois gols</div></div>
@@ -387,8 +415,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         <div class="rule-item"><div class="rule-pts">1</div><div class="rule-desc"><b>Vencedor</b> — acertou quem ganhou</div></div>
         <div class="rule-item"><div class="rule-pts" style="color:var(--red);">0</div><div class="rule-desc"><b>Errou tudo</b> — resultado diferente</div></div>
       </div>
-      <div class="divider"></div>
-      <button class="btn btn-red" onclick="leaveGroup()">Sair do grupo</button>
     </div>
   </div>
 
@@ -1123,33 +1149,38 @@ function renderRanking(){
 
 // ── GRUPO ──
 function renderGrupo(){
-  const g=activeGroup();if(!g)return;
-  document.getElementById('grupo-code-txt').textContent=g.code;
-  document.getElementById('grupo-code-txt').style.color=g.color;
-  document.getElementById('grupo-code-box').style.borderColor=g.color+'66';
-  document.getElementById('profile-name').textContent = userName;
-  const emailEl = document.getElementById('profile-email');
-  if (emailEl) emailEl.textContent = userEmail;
-  const photoEl = document.getElementById('profile-photo');
+  const g = activeGroup();
+  const hasGroup = !!g;
+  const activeSection = document.getElementById('grupo-active-section');
+  const emptySection  = document.getElementById('grupo-empty-section');
+  if (activeSection) activeSection.style.display = hasGroup ? 'block' : 'none';
+  if (emptySection)  emptySection.style.display  = hasGroup ? 'none'  : 'block';
+  const {pts, exact} = myStats();
+  const el = id => document.getElementById(id);
+  if (el('profile-name'))  el('profile-name').textContent  = userName || '—';
+  if (el('profile-email')) el('profile-email').textContent = userEmail || '—';
+  if (el('ps-pts'))   el('ps-pts').textContent   = pts;
+  if (el('ps-exact')) el('ps-exact').textContent = exact;
+  const photoEl = el('profile-photo');
   if (photoEl) {
-    if (userPhoto) {
-      photoEl.innerHTML = `<img src="${userPhoto}" style="width:100%;height:100%;object-fit:cover;">`;
-    } else {
-      photoEl.textContent = userName.slice(0,2).toUpperCase();
-    }
+    photoEl.innerHTML = userPhoto
+      ? `<img src="${userPhoto}" style="width:100%;height:100%;object-fit:cover;">`
+      : `<span style="font-size:18px;font-weight:700;color:#000;">${(userName||'?').slice(0,2).toUpperCase()}</span>`;
   }
-  const{pts}=myStats();
-  const gi=groups.findIndex(x=>x.id===activeGid);
-  const me={usuario:userEmail||userName||'Você', displayName:userName||'Você', pts};
+  if (!hasGroup) return;
+  if (el('grupo-code-txt')) { el('grupo-code-txt').textContent=g.code; el('grupo-code-txt').style.color=g.color; }
+  if (el('grupo-code-box')) el('grupo-code-box').style.borderColor=g.color+'66';
+  const me={usuario:userEmail||userName||'Você',displayName:userName||'Você',pts};
   const all=[me,...ranking.filter(r=>{
     const u=(r.usuario||'').toLowerCase();
-    return u!==(userEmail||'').toLowerCase() && u!==(userName||'').toLowerCase();
+    return u!==(userEmail||'').toLowerCase()&&u!==(userName||'').toLowerCase();
   })].sort((a,b)=>(b.pts||0)-(a.pts||0));
-  document.getElementById('member-count').textContent=all.length;
-  document.getElementById('members-list').innerHTML=all.map(m=>{
+  if(el('member-count')) el('member-count').textContent=all.length;
+  if(el('members-list')) el('members-list').innerHTML=all.map(m=>{
     const color=COLORS[hashStr(m.usuario||'?')%COLORS.length];
-    const ini=(m.usuario||'?').slice(0,2).toUpperCase();
-    return `<div class="member-item"><div class="member-avatar" style="background:${color}22;color:${color}">${ini}</div><div class="member-name">${m.usuario||'?'}</div><div class="member-pts">${m.pts||0} pts</div></div>`;
+    const dName=m.displayName||(m.usuario&&m.usuario.includes('@')?m.usuario.split('@')[0]:m.usuario)||'?';
+    const ini=dName.slice(0,2).toUpperCase();
+    return `<div class="member-item"><div class="member-avatar" style="background:${color}22;color:${color}">${ini}</div><div class="member-name">${dName}</div><div class="member-pts">${m.pts||0} pts</div></div>`;
   }).join('');
 }
 
