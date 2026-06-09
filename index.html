@@ -619,6 +619,7 @@ function init() {
       userPhoto = user.photoURL || '';
       updateHeaderUser();
       ob.style.display = 'none';
+      boot();
       api({action:'getUsuario', nome:userName, email:userEmail}).then(r => {
         if (!r.ok) return;
       }).catch(()=>{});
@@ -1029,11 +1030,6 @@ function renderRanking(){
 
 // ── GRUPO ──
 
-function copyActiveCode(){
-  const g=activeGroup();if(!g)return;
-  navigator.clipboard.writeText(g.code).catch(()=>{});
-  showToast('📋 Código '+g.code+' copiado!');
-}
 
 // ── TOAST ──
 let toastTimer;
