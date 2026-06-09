@@ -33,10 +33,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .sync-dot.err{background:var(--red);}
 
 
-.groups-switcher::-webkit-scrollbar{display:none;}
 
-.group-tab.active{color:#000;font-weight:600;}
-.btn-add-group{flex-shrink:0;width:30px;height:28px;border-radius:20px;border:1px dashed var(--border);background:transparent;color:var(--muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;margin-left:4px;}
+
+
+
 .btn-add-group:hover{border-color:var(--green);color:var(--green);}
 
 /* LAYOUT */
@@ -268,10 +268,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         <div id="header-user-display" onclick="showUserMenu()" style="cursor:pointer;"></div>
       </div>
     </div>
-    <div class="groups-row">
-      <div class="groups-switcher" id="groups-switcher"></div>
-      <button class="btn-add-group" onclick="openGroupsModal()">+</button>
-    </div>
+
   </div>
 
   <div id="main">
@@ -719,7 +716,6 @@ function myStats(){
 // ── HOME ──
 function updateHome(){
   try {
-    // Banner sem grupo
     const{pts,hits,betCount}=myStats();
     const el=id=>document.getElementById(id);
     if(el('stat-pts'))  el('stat-pts').textContent=pts;
