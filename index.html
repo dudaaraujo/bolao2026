@@ -346,11 +346,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
           <div><div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--text);" id="rs-hits">0</div><div style="font-size:10px;color:var(--muted);">Acertos</div></div>
         </div>
       </div>
-      <div class="filter-row" style="margin-bottom:12px;">
-        <button class="filter-btn active" id="rank-tab-grupo" onclick="switchRankTab('grupo')">Meu Grupo</button>
-        <button class="filter-btn" id="rank-tab-geral" onclick="switchRankTab('geral')">Ranking Geral</button>
-      </div>
-      <div class="section-label" id="rank-label">PLACAR DO GRUPO</div>
+
+      <div class="section-label">RANKING GERAL</div>
       <div class="rank-list" id="rank-list"><div class="empty-state">Carregando...</div></div>
       <div class="section-label" style="margin-top:20px;">BADGES</div>
       <div class="badge-grid">
@@ -1171,13 +1168,6 @@ function removeBet(){
 }
 
 // ── RANKING ──
-function switchRankTab(tab){
-  rankTab=tab;
-  document.getElementById('rank-tab-grupo').className='filter-btn'+(tab==='grupo'?' active':'');
-  document.getElementById('rank-tab-geral').className='filter-btn'+(tab==='geral'?' active':'');
-  document.getElementById('rank-label').textContent=tab==='grupo'?'PLACAR DO GRUPO':'RANKING GERAL';
-  renderRanking();
-}
 
 function hashStr(s){let h=0;for(const c of String(s)){h=(h<<5)-h+c.charCodeAt(0);h|=0;}return Math.abs(h);}
 
@@ -1185,7 +1175,7 @@ function renderRanking(){
   const{pts,exact,hits,betCount}=myStats();
   const medals=['🥇','🥈','🥉'];
   const posColors=['gold','silver','bronze'];
-  const source=rankTab==='geral'?rankingGeral:ranking;
+  const source=rankingGeral;
   let all=[...source];
 
   // Sempre inclui o usuário atual com dados locais atualizados
