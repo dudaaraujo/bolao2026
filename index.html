@@ -632,7 +632,7 @@ async function syncAll(manual=false) {
   }
 }
 
-function startAutoSync(){syncAll(false);clearInterval(syncTimer);syncTimer=setInterval(()=>syncAll(false),60000);}
+function startAutoSync(){syncAll(false);clearInterval(syncTimer);syncTimer=setInterval(()=>syncAll(false),60000);clearInterval(window._cdTimer);window._cdTimer=setInterval(updateCountdown,60000);}
 
 function rowToMatch(row) {
   const gh=parseInt(row.gol_casa),ga=parseInt(row.gol_visit);
@@ -770,9 +770,25 @@ function updateCountdown(){
   if (now < start) {
     // ANTES — contagem regressiva
     set('hero-label','Copa do Mundo FIFA');
-    set('countdown-days', Math.ceil((start-now)/864e5));
-    set('hero-unit','DIAS');
-    set('hero-sub','para o início');
+    const diffMs = start - now;
+    const totalHoras = diffMs / 36e5;
+    if (totalHoras >= 24) {
+      // Mais de 1 dia → mostra dias
+      set('countdown-days', Math.ceil(diffMs/864e5));
+      set('hero-unit','DIAS');
+      set('hero-sub','para o início');
+    } else if (totalHoras >= 1) {
+      // Menos de 1 dia → mostra horas
+      set('countdown-days', Math.floor(totalHoras));
+      set('hero-unit', Math.floor(totalHoras) === 1 ? 'HORA' : 'HORAS');
+      set('hero-sub','para o início');
+    } else {
+      // Menos de 1 hora → mostra minutos
+      const mins = Math.max(1, Math.floor(diffMs/6e4));
+      set('countdown-days', mins);
+      set('hero-unit', mins === 1 ? 'MINUTO' : 'MINUTOS');
+      set('hero-sub','para o início ⚡');
+    }
     set('hero-date','🗓 11 de Junho de 2026 · EUA / CAN / MEX');
   } else if (now <= end) {
     // DURANTE — dia atual da Copa
