@@ -31,10 +31,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .sync-dot.ok{background:var(--green);}
 .sync-dot.loading{background:var(--gold);animation:pulse 1s infinite;}
 .sync-dot.err{background:var(--red);}
-.groups-row{display:flex;align-items:center;gap:0;}
-.groups-switcher{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;flex:1;}
+
+
 .groups-switcher::-webkit-scrollbar{display:none;}
-.group-tab{flex-shrink:0;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis;}
+
 .group-tab.active{color:#000;font-weight:600;}
 .btn-add-group{flex-shrink:0;width:30px;height:28px;border-radius:20px;border:1px dashed var(--border);background:transparent;color:var(--muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;margin-left:4px;}
 .btn-add-group:hover{border-color:var(--green);color:var(--green);}
@@ -136,9 +136,9 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .badge-item.earned .badge-icon{filter:drop-shadow(0 0 6px var(--gold));}
 
 /* GRUPO */
-.group-code-box{border-radius:var(--radius);padding:18px;text-align:center;margin-bottom:12px;border:1px dashed;}
-.group-code{font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:.14em;}
-.group-code-label{font-size:12px;color:var(--muted);margin-top:4px;}
+
+
+
 .members-list{display:flex;flex-direction:column;gap:8px;}
 .member-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;gap:10px;}
 .member-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;}
@@ -173,13 +173,13 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .points-row b{color:var(--text);font-weight:600;}
 
 /* GRUPOS MODAL */
-.group-item-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .2s;margin-bottom:8px;}
+
 .group-item-card:hover,.group-item-card.active-group{border-color:var(--green);}
 .group-item-card.active-group{background:linear-gradient(90deg,var(--bg3),var(--surface));}
-.group-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
-.group-item-info{flex:1;min-width:0;}
-.group-item-name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.group-item-code{font-size:11px;color:var(--muted);margin-top:2px;}
+
+
+
+
 .icon-btn{width:28px;height:28px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .2s;}
 .icon-btn:hover{border-color:var(--red);color:var(--red);}
 .icon-btn.copy:hover{border-color:var(--green);color:var(--green);}
@@ -287,7 +287,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
       </div>
       <div class="stats-row">
         <div class="stat-card"><div class="stat-num" id="stat-pts">0</div><div class="stat-lbl">Seus pontos</div></div>
-        <div class="stat-card"><div class="stat-num" style="color:var(--gold);" id="stat-pos">—</div><div class="stat-lbl">Posição no grupo</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--gold);" id="stat-pos">—</div><div class="stat-lbl">Posição geral</div></div>
         <div class="stat-card"><div class="stat-num" id="stat-bets">0</div><div class="stat-lbl">Apostas feitas</div></div>
         <div class="stat-card"><div class="stat-num" style="color:var(--green);" id="stat-hits">0</div><div class="stat-lbl">Acertos</div></div>
       </div>
@@ -300,18 +300,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         </div>
         <div class="nm-hint" id="nm-hint">Carregando...</div>
       </div>
-      <div id="no-group-banner" style="display:none;background:var(--bg3);border:1px dashed rgba(0,200,83,.4);border-radius:var(--radius);padding:20px;text-align:center;margin-bottom:12px;">
-        <div style="font-size:32px;margin-bottom:8px;">🦉</div>
-        <div style="font-weight:600;font-size:15px;margin-bottom:6px;">Você ainda não está em nenhum grupo</div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Crie um grupo ou entre com o código de um amigo</div>
-        <button class="btn btn-green" onclick="openGroupsModal()" style="margin-bottom:8px;">Criar ou entrar em grupo</button>
-      </div>
-      <div id="has-group-actions">
-        <button class="btn btn-green" onclick="goScreen('jogos')">Ver jogos e apostar →</button>
-        <div style="height:10px;"></div>
-        <button class="btn btn-outline" onclick="goScreen('ranking')">Ver ranking do grupo</button>
-      </div>
-    </div>
+      
 
     <!-- JOGOS -->
     <div id="screen-jogos" class="screen">
@@ -375,64 +364,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     </div>
 
     <!-- GRUPO -->
-    <div id="screen-grupo" class="screen">
-
-      <!-- Perfil sempre visível -->
-      <div class="section-label">SEU PERFIL</div>
-      <div class="card" style="margin-bottom:16px;">
-        <div style="display:flex;align-items:center;gap:14px;">
-          <div id="profile-photo" style="width:52px;height:52px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#000;flex-shrink:0;overflow:hidden;"></div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-weight:600;font-size:16px;margin-bottom:2px;" id="profile-name">—</div>
-            <div style="font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="profile-email">—</div>
-          </div>
-        </div>
-        <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;" id="profile-stats">
-          <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:10px;text-align:center;">
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--text);" id="ps-pts">0</div>
-            <div style="font-size:11px;color:var(--muted);">Pontos</div>
-          </div>
-          <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:10px;text-align:center;">
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--green);" id="ps-exact">0</div>
-            <div style="font-size:11px;color:var(--muted);">Exatos</div>
-          </div>
-        </div>
-        <button class="btn btn-red" style="font-size:13px;padding:10px;margin-top:14px;" onclick="logout()">Sair da conta</button>
-      </div>
-
-      <!-- Grupo ativo — só aparece se tiver grupo -->
-      <div id="grupo-active-section">
-        <div class="section-label">GRUPO ATIVO</div>
-        <div class="group-code-box" id="grupo-code-box" style="background:var(--surface);">
-          <div class="group-code" id="grupo-code-txt">—</div>
-          <div class="group-code-label">Compartilhe o código com seus amigos</div>
-          <button class="btn btn-outline" style="margin-top:12px;" onclick="copyActiveCode()">📋 Copiar código</button>
-        </div>
-        <div class="section-label">MEMBROS (<span id="member-count">0</span>)</div>
-        <div class="members-list" id="members-list"></div>
-        <div class="divider"></div>
-        <button class="btn btn-red" style="margin-bottom:12px;" onclick="leaveGroup()">Sair do grupo</button>
-      </div>
-
-      <!-- Sem grupo — convite para criar/entrar -->
-      <div id="grupo-empty-section" style="display:none;">
-        <div style="background:var(--bg3);border:1px dashed rgba(0,200,83,.3);border-radius:var(--radius);padding:24px;text-align:center;margin-bottom:12px;">
-          <div style="font-size:36px;margin-bottom:10px;">🦉</div>
-          <div style="font-weight:600;font-size:15px;margin-bottom:6px;">Você não está em nenhum grupo</div>
-          <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Crie um grupo com seus amigos ou entre com o código de alguém</div>
-          <button class="btn btn-green" onclick="openGroupsModal()">Criar ou entrar em grupo →</button>
-        </div>
-      </div>
-
-      <div class="section-label">REGRAS</div>
-      <div class="rules-card">
-        <div class="rule-item"><div class="rule-pts">3</div><div class="rule-desc"><b>Placar exato</b> — acertou os dois gols</div></div>
-        <div class="rule-item"><div class="rule-pts">2</div><div class="rule-desc"><b>Saldo de gols</b> — acertou a diferença</div></div>
-        <div class="rule-item"><div class="rule-pts">1</div><div class="rule-desc"><b>Vencedor</b> — acertou quem ganhou</div></div>
-        <div class="rule-item"><div class="rule-pts" style="color:var(--red);">0</div><div class="rule-desc"><b>Errou tudo</b> — resultado diferente</div></div>
-      </div>
-    </div>
-
     <!-- QUIZ -->
     <div id="screen-quiz" class="screen">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
@@ -482,11 +413,11 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <button class="nav-btn" id="nav-ranking" onclick="goScreen('ranking')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Ranking
     </button>
-    <button class="nav-btn" id="nav-grupo" onclick="goScreen('grupo')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Grupo
-    </button>
     <button class="nav-btn" id="nav-quiz" onclick="goScreen('quiz')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Quiz
+      <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span id="quiz-badge" style="display:none;position:absolute;top:-3px;right:-5px;width:8px;height:8px;background:#ff4757;border-radius:50%;border:1.5px solid var(--bg2);"></span>
+      </div>Quiz
     </button>
   </div>
 </div>
@@ -539,63 +470,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 
 <!-- MODAL APOSTA -->
 <div class="modal-backdrop" id="bet-modal" style="display:none;" onclick="if(event.target===this)closeBetModal()">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="modal-title">Sua Aposta</div>
-    <div class="bet-teams">
-      <div class="bet-team"><span class="bet-flag" id="modal-flag1">⚽</span><div class="bet-name" id="modal-team1">—</div></div>
-      <div class="bet-vs">VS</div>
-      <div class="bet-team"><span class="bet-flag" id="modal-flag2">⚽</span><div class="bet-name" id="modal-team2">—</div></div>
-    </div>
-    <div style="font-size:12px;text-align:center;color:var(--muted);margin-bottom:14px;">Qual será o placar final?</div>
-    <div class="score-input-row">
-      <div class="score-input-group">
-        <button class="score-btn" onclick="chgScore('h',-1)">−</button>
-        <div class="score-val" id="score-h">0</div>
-        <button class="score-btn" onclick="chgScore('h',1)">+</button>
-      </div>
-      <div class="score-sep">×</div>
-      <div class="score-input-group">
-        <button class="score-btn" onclick="chgScore('a',-1)">−</button>
-        <div class="score-val" id="score-a">0</div>
-        <button class="score-btn" onclick="chgScore('a',1)">+</button>
-      </div>
-    </div>
-    <div class="points-preview">
-      <div class="card-title">Pontos possíveis</div>
-      <div class="points-row"><span>Placar exato</span><b>+3 pts</b></div>
-      <div class="points-row"><span>Saldo de gols</span><b>+2 pts</b></div>
-      <div class="points-row"><span>Vencedor certo</span><b>+1 pt</b></div>
-    </div>
-    <button class="btn btn-green" id="confirm-btn" onclick="confirmBet()">Confirmar aposta ✓</button>
-    <div style="height:8px;"></div>
-    <button class="btn btn-red" id="remove-btn" onclick="removeBet()" style="display:none;">Remover aposta</button>
-  </div>
-</div>
-
-<!-- MODAL GRUPOS -->
-<div class="modal-backdrop" id="groups-modal" style="display:none;" onclick="if(event.target===this)closeGroupsModal()">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Meus Grupos</div>
-    <div id="groups-list"></div>
-    <div class="divider"></div>
-    <div class="section-mini">➕ Criar novo grupo</div>
-    <div class="form-box">
-      <label class="form-label">Nome</label>
-      <input id="new-group-name" type="text" placeholder="Ex: Família, Trabalho..." class="form-input" maxlength="30">
-      <label class="form-label" style="margin-top:12px;">Cor</label>
-      <div class="color-picker" id="color-picker"></div>
-      <button class="btn btn-green" onclick="createGroup()" style="margin-top:12px;">Criar grupo</button>
-    </div>
-    <div class="divider"></div>
-    <div class="section-mini">🔗 Entrar em grupo existente</div>
-    <div class="form-box">
-      <label class="form-label">Código do grupo</label>
-      <input id="join-code" type="text" placeholder="Ex: FAM26" class="form-input" maxlength="8" style="text-transform:uppercase;">
-      <button class="btn btn-outline" onclick="joinGroup()" style="margin-top:10px;">Entrar →</button>
-    </div>
-  </div>
+  
 </div>
 
 <script>
@@ -659,30 +534,12 @@ const S = {
 
 // ── ESTADO ──
 let matches=[], ranking=[], rankingGeral=[];
-let groups=S.get('groups',[]), activeGid=S.get('activeGid',null);
 let userName='', userEmail='', userPhoto='';
 let currentFilter='todos', teamFilter='', currentMatch=null, scoreH=0, scoreA=0;
-let selectedColor=COLORS[0], rankTab='grupo', syncTimer=null;
+let selectedColor=COLORS[0], syncTimer=null;
 
-// Apostas são globais (não por grupo) — grupos servem só para ranking
 const myBets=()=>S.get('bets_global',{});
 const saveBets=b=>S.set('bets_global',b);
-const activeGroup=()=>groups.find(g=>g.id===activeGid);
-
-// ── API (JSONP) ──
-function api(params) {
-  return new Promise((resolve,reject)=>{
-    const cb='_cb'+Date.now()+Math.random().toString(36).slice(2);
-    const timer=setTimeout(()=>{cleanup();reject(new Error('Timeout — reimplante o Apps Script'));},15000);
-    function cleanup(){clearTimeout(timer);delete window[cb];if(script.parentNode)script.remove();}
-    window[cb]=(data)=>{cleanup();resolve(data);};
-    params.callback=cb;
-    const script=document.createElement('script');
-    script.src=API_URL+'?'+new URLSearchParams(params).toString();
-    script.onerror=()=>{cleanup();reject(new Error('Erro de rede'));};
-    document.head.appendChild(script);
-  });
-}
 
 // ── SYNC ──
 function setSyncStatus(state,label){
@@ -692,26 +549,30 @@ function setSyncStatus(state,label){
 
 async function syncAll(manual=false) {
   setSyncStatus('loading','Sincronizando...');
-  const grupo = activeGroup()?.code||'';
   // Mostra cache imediatamente
   if (!matches.length) {
     matches = S.get('matches_cache', []);
-    ranking = S.get('rank_cache_'+grupo, []);
+    ranking = S.get('rank_cache_geral', []);
     rankingGeral = S.get('rank_cache_geral', []);
   }
   renderMatches(); updateHome();
+  if(userEmail) {
+    api({action:'getQuiz', email:userEmail}).then(r => {
+      const qb = document.getElementById('quiz-badge');
+      if(qb && r.ok) qb.style.display = (r.perguntas||[]).length ? 'block' : 'none';
+    }).catch(()=>{});
+  }
   try {
     const [rJ, rR, rG] = await Promise.all([
       api({action:'getJogos'}),
-      grupo ? api({action:'getRanking', grupo}) : Promise.resolve({ok:true, ranking:[]}),
-      api({action:'getRanking'}),
+      api({action:'getRanking', grupo:'GERAL'}),
+      api({action:'getRanking', grupo:'GERAL'}),
     ]);
     if (!rJ.ok) throw new Error(rJ.error||'Erro jogos');
     matches = rJ.jogos.map(rowToMatch).filter(m=>m.id>0);
     ranking = rR.ranking||[];
     rankingGeral = rG.ranking||[];
     S.set('matches_cache', matches);
-    if (grupo) S.set('rank_cache_'+grupo, ranking);
     S.set('rank_cache_geral', rankingGeral);
     const now = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     setSyncStatus('ok','Atualizado '+now);
@@ -762,106 +623,24 @@ function init() {
       updateHeaderUser();
       ob.style.display = 'none';
       groups    = S.get('groups', []);
-      activeGid = S.get('activeGid', null);
       api({action:'getUsuario', nome:userName, email:userEmail}).then(r => {
         if (!r.ok) return;
-        // Restaura grupos do servidor (sem duplicar)
-        if (r.grupos && r.grupos.length) {
-          r.grupos.forEach(gd => {
-            if (!groups.find(x => x.code === gd.codigo)) {
-              groups.push({
-                id: Date.now()+'_'+Math.random().toString(36).slice(2,6),
-                name: gd.nome, color: gd.cor||COLORS[0],
-                code: gd.codigo, createdAt: gd.criado_em
-              });
-            }
-          });
-          S.set('groups', groups);
-          renderGroupTabs();
-          if (!activeGid || !groups.find(g=>g.id===activeGid)) {
-            activeGid = groups[0]?.id || null;
-            S.set('activeGid', activeGid);
-          }
-          updateHome();
-        }
-        // Restaura apostas
-        if (r.apostas && r.apostas.length) {
-          const globalBets = {...myBets()};
-          r.apostas.forEach(a => {
-            const id = String(a.jogo_id);
-            const local = globalBets[id];
-            const serverTs = new Date(a.atualizado_em||a.criado_em||0).getTime();
-            const localTs  = local ? new Date(local.ts||0).getTime() : 0;
-            if (!local || serverTs >= localTs) {
-              globalBets[id] = {
-                h: parseInt(a.gol_casa),
-                a: parseInt(a.gol_visit),
-                ts: a.atualizado_em||a.criado_em||new Date().toISOString()
-              };
-            }
-          });
-          saveBets(globalBets);
-          renderMatches(); updateHome();
-          showToast('✅ Dados sincronizados!');
-        }
-      }).catch(() => {});
-      boot();
+      }).catch(()=>{});
     } else {
       ob.style.display = 'flex';
+      userName = ''; userEmail = '';
+      updateHeaderUser();
     }
   });
-}
-
-function updateHeaderUser() {
-  const el = document.getElementById('header-user-display');
-  if (!el) return;
-  el.innerHTML = userPhoto
-    ? `<img src="${userPhoto}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;">`
-    : `<div style="width:26px;height:26px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#000;">${userName.slice(0,2).toUpperCase()}</div>`;
-}
-
-async function loginGoogle() {
-  const btn = document.getElementById('btn-google');
-  const status = document.getElementById('ob-status');
-  btn.style.opacity = '0.7'; btn.style.pointerEvents = 'none';
-  status.textContent = 'Conectando...';
-  try {
-    await auth.signInWithPopup(googleProvider);
-  } catch(e) {
-    btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
-    if (e.code === 'auth/popup-blocked') {
-      status.textContent = '⚠️ Permita popups neste site e tente novamente';
-    } else if (e.code === 'auth/cancelled-popup-request' || e.code === 'auth/popup-closed-by-user') {
-      status.textContent = '';
-    } else {
-      status.textContent = '⚠️ ' + e.message;
-    }
-  }
 }
 
 function logout() {
   if (!confirm('Sair da conta?')) return;
   auth.signOut();
-  S.set('groups', []); S.set('activeGid', null);
-  groups = []; activeGid = null;
 }
 
 function boot() {
-  // Remove grupos duplicados pelo código
-  const seen = new Set();
-  groups = groups.filter(g => {
-    if (seen.has(g.code)) return false;
-    seen.add(g.code);
-    return true;
-  });
-  S.set('groups', groups);
-
   buildColorPicker();
-  if(!activeGid||!groups.find(g=>g.id===activeGid)){
-    activeGid=groups.length?groups[0].id:null;
-    S.set('activeGid',activeGid);
-  }
-  renderGroupTabs();
   updateCountdown();
   startAutoSync();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
@@ -914,7 +693,6 @@ function goScreen(name){
   if(name==='home') updateHome();
   if(name==='jogos') renderMatches();
   if(name==='ranking') renderRanking();
-  if(name==='grupo') renderGrupo();
   if(name==='quiz') initQuiz();
 }
 
@@ -942,11 +720,6 @@ function myStats(){
 function updateHome(){
   try {
     // Banner sem grupo
-    const noGroup = document.getElementById('no-group-banner');
-    const hasGroup = document.getElementById('has-group-actions');
-    if(noGroup) noGroup.style.display = groups.length ? 'none' : 'block';
-    if(hasGroup) hasGroup.style.display = groups.length ? 'block' : 'none';
-
     const{pts,hits,betCount}=myStats();
     const el=id=>document.getElementById(id);
     if(el('stat-pts'))  el('stat-pts').textContent=pts;
@@ -1157,9 +930,7 @@ async function confirmBet(){
   renderMatches();updateHome();
   btn.textContent='Confirmar aposta ✓';btn.disabled=false;
   // Envia para todos os grupos no servidor em background
-  const gruposCodes=groups.map(g=>g.code);
-  const grupoAlvo=activeGroup()?.code||gruposCodes[0]||'GERAL';
-  api({action:'saveAposta',usuario:userEmail||userName,display_name:userName,grupo:grupoAlvo,jogo_id:currentMatch.id,gol_casa:scoreH,gol_visit:scoreA})
+  api({action:'saveAposta',usuario:userEmail||userName,display_name:userName,grupo:'GERAL',jogo_id:currentMatch.id,gol_casa:scoreH,gol_visit:scoreA})
     .catch(()=>{});
 }
 
@@ -1264,139 +1035,11 @@ function renderRanking(){
 }
 
 // ── GRUPO ──
-function renderGrupo(){
-  const g = activeGroup();
-  const hasGroup = !!g;
-  const activeSection = document.getElementById('grupo-active-section');
-  const emptySection  = document.getElementById('grupo-empty-section');
-  if (activeSection) activeSection.style.display = hasGroup ? 'block' : 'none';
-  if (emptySection)  emptySection.style.display  = hasGroup ? 'none'  : 'block';
-  const {pts, exact} = myStats();
-  const el = id => document.getElementById(id);
-  if (el('profile-name'))  el('profile-name').textContent  = userName || '—';
-  if (el('profile-email')) el('profile-email').textContent = userEmail || '—';
-  if (el('ps-pts'))   el('ps-pts').textContent   = pts;
-  if (el('ps-exact')) el('ps-exact').textContent = exact;
-  const photoEl = el('profile-photo');
-  if (photoEl) {
-    photoEl.innerHTML = userPhoto
-      ? `<img src="${userPhoto}" style="width:100%;height:100%;object-fit:cover;">`
-      : `<span style="font-size:18px;font-weight:700;color:#000;">${(userName||'?').slice(0,2).toUpperCase()}</span>`;
-  }
-  if (!hasGroup) return;
-  if (el('grupo-code-txt')) { el('grupo-code-txt').textContent=g.code; el('grupo-code-txt').style.color=g.color; }
-  if (el('grupo-code-box')) el('grupo-code-box').style.borderColor=g.color+'66';
-  const me={usuario:userEmail||userName||'Você',displayName:userName||'Você',pts};
-  const all=[me,...ranking.filter(r=>{
-    const u=(r.usuario||'').toLowerCase();
-    return u!==(userEmail||'').toLowerCase()&&u!==(userName||'').toLowerCase();
-  })].sort((a,b)=>(b.pts||0)-(a.pts||0));
-  if(el('member-count')) el('member-count').textContent=all.length;
-  if(el('members-list')) el('members-list').innerHTML=all.map(m=>{
-    const color=COLORS[hashStr(m.usuario||'?')%COLORS.length];
-    const dName=m.displayName||(m.usuario&&m.usuario.includes('@')?m.usuario.split('@')[0]:m.usuario)||'?';
-    const ini=dName.slice(0,2).toUpperCase();
-    return `<div class="member-item"><div class="member-avatar" style="background:${color}22;color:${color}">${ini}</div><div class="member-name">${dName}</div><div class="member-pts">${m.pts||0} pts</div></div>`;
-  }).join('');
-}
 
 function copyActiveCode(){
   const g=activeGroup();if(!g)return;
   navigator.clipboard.writeText(g.code).catch(()=>{});
   showToast('📋 Código '+g.code+' copiado!');
-}
-function leaveGroup(){
-  if(groups.length<=1){showToast('⚠️ Ao menos um grupo é necessário');return;}
-  const g=activeGroup();
-  if(!confirm('Sair do grupo "'+g.name+'"?'))return;
-  groups=groups.filter(x=>x.id!==activeGid);S.set('groups',groups);
-  activeGid=groups[0].id;S.set('activeGid',activeGid);
-  renderGroupTabs();goScreen('home');syncAll(false);showToast('Você saiu do grupo');
-}
-
-// ── GRUPOS MODAL ──
-const makeGroup=(name,color)=>({id:Date.now()+'_'+Math.random().toString(36).slice(2,6),name,color,code:genCode(name),createdAt:new Date().toISOString()});
-function genCode(name){const b=name.replace(/[^a-zA-Z0-9]/g,'').toUpperCase().slice(0,3).padEnd(3,'X');return b+Math.floor(10+Math.random()*89);}
-
-function renderGroupTabs(){
-  const sw = document.getElementById('groups-switcher');
-  if(!groups.length){
-    sw.innerHTML = '<span style="font-size:11px;color:var(--muted);padding:4px 0;">Nenhum grupo ainda</span>';
-    return;
-  }
-  sw.innerHTML=groups.map(g=>{
-    const a=g.id===activeGid;
-    return `<button class="group-tab${a?' active':''}" style="${a?`background:${g.color};border-color:${g.color};`:''}" onclick="switchGroup('${g.id}')" title="${g.name}">${g.name}</button>`;
-  }).join('');
-}
-
-function switchGroup(gid){
-  activeGid=gid;S.set('activeGid',activeGid);
-  renderGroupTabs();syncAll(false);closeGroupsModal();
-}
-
-function buildColorPicker(){
-  document.getElementById('color-picker').innerHTML=COLORS.map((c,i)=>
-    `<div class="color-opt${i===0?' selected':''}" style="background:${c}" onclick="pickColor(this,'${c}')"></div>`
-  ).join('');
-}
-function pickColor(el,c){document.querySelectorAll('.color-opt').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');selectedColor=c;}
-function openGroupsModal(){renderGroupsList();document.getElementById('groups-modal').style.display='flex';}
-function closeGroupsModal(){document.getElementById('groups-modal').style.display='none';}
-
-function renderGroupsList(){
-  document.getElementById('groups-list').innerHTML=groups.map(g=>{
-    const bc=Object.keys(myBets()).length,isA=g.id===activeGid;
-    return `<div class="group-item-card${isA?' active-group':''}" onclick="switchGroup('${g.id}')">
-      <div class="group-dot" style="background:${g.color}"></div>
-      <div class="group-item-info">
-        <div class="group-item-name">${g.name}${isA?' <span style="font-size:10px;color:var(--green)">● ativo</span>':''}</div>
-        <div class="group-item-code">Código: <b style="color:var(--text)">${g.code}</b> · ${bc} apostas</div>
-      </div>
-      <div style="display:flex;gap:4px;">
-        <button class="icon-btn copy" onclick="event.stopPropagation();navigator.clipboard.writeText('${g.code}').catch(()=>{});showToast('📋 ${g.code} copiado!');" title="Copiar">📋</button>
-        ${groups.length>1?`<button class="icon-btn" onclick="event.stopPropagation();deleteGroup('${g.id}')" title="Remover">✕</button>`:''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function createGroup(){
-  const name=document.getElementById('new-group-name').value.trim();
-  if(!name||name.length<2){showToast('⚠️ Digite um nome');return;}
-  const g=makeGroup(name,selectedColor);
-  groups.push(g);S.set('groups',groups);activeGid=g.id;S.set('activeGid',activeGid);
-  document.getElementById('new-group-name').value='';
-  renderGroupTabs();renderGroupsList();closeGroupsModal();goScreen('home');syncAll(false);
-  // salva no servidor em background
-  api({action:'saveGrupo',nome:g.name,codigo:g.code,cor:g.color,criador:userName}).catch(()=>{});
-  showToast('✅ Grupo "'+g.name+'" criado! Código: '+g.code);
-}
-
-async function joinGroup(){
-  const code=document.getElementById('join-code').value.trim().toUpperCase();
-  if(code.length<4){showToast('⚠️ Digite o código');return;}
-  const exists=groups.find(g=>g.code===code);
-  if(exists){switchGroup(exists.id);showToast('Você já está neste grupo');document.getElementById('join-code').value='';return;}
-  try{
-    const r=await api({action:'joinGrupo',codigo:code});
-    if(!r.ok)throw new Error(r.error);
-    const gd=r.grupo;
-    const g={id:Date.now()+'_'+Math.random().toString(36).slice(2,6),name:gd.nome,color:gd.cor||COLORS[groups.length%COLORS.length],code:gd.codigo,createdAt:gd.criado_em};
-    groups.push(g);S.set('groups',groups);activeGid=g.id;S.set('activeGid',activeGid);
-    document.getElementById('join-code').value='';
-    renderGroupTabs();renderGroupsList();closeGroupsModal();goScreen('home');syncAll(false);
-    showToast('✅ Entrou no grupo "'+g.name+'"!');
-  }catch(e){showToast('⚠️ '+e.message);}
-}
-
-function deleteGroup(gid){
-  if(groups.length<=1){showToast('⚠️ Ao menos um grupo é necessário');return;}
-  const g=groups.find(x=>x.id===gid);
-  if(!confirm('Remover grupo "'+g.name+'"?'))return;
-  groups=groups.filter(x=>x.id!==gid);S.set('groups',groups);
-  if(activeGid===gid){activeGid=groups[0].id;S.set('activeGid',activeGid);}
-  renderGroupTabs();renderGroupsList();updateHome();showToast('Grupo removido');
 }
 
 // ── TOAST ──
@@ -1415,6 +1058,8 @@ let quizSessaoTotal = 0;
 let quizRespondida = false;
 
 async function initQuiz() {
+  const qb = document.getElementById('quiz-badge');
+  if(qb) qb.style.display = 'none';
   const active   = document.getElementById('quiz-active');
   const empty    = document.getElementById('quiz-empty');
   const subtitle = document.getElementById('quiz-subtitle');
@@ -1433,6 +1078,8 @@ async function initQuiz() {
     if(!r.ok) throw new Error(r.error || 'Erro desconhecido');
     quizPerguntas = r.perguntas || [];
     quizIndex = 0; quizSessaoAcertos = 0; quizSessaoTotal = 0;
+    const qb = document.getElementById('quiz-badge');
+    if(qb) qb.style.display = quizPerguntas.length ? 'block' : 'none';
     const respondidas = r.respondidas || 0;
     const total = r.total || 0;
     if(!quizPerguntas.length) {
