@@ -108,7 +108,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .match-score.pending{font-size:16px;color:var(--muted);}
 .match-footer{margin-top:8px;display:flex;justify-content:space-between;align-items:center;}
 .match-time{font-size:11px;color:var(--muted);}
-.bet-label{font-size:11px;color:#58a6ff;font-weight:600;}
+.bet-label{font-size:11px;color:var(--green);font-weight:600;}
 .pts-badge{display:inline-block;margin-top:6px;font-family:'Bebas Neue',sans-serif;font-size:14px;padding:2px 8px;border-radius:6px;letter-spacing:.04em;}
 
 /* RANKING */
@@ -1016,7 +1016,7 @@ function renderMatches(){
     const cards=arr.map(m=>{
       const bet=bets[m.id],pts=bet&&m.score?calcPoints(bet,m.score):null;
       const sl=m.status==='upcoming'?'Não iniciado':m.status==='live'?'Ao vivo ●':'Finalizado';
-      const betLine=bet?`Sua aposta: ${bet.h}×${bet.a}`:(m.status==='upcoming'?'Toque para apostar':'');
+      const betLine=bet?`<span>Sua aposta: ${bet.h}×${bet.a}</span>`:(m.status==='upcoming'?'<span style="color:#58a6ff;">Toque para apostar</span>':'');
       const ptsColor=pts===3?'var(--gold)':pts>0?'var(--green)':'var(--red)';
       const ptsLabel=pts===3?'⭐ +3 pts':pts===2?'+2 pts':pts===1?'+1 pt':'✗ 0 pts';
       const ptsBadge=pts!==null?`<div class="pts-badge" style="color:${ptsColor};background:${ptsColor}18;border:1px solid ${ptsColor}44;">${ptsLabel}</div>`:'';
@@ -1040,7 +1040,9 @@ function renderMatches(){
     const badge = liveCount>0
       ? `<span style="background:rgba(255,71,87,.2);color:var(--red);font-size:10px;padding:2px 7px;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:600;">● AO VIVO</span>`
       : betCount>0
-        ? `<span style="background:var(--green-glow);color:var(--green);font-size:10px;padding:2px 7px;border-radius:10px;font-family:'DM Sans',sans-serif;">${betCount}/${arr.length} apostas</span>`
+        ? betCount===arr.length
+          ? `<span style="background:var(--green-glow);color:var(--green);font-size:10px;padding:2px 7px;border-radius:10px;font-family:'DM Sans',sans-serif;">${betCount}/${arr.length} apostas</span>`
+          : `<span style="background:rgba(255,193,7,.12);color:#ffc107;font-size:10px;padding:2px 7px;border-radius:10px;font-family:'DM Sans',sans-serif;">⚠ ${betCount}/${arr.length} apostas</span>`
         : `<span style="font-size:10px;color:var(--muted);font-family:'DM Sans',sans-serif;">${arr.length} jogos</span>`;
     return `<div style="margin-bottom:4px;">
       <div class="fase-header" id="hdr-${faseId}" onclick="toggleFase('${faseId}')">
