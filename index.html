@@ -474,6 +474,17 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 // ════════════════════════════════════════════════════
 // ▼▼▼  URL DO APPS SCRIPT  ▼▼▼
 const API_URL = 'https://script.google.com/macros/s/AKfycbxMV9a5WPgNDjIGeiz6lKvTFTGJSmc5rti9TXafxzK6z7z3qnzyYvDo8jO0L8RCnMcktg/exec';
+
+// ── API (Google Apps Script via fetch) ──
+async function api(params) {
+  if (!API_URL || API_URL.includes('COLE_AQUI')) {
+    throw new Error('Configure a URL do Apps Script');
+  }
+  const url = API_URL + '?' + new URLSearchParams(params).toString();
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
 // ════════════════════════════════════════════════════
 
 const COLORS = ['#00c853','#1e90ff','#ff4757','#20c997','#9b59b6','#e67e22','#ffd600','#e91e63'];
@@ -604,6 +615,26 @@ function rowToMatch(row) {
     round:row.fase||'',date:`${data} · ${(row.hora||'').trim()}`,
     status,score:hasScore?{h:gh,a:ga}:null,
   };
+}
+
+// ── AUTH ──
+function loginGoogle() {
+  auth.signInWithPopup(googleProvider).catch(e => {
+    showToast('⚠️ Erro ao entrar: ' + (e.message||e.code||'tente novamente'));
+  });
+}
+
+function updateHeaderUser() {
+  const el = document.getElementById('header-user-display');
+  if (!el) return;
+  if (userEmail) {
+    const ini = (userName||'?').slice(0,2).toUpperCase();
+    el.innerHTML = userPhoto
+      ? `<img src="${userPhoto}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:1.5px solid var(--border);">`
+      : `<div style="width:30px;height:30px;border-radius:50%;background:var(--green-glow);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">${ini}</div>`;
+  } else {
+    el.innerHTML = '';
+  }
 }
 
 // ── INIT ──
