@@ -275,12 +275,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <!-- HOME -->
     <div id="screen-home" class="screen active">
       <div class="home-hero">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:4px;">Copa do Mundo FIFA</div>
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:4px;" id="hero-label">Copa do Mundo FIFA</div>
         <div style="display:flex;align-items:baseline;gap:8px;">
           <div class="hero-days" id="countdown-days">—</div>
-          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--green);">DIAS</div><div style="font-size:11px;color:var(--muted);">para o início</div></div>
+          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--green);" id="hero-unit">DIAS</div><div style="font-size:11px;color:var(--muted);" id="hero-sub">para o início</div></div>
         </div>
-        <div class="hero-date">🗓 11 de Junho de 2026 · EUA / CAN / MEX</div>
+        <div class="hero-date" id="hero-date">🗓 11 de Junho de 2026 · EUA / CAN / MEX</div>
       </div>
       <div class="stats-row">
         <div class="stat-card"><div class="stat-num" id="stat-pts">0</div><div class="stat-lbl">Seus pontos</div></div>
@@ -468,7 +468,44 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 
 <!-- MODAL APOSTA -->
 <div class="modal-backdrop" id="bet-modal" style="display:none;" onclick="if(event.target===this)closeBetModal()">
-  
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">Sua Aposta</div>
+    <div class="bet-teams">
+      <div class="bet-team">
+        <span class="bet-flag" id="modal-flag1">⚽</span>
+        <div class="bet-name" id="modal-team1">—</div>
+      </div>
+      <div class="bet-vs">VS</div>
+      <div class="bet-team">
+        <span class="bet-flag" id="modal-flag2">⚽</span>
+        <div class="bet-name" id="modal-team2">—</div>
+      </div>
+    </div>
+    <div style="font-size:12px;text-align:center;color:var(--muted);margin-bottom:14px;">Qual será o placar?</div>
+    <div class="score-input-row">
+      <div class="score-input-group">
+        <button class="score-btn" onclick="chgScore('h',-1)">−</button>
+        <div class="score-val" id="score-h">0</div>
+        <button class="score-btn" onclick="chgScore('h',1)">+</button>
+      </div>
+      <div class="score-sep">×</div>
+      <div class="score-input-group">
+        <button class="score-btn" onclick="chgScore('a',-1)">−</button>
+        <div class="score-val" id="score-a">0</div>
+        <button class="score-btn" onclick="chgScore('a',1)">+</button>
+      </div>
+    </div>
+    <div class="points-preview">
+      <div class="card-title" style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px;">Quanto você pode ganhar</div>
+      <div class="points-row"><span>Placar exato</span><b style="color:var(--gold);">+3 pts</b></div>
+      <div class="points-row"><span>Saldo de gols</span><b style="color:var(--green);">+2 pts</b></div>
+      <div class="points-row"><span>Vencedor certo</span><b>+1 pt</b></div>
+    </div>
+    <button class="btn btn-green" id="confirm-btn" onclick="confirmBet()" style="margin-top:16px;">Confirmar aposta ✓</button>
+    <button class="btn btn-outline" id="remove-btn" onclick="removeBet()" style="margin-top:8px;display:none;">Remover aposta</button>
+    <button class="btn btn-outline" onclick="closeBetModal()" style="margin-top:8px;border:none;color:var(--muted);">Cancelar</button>
+  </div>
 </div>
 
 <script>
@@ -585,7 +622,7 @@ async function syncAll(manual=false) {
     S.set('rank_cache_geral', rankingGeral);
     const now = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     setSyncStatus('ok','Atualizado '+now);
-    renderMatches(); updateHome();
+    renderMatches(); updateHome(); updateCountdown();
     if (document.getElementById('screen-ranking').classList.contains('active')) renderRanking();
     if (manual) showToast('✅ Sincronizado!');
   } catch(e) {
@@ -724,7 +761,44 @@ function goScreen(name){
 }
 
 function updateCountdown(){
-  document.getElementById('countdown-days').textContent=Math.floor(Math.max(0,new Date('2026-06-11T20:00:00Z')-new Date())/864e5);
+  const start = new Date('2026-06-11T20:00:00Z');
+  const end   = new Date('2026-07-19T23:59:59Z'); // final ~19 jul
+  const now   = new Date();
+  const days  = el => document.getElementById('countdown-days');
+  const set = (id,txt) => { const e=document.getElementById(id); if(e)e.textContent=txt; };
+
+  if (now < start) {
+    // ANTES — contagem regressiva
+    set('hero-label','Copa do Mundo FIFA');
+    set('countdown-days', Math.ceil((start-now)/864e5));
+    set('hero-unit','DIAS');
+    set('hero-sub','para o início');
+    set('hero-date','🗓 11 de Junho de 2026 · EUA / CAN / MEX');
+  } else if (now <= end) {
+    // DURANTE — dia atual da Copa
+    const diaCopa = Math.floor((now-start)/864e5) + 1;
+    set('hero-label','🔥 Copa em andamento');
+    set('countdown-days', diaCopa);
+    set('hero-unit','DIA');
+    set('hero-sub','de Copa');
+    // próximo jogo data/hora
+    const bets = (typeof myBets==='function')?myBets():{};
+    const prox = matches.find(m => m.status==='upcoming');
+    if (prox) {
+      set('hero-date','⚽ Próximo: ' + prox.home + ' × ' + prox.away + ' · ' + prox.date);
+    } else if (matches.some(m=>m.status==='live')) {
+      set('hero-date','🔴 Tem jogo ao vivo agora!');
+    } else {
+      set('hero-date','🗓 Acompanhe os jogos na aba Jogos');
+    }
+  } else {
+    // DEPOIS — encerrada
+    set('hero-label','Copa do Mundo FIFA');
+    set('countdown-days','🏆');
+    set('hero-unit','FIM');
+    set('hero-sub','Copa encerrada');
+    set('hero-date','Obrigado por participar!');
+  }
 }
 
 // ── PONTUAÇÃO ──
