@@ -533,7 +533,7 @@ const S = {
 let matches=[], ranking=[], rankingGeral=[];
 let userName='', userEmail='', userPhoto='';
 let currentFilter='todos', teamFilter='', currentMatch=null, scoreH=0, scoreA=0;
-let selectedColor=COLORS[0], syncTimer=null;
+syncTimer=null;
 
 const myBets=()=>S.get('bets_global',{});
 const saveBets=b=>S.set('bets_global',b);
@@ -619,7 +619,6 @@ function init() {
       userPhoto = user.photoURL || '';
       updateHeaderUser();
       ob.style.display = 'none';
-      groups    = S.get('groups', []);
       api({action:'getUsuario', nome:userName, email:userEmail}).then(r => {
         if (!r.ok) return;
       }).catch(()=>{});
@@ -637,7 +636,6 @@ function logout() {
 }
 
 function boot() {
-  buildColorPicker();
   updateCountdown();
   startAutoSync();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
@@ -668,7 +666,6 @@ function obEnter() {
     if (r.ok && r.apostas && r.apostas.length) {
       const bg = {};
       r.apostas.forEach(a => { if(!bg[a.grupo])bg[a.grupo]={}; bg[a.grupo][a.jogo_id]={h:parseInt(a.gol_casa),a:parseInt(a.gol_visit),ts:a.criado_em||''}; });
-      Object.entries(bg).forEach(([code,bets]) => { const g=groups.find(x=>x.code===code); if(g)S.set('bets_'+g.id,bets); });
       renderMatches(); updateHome();
     }
   }).catch(()=>{});
