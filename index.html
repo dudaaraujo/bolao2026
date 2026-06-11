@@ -871,7 +871,9 @@ function rowToMatch(row) {
     else if (now >= kickoff + GAME_DURATION_MS) status = 'done';
     else status = 'upcoming';
   }
-  const hasScore=(status==='done'||status==='live')&&!isNaN(gh)&&!isNaN(ga);
+  const casaP=row.gol_casa!==''&&row.gol_casa!==undefined&&row.gol_casa!==null;
+  const visitP=row.gol_visit!==''&&row.gol_visit!==undefined&&row.gol_visit!==null;
+  const hasScore=casaP&&visitP&&!isNaN(gh)&&!isNaN(ga);
 
   return {
     id:parseInt(row.id)||0,
