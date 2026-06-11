@@ -791,6 +791,36 @@ function lisbonToUTC(year, month, day, hour, minute) {
 }
 
 // Formata data/hora no FUSO LOCAL do usuário a partir do timestamp do jogo
+// Extrai ano/mês/dia de uma string de data, SEM depender do fuso do dispositivo.
+// Suporta: "2026-06-11", "11/06/2026", "Wed Jun 11 2026", "Jun 11 2026", "11 jun"
+function parseDateYMD(raw) {
+  const s = String(raw||'').trim();
+  if (!s) return null;
+  const MES = {jan:0,fev:1,mar:2,abr:3,mai:4,jun:5,jul:6,ago:7,set:8,out:9,nov:10,dez:11,
+               feb:1,apr:3,may:4,aug:7,sep:8,oct:9,dec:11};
+
+  // ISO: 2026-06-11
+  let m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return {y:+m[1], m:+m[2]-1, d:+m[3]};
+
+  // BR: 11/06/2026 ou 11/06/26
+  m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if (m) { let yy=+m[3]; if(yy<100)yy+=2000; return {y:yy, m:+m[2]-1, d:+m[1]}; }
+
+  // Texto EN: "Wed Jun 11 2026" ou "Jun 11 2026"
+  m = s.match(/([A-Za-z]{3,})\s+(\d{1,2})\s+(\d{4})/);
+  if (m) { const mo=MES[m[1].slice(0,3).toLowerCase()]; if(mo!==undefined) return {y:+m[3], m:mo, d:+m[2]}; }
+
+  // Texto PT/EN curto: "11 jun" / "11 de junho" (assume ano atual ou 2026)
+  m = s.match(/(\d{1,2})\s*(?:de\s+)?([A-Za-zçãéíóú]{3,})/i);
+  if (m) { const mo=MES[m[2].slice(0,3).toLowerCase()]; if(mo!==undefined) return {y:2026, m:mo, d:+m[1]}; }
+
+  // Última tentativa: deixa o Date nativo, mas lê em UTC pra evitar drift
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return {y:d.getUTCFullYear(), m:d.getUTCMonth(), d:d.getUTCDate()};
+  return null;
+}
+
 function fmtLocalDate(kickoff, fallbackData, fallbackHora) {
   if (!kickoff) return `${fallbackData} · ${(fallbackHora||'').trim()}`;
   try {
@@ -822,15 +852,13 @@ function rowToMatch(row) {
   // independente de onde o usuário esteja (Brasil, EUA, etc.)
   let kickoff = null;
   try {
-    const d = new Date(raw);
-    if (!isNaN(d.getTime())) {
+    const ymd = parseDateYMD(raw);
+    if (ymd) {
       const hora = String(row.hora||'').trim();
       const hm = hora.match(/(\d{1,2})[h:]?(\d{2})?/);
       const hh = hm ? (parseInt(hm[1])||0) : 0;
       const mm = hm ? (parseInt(hm[2])||0) : 0;
-      // Componentes da data (ano/mês/dia) lidos da string
-      const yr = d.getFullYear(), mo = d.getMonth(), dy = d.getDate();
-      kickoff = lisbonToUTC(yr, mo, dy, hh, mm);
+      kickoff = lisbonToUTC(ymd.y, ymd.m, ymd.d, hh, mm);
     }
   } catch(e) {}
 
