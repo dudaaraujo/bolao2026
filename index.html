@@ -99,6 +99,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .status-upcoming{background:rgba(255,214,0,.12);color:var(--gold);}
 .status-live{background:rgba(255,71,87,.15);color:var(--red);}
 .status-done{background:rgba(122,144,184,.12);color:var(--muted);}
+.status-closed{background:rgba(255,140,0,.12);color:#ff8c00;}
 .match-teams{display:flex;align-items:center;justify-content:space-between;}
 .match-team{display:flex;align-items:center;gap:8px;flex:1;}
 .match-team.right{flex-direction:row-reverse;text-align:right;}
@@ -585,6 +586,15 @@ let currentFilter='todos', teamFilter='', currentMatch=null, scoreH=0, scoreA=0;
 syncTimer=null;
 
 const myBets=()=>S.get('bets_global',{});
+const BET_LOCK_MIN = 15; // minutos antes do jogo que trava a aposta
+function isBettingClosed(m){
+  if(m.status==='done' || m.status==='live') return true;
+  if(m.kickoff){
+    const minsToKick = (m.kickoff - Date.now())/6e4;
+    if(minsToKick <= BET_LOCK_MIN) return true;
+  }
+  return false;
+}
 const saveBets=b=>S.set('bets_global',b);
 
 // ── SYNC ──
@@ -646,12 +656,27 @@ function rowToMatch(row) {
     const m2=raw.match(/([a-zA-Záéíóú.]+)\s+(\d{1,2})/);
     if(m2){const mn=m2[1].replace('.','').toLowerCase();const mp={'jan':'Jan','fev':'Fev','mar':'Mar','abr':'Abr','mai':'Mai','jun':'Jun','jul':'Jul','ago':'Ago','set':'Set','out':'Out','nov':'Nov','dez':'Dez'};data=(mp[mn]||m2[1])+' '+m2[2];}
   }
+  // Calcula timestamp do início do jogo
+  let kickoff = null;
+  try {
+    const d = new Date(raw);
+    if (!isNaN(d.getTime())) {
+      const hora = String(row.hora||'').trim();
+      const hm = hora.match(/(\d{1,2})[h:]?(\d{2})?/);
+      if (hm) {
+        d.setHours(parseInt(hm[1])||0, parseInt(hm[2])||0, 0, 0);
+      }
+      kickoff = d.getTime();
+    }
+  } catch(e) {}
+
   return {
     id:parseInt(row.id)||0,
     home:row.time_casa||'—',hFlag:row.flag_casa||getFlag(row.time_casa),
     away:row.time_visit||'—',aFlag:row.flag_visit||getFlag(row.time_visit),
     round:row.fase||'',date:`${data} · ${(row.hora||'').trim()}`,
     status,score:hasScore?{h:gh,a:ga}:null,
+    kickoff,
   };
 }
 
@@ -904,8 +929,13 @@ function renderMatches(){
   list.innerHTML=Object.entries(byFase).map(([fase,arr])=>{
     const cards=arr.map(m=>{
       const bet=bets[m.id],pts=bet&&m.score?calcPoints(bet,m.score):null;
-      const sl=m.status==='upcoming'?'Não iniciado':m.status==='live'?'Ao vivo ●':'Finalizado';
-      const betLine=bet?`<span>Sua aposta: ${bet.h}×${bet.a}</span>`:(m.status==='upcoming'?'<span style="color:#58a6ff;">Toque para apostar</span>':'');
+      const closed=isBettingClosed(m);
+      const sl=m.status==='live'?'Ao vivo ●':m.status==='done'?'Finalizado':closed?'🔒 Apostas encerradas':'Não iniciado';
+      const betLine=bet
+        ? `<span>Sua aposta: ${bet.h}×${bet.a}</span>`
+        : (m.status==='upcoming' && !closed
+            ? '<span style="color:#58a6ff;">Toque para apostar</span>'
+            : (m.status==='upcoming' && closed ? '<span style="color:var(--muted);">Sem aposta</span>' : ''));
       const ptsColor=pts===3?'var(--gold)':pts>0?'var(--green)':'var(--red)';
       const ptsLabel=pts===3?'⭐ +3 pts':pts===2?'+2 pts':pts===1?'+1 pt':'✗ 0 pts';
       const ptsBadge=pts!==null?`<div class="pts-badge" style="color:${ptsColor};background:${ptsColor}18;border:1px solid ${ptsColor}44;">${ptsLabel}</div>`:'';
@@ -1013,6 +1043,7 @@ function openBet(id){
   const m=matches.find(x=>x.id===id);if(!m)return;
   if(m.status==='done'){showToast('Jogo finalizado — apostas encerradas');return;}
   if(m.status==='live'){showToast('Jogo ao vivo — apostas encerradas');return;}
+  if(isBettingClosed(m)){showToast('⏰ Apostas encerradas — faltam menos de '+BET_LOCK_MIN+' min para o jogo');return;}
   currentMatch=m;
   const bets=myBets(),saved=bets[id];
   scoreH=saved?saved.h:0;scoreA=saved?saved.a:0;
