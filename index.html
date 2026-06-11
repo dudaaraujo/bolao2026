@@ -580,7 +580,7 @@ const S = {
 };
 
 // ── ESTADO ──
-let matches=[], ranking=[], rankingGeral=[];
+let matchesRaw=[], matches=[], ranking=[], rankingGeral=[];
 let userName='', userEmail='', userPhoto='';
 let currentFilter='todos', teamFilter='', currentMatch=null, scoreH=0, scoreA=0;
 syncTimer=null;
@@ -625,7 +625,8 @@ async function syncAll(manual=false) {
       api({action:'getRanking', grupo:'GERAL'}),
     ]);
     if (!rJ.ok) throw new Error(rJ.error||'Erro jogos');
-    matches = rJ.jogos.map(rowToMatch).filter(m=>m.id>0);
+    matchesRaw = rJ.jogos||[];
+    matches = matchesRaw.map(rowToMatch).filter(m=>m.id>0);
     ranking = rR.ranking||[];
     rankingGeral = rG.ranking||[];
     S.set('matches_cache', matches);
@@ -646,8 +647,7 @@ function startAutoSync(){syncAll(false);clearInterval(syncTimer);syncTimer=setIn
 
 function rowToMatch(row) {
   const gh=parseInt(row.gol_casa),ga=parseInt(row.gol_visit);
-  const status=(row.status||'upcoming').toLowerCase().trim();
-  const hasScore=(status==='done'||status==='live')&&!isNaN(gh)&&!isNaN(ga);
+  const sheetStatus=(row.status||'upcoming').toLowerCase().trim();
   const raw=String(row.data||'');
   let data=raw;
   const m=raw.match(/([A-Za-z]{3})\s+([A-Za-z]{3})\s+(\d{1,2})\s+(\d{4})/);
@@ -669,6 +669,17 @@ function rowToMatch(row) {
       kickoff = d.getTime();
     }
   } catch(e) {}
+
+  // Status automático pelo horário (a planilha tem prioridade quando marca done/live)
+  const GAME_DURATION_MS = 2*60*60*1000; // 2 horas
+  let status = sheetStatus;
+  if (sheetStatus !== 'done' && kickoff) {
+    const now = Date.now();
+    if (now >= kickoff && now < kickoff + GAME_DURATION_MS) status = 'live';
+    else if (now >= kickoff + GAME_DURATION_MS) status = 'done';
+    else status = 'upcoming';
+  }
+  const hasScore=(status==='done'||status==='live')&&!isNaN(gh)&&!isNaN(ga);
 
   return {
     id:parseInt(row.id)||0,
