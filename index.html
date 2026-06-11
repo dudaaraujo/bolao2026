@@ -672,6 +672,7 @@ async function syncAll(manual=false) {
     const now = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     setSyncStatus('ok','Atualizado '+now);
     renderMatches(); updateHome(); updateCountdown();
+    syncMyBets();
     if(document.getElementById('screen-tabela').classList.contains('active')) renderTabela();
     if (document.getElementById('screen-ranking').classList.contains('active')) renderRanking();
     if (manual) showToast('✅ Sincronizado!');
@@ -728,6 +729,41 @@ function rowToMatch(row) {
     status,score:hasScore?{h:gh,a:ga}:null,
     kickoff,
   };
+}
+
+// ── SINCRONIZAR APOSTAS DO SERVIDOR ──
+async function syncMyBets() {
+  if(!userEmail) return;
+  try {
+    const r = await api({action:'getApostas', grupo:'GERAL'});
+    if(!r.ok || !r.apostas) return;
+    const emailLow = userEmail.toLowerCase();
+    const local = myBets();
+    let changed = false;
+    r.apostas.forEach(a => {
+      const dono = (a.usuario||'').toLowerCase();
+      if(dono !== emailLow) return;
+      const jid = parseInt(a.jogo_id);
+      const gh = parseInt(a.gol_casa), ga = parseInt(a.gol_visit);
+      if(isNaN(jid) || isNaN(gh) || isNaN(ga)) return;
+      // Usa o timestamp do servidor pra decidir qual é mais recente
+      const serverTs = a.atualizado_em || a.criado_em || '';
+      const localBet = local[jid];
+      if(!localBet) {
+        local[jid] = {h:gh, a:ga, ts:serverTs};
+        changed = true;
+      } else if(serverTs && localBet.ts && serverTs > localBet.ts) {
+        // servidor mais recente
+        local[jid] = {h:gh, a:ga, ts:serverTs};
+        changed = true;
+      }
+    });
+    if(changed) {
+      saveBets(local);
+      renderMatches();
+      updateHome();
+    }
+  } catch(e) {}
 }
 
 // ── AUTH ──
@@ -977,6 +1013,7 @@ function logout() {
 
 function boot() {
   updateCountdown();
+  syncMyBets();
   startAutoSync();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
