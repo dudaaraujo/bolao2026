@@ -733,9 +733,12 @@ function updateHeaderUser() {
 function calcStandings(jogosGrupo) {
   // jogosGrupo: array de matches de um mesmo grupo
   const teams = {};
+  const normKey = s => String(s||'').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,''); // remove acentos
   const ensure = (name, flag) => {
-    if(!teams[name]) teams[name] = {name, flag, pj:0, v:0, e:0, d:0, gp:0, gc:0, sg:0, pts:0, fair:0};
-    return teams[name];
+    const key = normKey(name);
+    if(!teams[key]) teams[key] = {name:String(name||'').trim(), flag, pj:0, v:0, e:0, d:0, gp:0, gc:0, sg:0, pts:0, fair:0};
+    return teams[key];
   };
 
   jogosGrupo.forEach(m => {
@@ -760,26 +763,28 @@ function calcStandings(jogosGrupo) {
 
   const headToHead = (a, b, metric) => {
     let av=0, bv=0;
+    const ka=normKey(a.name), kb=normKey(b.name);
     jogosGrupo.forEach(m => {
       if(m.status!=='done'||!m.score) return;
-      const isAB = (m.home===a.name&&m.away===b.name);
-      const isBA = (m.home===b.name&&m.away===a.name);
+      const kh=normKey(m.home), kw=normKey(m.away);
+      const isAB = (kh===ka&&kw===kb);
+      const isBA = (kh===kb&&kw===ka);
       if(!isAB && !isBA) return;
       const gh=m.score.h, ga=m.score.a;
       if(metric==='pts'){
-        if(gh>ga){ if(m.home===a.name)av+=3;else bv+=3; }
-        else if(ga>gh){ if(m.away===a.name)av+=3;else bv+=3; }
+        if(gh>ga){ if(kh===ka)av+=3;else bv+=3; }
+        else if(ga>gh){ if(kw===ka)av+=3;else bv+=3; }
         else { av+=1; bv+=1; }
       } else if(metric==='sg'){
-        const aGoals = m.home===a.name?gh:ga;
-        const bGoals = m.home===b.name?gh:ga;
+        const aGoals = kh===ka?gh:ga;
+        const bGoals = kh===kb?gh:ga;
         av += aGoals-bGoals; bv += bGoals-aGoals;
       } else if(metric==='gp'){
-        av += m.home===a.name?gh:ga;
-        bv += m.home===b.name?gh:ga;
+        av += kh===ka?gh:ga;
+        bv += kh===kb?gh:ga;
       }
     });
-    return bv - av; // ordem decrescente
+    return bv - av;
   };
 
   arr.sort((a, b) => {
@@ -816,8 +821,13 @@ function renderTabela() {
     return;
   }
 
-  cont.innerHTML = nomes.map(nome => {
+  // Monta tabela de cada grupo + coleta os 3º colocados
+  const terceiros = [];
+  const gruposHTML = nomes.map(nome => {
     const standings = calcStandings(grupos[nome]);
+    if(standings[2]) {
+      terceiros.push(Object.assign({}, standings[2], {grupo: nome.replace(/grupo\s*/i,'').trim()}));
+    }
     const rows = standings.map((t, i) => {
       const qualColor = i < 2 ? 'var(--green)' : 'transparent';
       const sgTxt = t.sg > 0 ? '+'+t.sg : t.sg;
@@ -837,15 +847,13 @@ function renderTabela() {
         <td style="text-align:center;"><b style="color:var(--green);">${t.pts}</b></td>
       </tr>`;
     }).join('');
-
     return `<div style="margin-bottom:24px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.03em;margin-bottom:8px;color:var(--text);">${nome}</div>
       <div style="overflow-x:auto;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);">
         <table class="standings-table">
           <thead>
             <tr>
-              <th style="text-align:center;">#</th>
-              <th>Time</th>
+              <th style="text-align:center;">#</th><th>Time</th>
               <th style="text-align:center;" title="Jogos">PJ</th>
               <th style="text-align:center;" title="Vitórias">V</th>
               <th style="text-align:center;" title="Empates">E</th>
@@ -860,7 +868,60 @@ function renderTabela() {
         </table>
       </div>
     </div>`;
-  }).join('') + '<div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-top:-8px;"><span style="width:3px;height:14px;background:var(--green);border-radius:2px;display:inline-block;"></span> Classificados para a próxima fase</div>';
+  }).join('');
+
+  // Tabela dos melhores terceiros (8 vagas — formato Copa 2026)
+  let terceirosHTML = '';
+  if(terceiros.length >= 3) {
+    terceiros.sort((a,b) => {
+      if(b.pts !== a.pts) return b.pts - a.pts;
+      if(b.sg  !== a.sg)  return b.sg - a.sg;
+      if(b.gp  !== a.gp)  return b.gp - a.gp;
+      return a.name.localeCompare(b.name);
+    });
+    const VAGAS = 8;
+    const rows = terceiros.map((t, i) => {
+      const classif = i < VAGAS;
+      const sgTxt = t.sg > 0 ? '+'+t.sg : t.sg;
+      const dim = classif ? '' : 'color:var(--muted);';
+      const sep = (i === VAGAS) ? 'border-top:1px dashed var(--border);' : '';
+      return `<tr style="${sep}">
+        <td style="text-align:center;position:relative;${dim}">
+          ${classif?`<span style="position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:70%;background:var(--green);border-radius:2px;"></span>`:''}
+          <b style="${classif?'color:var(--green);':'color:var(--muted);'}">${i+1}</b>
+        </td>
+        <td style="${dim}"><span style="margin-right:5px;">${t.flag}</span>${t.name}</td>
+        <td style="text-align:center;color:var(--muted);">${t.grupo}</td>
+        <td style="text-align:center;${dim}">${sgTxt}</td>
+        <td style="text-align:center;"><b style="${classif?'color:var(--green);':'color:var(--muted);'}">${t.pts}</b></td>
+      </tr>`;
+    }).join('');
+    terceirosHTML = `<div style="margin-bottom:18px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.03em;">Melhores Terceiros</div>
+        <span style="font-size:10px;background:var(--green-glow);color:var(--green);padding:2px 8px;border-radius:10px;">${VAGAS} vagas</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Os ${VAGAS} melhores 3º colocados avançam ao mata-mata</div>
+      <div style="overflow-x:auto;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);">
+        <table class="standings-table">
+          <thead>
+            <tr>
+              <th style="text-align:center;">#</th><th>Time</th>
+              <th style="text-align:center;" title="Grupo">Gr</th>
+              <th style="text-align:center;" title="Saldo de Gols">SG</th>
+              <th style="text-align:center;" title="Pontos">PTS</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
+  cont.innerHTML = gruposHTML + terceirosHTML +
+    '<div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:14px;margin-top:-8px;flex-wrap:wrap;">' +
+    '<span style="display:flex;align-items:center;gap:6px;"><span style="width:3px;height:14px;background:var(--green);border-radius:2px;display:inline-block;"></span> Classificados</span>' +
+    '</div>';
 }
 
 // ── INIT ──
