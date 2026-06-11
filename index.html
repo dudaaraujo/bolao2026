@@ -299,6 +299,19 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         </div>
         <div class="hero-date" id="hero-date">🗓 11 de Junho de 2026 · EUA / CAN / MEX</div>
       </div>
+
+      <!-- JOGOS DE HOJE -->
+      <div id="today-section" style="display:none;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:7px;">
+            <span style="font-size:15px;">⚡</span>
+            <span style="font-size:15px;font-weight:600;color:var(--text);">Jogos de hoje</span>
+          </div>
+          <span id="today-pending-badge" style="display:none;font-size:10px;background:rgba(255,140,0,.15);color:#ff8c00;padding:3px 9px;border-radius:10px;font-weight:600;"></span>
+        </div>
+        <div id="today-list"></div>
+      </div>
+
       <div class="stats-row">
         <div class="stat-card"><div class="stat-num" id="stat-pts">0</div><div class="stat-lbl">Seus pontos</div></div>
         <div class="stat-card"><div class="stat-num" style="color:var(--gold);" id="stat-pos">—</div><div class="stat-lbl">Posição geral</div></div>
@@ -1163,8 +1176,87 @@ function myStats(){
 }
 
 // ── HOME ──
+function renderTodayGames(){
+  const section = document.getElementById('today-section');
+  const list = document.getElementById('today-list');
+  const badge = document.getElementById('today-pending-badge');
+  if(!section || !list) return;
+
+  const hoje = new Date();
+  const sameDay = (k) => {
+    if(!k) return false;
+    const d = new Date(k);
+    return d.getFullYear()===hoje.getFullYear() && d.getMonth()===hoje.getMonth() && d.getDate()===hoje.getDate();
+  };
+
+  const jogosHoje = matches.filter(m => sameDay(m.kickoff)).sort((a,b)=>(a.kickoff||0)-(b.kickoff||0));
+
+  if(!jogosHoje.length){
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+
+  const bets = myBets();
+  let pendentes = 0;
+
+  list.innerHTML = jogosHoje.map(m => {
+    const bet = bets[m.id];
+    const closed = isBettingClosed(m);
+    const podeApostar = m.status==='upcoming' && !closed;
+    if(podeApostar && !bet) pendentes++;
+
+    let statusLinha, borderColor, opacity='1';
+    if(bet){
+      statusLinha = `<span style="font-size:12px;color:var(--green);font-weight:600;">Sua aposta: ${bet.h}×${bet.a} ✓</span>`;
+      borderColor = 'var(--green)';
+    } else if(podeApostar){
+      statusLinha = `<span style="font-size:12px;color:#58a6ff;font-weight:600;">Toque para apostar</span>`;
+      borderColor = 'var(--green)';
+    } else if(m.status==='live'){
+      statusLinha = `<span style="font-size:11px;color:var(--red);font-weight:600;">🔴 Ao vivo</span>`;
+      borderColor = 'var(--red)';
+    } else if(m.status==='done'){
+      const sc = m.score ? `${m.score.h}×${m.score.a}` : '';
+      statusLinha = `<span style="font-size:11px;color:var(--muted);font-weight:600;">Encerrado ${sc}</span>`;
+      borderColor = '#3a5070'; opacity='.7';
+    } else {
+      statusLinha = `<span style="font-size:11px;color:#ff8c00;font-weight:600;">🔒 Apostas encerradas</span>`;
+      borderColor = '#ff8c00'; opacity='.75';
+    }
+
+    const hora = (m.date||'').split('·').pop().trim();
+
+    return `<div onclick="openBet(${m.id})" style="background:var(--bg3);border-left:3px solid ${borderColor};border-radius:0 8px 8px 0;padding:11px 13px;margin-bottom:8px;cursor:pointer;opacity:${opacity};">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+          <span>${m.hFlag}</span><span style="font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.home}</span>
+        </div>
+        <span style="font-size:13px;color:var(--muted);padding:0 8px;">×</span>
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;justify-content:flex-end;">
+          <span style="font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.away}</span><span>${m.aFlag}</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:7px;">
+        <span style="font-size:11px;color:var(--muted);">🕐 ${hora}</span>
+        ${statusLinha}
+      </div>
+    </div>`;
+  }).join('');
+
+  if(badge){
+    if(pendentes > 0){
+      badge.textContent = pendentes + (pendentes===1 ? ' sem palpite' : ' sem palpite');
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+}
+
 function updateHome(){
   try {
+    renderTodayGames();
     const{pts,hits,betCount}=myStats();
     const el=id=>document.getElementById(id);
     if(el('stat-pts'))  el('stat-pts').textContent=pts;
