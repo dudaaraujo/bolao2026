@@ -1332,8 +1332,12 @@ function goScreen(name){
 }
 
 function updateCountdown(){
-  const start = new Date('2026-06-11T20:00:00Z');
-  const end   = new Date('2026-07-19T23:59:59Z'); // final ~19 jul
+  // Início = primeiro jogo real da planilha (fallback para 11/jun se vazio)
+  const kickoffs = matches.map(m=>m.kickoff).filter(k=>k && !isNaN(k));
+  const firstKick = kickoffs.length ? Math.min(...kickoffs) : new Date('2026-06-11T19:00:00Z').getTime();
+  const lastKick  = kickoffs.length ? Math.max(...kickoffs) : new Date('2026-07-19T23:00:00Z').getTime();
+  const start = new Date(firstKick);
+  const end   = new Date(lastKick + 3*60*60*1000); // 3h após o último jogo
   const now   = new Date();
   const days  = el => document.getElementById('countdown-days');
   const set = (id,txt) => { const e=document.getElementById(id); if(e)e.textContent=txt; };
@@ -1349,9 +1353,10 @@ function updateCountdown(){
       set('hero-unit','DIAS');
       set('hero-sub','para o início');
     } else if (totalHoras >= 1) {
-      // Menos de 1 dia → mostra horas
-      set('countdown-days', Math.floor(totalHoras));
-      set('hero-unit', Math.floor(totalHoras) === 1 ? 'HORA' : 'HORAS');
+      // Entre 1h e 24h → mostra horas
+      const h = Math.floor(totalHoras);
+      set('countdown-days', h);
+      set('hero-unit', h === 1 ? 'HORA' : 'HORAS');
       set('hero-sub','para o início');
     } else {
       // Menos de 1 hora → mostra minutos
@@ -1360,7 +1365,10 @@ function updateCountdown(){
       set('hero-unit', mins === 1 ? 'MINUTO' : 'MINUTOS');
       set('hero-sub','para o início ⚡');
     }
-    set('hero-date','🗓 11 de Junho de 2026 · EUA / CAN / MEX');
+    const fk = new Date(firstKick);
+    const meses=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    const hh=String(fk.getHours()).padStart(2,'0'), mm=String(fk.getMinutes()).padStart(2,'0');
+    set('hero-date',`🗓 ${fk.getDate()} de ${meses[fk.getMonth()]} · ${hh}h${mm!=='00'?mm:''} (seu horário)`);
   } else if (now <= end) {
     // DURANTE — dia atual da Copa
     const diaCopa = Math.floor((now-start)/864e5) + 1;
