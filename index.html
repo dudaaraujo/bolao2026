@@ -1366,8 +1366,12 @@ async function confirmBet(){
 
 function removeBet(){
   if(!currentMatch)return;
-  const bets=myBets();delete bets[currentMatch.id];saveBets(bets);
+  const jid=currentMatch.id;
+  const bets=myBets();delete bets[jid];saveBets(bets);
   closeBetModal();showToast('🗑 Aposta removida');renderMatches();updateHome();
+  // Remove do servidor em background
+  api({action:'deleteAposta',usuario:userEmail||userName,grupo:'GERAL',jogo_id:jid})
+    .catch(()=>{});
 }
 
 // ── RANKING ──
