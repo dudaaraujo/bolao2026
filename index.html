@@ -1349,9 +1349,9 @@ function openBet(id){
   currentMatch=m;
   const bets=myBets(),saved=bets[id];
   scoreH=saved?saved.h:0;scoreA=saved?saved.a:0;
-  document.getElementById('modal-flag1').textContent=m.hFlag;
+  document.getElementById('modal-flag1').innerHTML=m.hFlag;
   document.getElementById('modal-team1').textContent=m.home;
-  document.getElementById('modal-flag2').textContent=m.aFlag;
+  document.getElementById('modal-flag2').innerHTML=m.aFlag;
   document.getElementById('modal-team2').textContent=m.away;
   document.getElementById('score-h').textContent=scoreH;
   document.getElementById('score-a').textContent=scoreA;
