@@ -244,6 +244,17 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .team-flag .flag-img{width:24px;height:16px;}
 .bet-flag .flag-img{width:48px;height:32px;border-radius:4px;}
 .nm-flag .flag-img{width:40px;height:27px;border-radius:3px;}
+
+/* ── PALPITE DE CAMPEÃO ── */
+.champ-slot{position:relative;margin-bottom:12px;}
+.champ-rank{display:inline-block;font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;margin-bottom:6px;letter-spacing:.03em;}
+.champ-input{width:100%;padding:11px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;}
+.champ-input:focus{outline:none;border-color:var(--green);}
+.champ-suggest{position:absolute;left:0;right:0;top:100%;z-index:10;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-top:4px;max-height:180px;overflow-y:auto;display:none;}
+.champ-suggest.show{display:block;}
+.champ-sug-item{padding:10px 14px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(122,144,184,.08);}
+.champ-sug-item:hover{background:var(--green-glow);}
+.champ-sug-item:last-child{border-bottom:none;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-app-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-auth-compat.js"></script>
@@ -310,6 +321,20 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
           <span id="today-pending-badge" style="display:none;font-size:10px;background:rgba(255,140,0,.15);color:#ff8c00;padding:3px 9px;border-radius:10px;font-weight:600;"></span>
         </div>
         <div id="today-list"></div>
+      </div>
+
+      <!-- PALPITE DE CAMPEÃO -->
+      <div id="champ-card" onclick="openChampModal()" style="background:linear-gradient(135deg,rgba(255,214,0,.08),rgba(0,200,83,.06));border:1px solid rgba(255,214,0,.25);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;cursor:pointer;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:18px;">🏆</span>
+            <span style="font-size:14px;font-weight:600;color:var(--text);">Palpite de Campeão</span>
+          </div>
+          <span id="champ-edit-hint" style="font-size:11px;color:var(--gold);">Tocar para palpitar →</span>
+        </div>
+        <div id="champ-podium" style="margin-top:10px;font-size:13px;color:var(--muted);">
+          Quem leva a taça? Escolha seu pódio e ganhe pontos bônus.
+        </div>
       </div>
 
       <div class="stats-row">
@@ -548,10 +573,52 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   </div>
 </div>
 
+<div class="modal-backdrop" id="champ-modal" style="display:none;" onclick="if(event.target===this)closeChampModal()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🏆 Palpite de Campeão</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Escolha 3 seleções por ordem de aposta. Pontue conforme quem for campeã:</div>
+
+    <div id="champ-slots">
+      <div class="champ-slot" data-slot="1">
+        <div class="champ-rank" style="background:rgba(255,214,0,.15);color:var(--gold);">1º · 10pts</div>
+        <input type="text" class="champ-input" id="champ-in-1" placeholder="Digite a seleção..." oninput="champSuggest(1)" autocomplete="off">
+        <div class="champ-suggest" id="champ-sug-1"></div>
+      </div>
+      <div class="champ-slot" data-slot="2">
+        <div class="champ-rank" style="background:rgba(122,144,184,.15);color:#b8c4d8;">2º · 7pts</div>
+        <input type="text" class="champ-input" id="champ-in-2" placeholder="Digite a seleção..." oninput="champSuggest(2)" autocomplete="off">
+        <div class="champ-suggest" id="champ-sug-2"></div>
+      </div>
+      <div class="champ-slot" data-slot="3">
+        <div class="champ-rank" style="background:rgba(205,127,50,.15);color:#cd7f32;">3º · 4pts</div>
+        <input type="text" class="champ-input" id="champ-in-3" placeholder="Digite a seleção..." oninput="champSuggest(3)" autocomplete="off">
+        <div class="champ-suggest" id="champ-sug-3"></div>
+      </div>
+    </div>
+
+    <button class="btn btn-green" onclick="saveChamp()" style="margin-top:16px;">Salvar palpite ✓</button>
+    <button class="btn btn-outline" onclick="closeChampModal()" style="margin-top:8px;border:none;color:var(--muted);">Cancelar</button>
+  </div>
+</div>
+
 <script>
 // ════════════════════════════════════════════════════
 // ▼▼▼  URL DO APPS SCRIPT  ▼▼▼
 const API_URL = 'https://script.google.com/macros/s/AKfycbxMV9a5WPgNDjIGeiz6lKvTFTGJSmc5rti9TXafxzK6z7z3qnzyYvDo8jO0L8RCnMcktg/exec';
+
+// ── CAMPEÃO DA COPA — preencha quando a Copa terminar para pontuar o pódio ──
+// Ex: const CAMPEAO_COPA = 'Brasil';
+const CAMPEAO_COPA = '';  // deixe vazio até o fim da Copa
+function champBonus(champPalpite){
+  if(!CAMPEAO_COPA || !champPalpite) return 0;
+  const norm = s => String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const camp = norm(CAMPEAO_COPA);
+  if(norm(champPalpite.time1)===camp) return 10;
+  if(norm(champPalpite.time2)===camp) return 7;
+  if(norm(champPalpite.time3)===camp) return 4;
+  return 0;
+}
 
 // ── API (Google Apps Script via fetch) ──
 async function api(params) {
@@ -688,6 +755,7 @@ async function syncAll(manual=false) {
     setSyncStatus('ok','Atualizado '+now);
     renderMatches(); updateHome(); updateCountdown();
     syncMyBets();
+    syncMyChamp();
     if(document.getElementById('screen-tabela').classList.contains('active')) renderTabela();
     if (document.getElementById('screen-ranking').classList.contains('active')) renderRanking();
     if (manual) showToast('✅ Sincronizado!');
@@ -700,6 +768,45 @@ async function syncAll(manual=false) {
 
 function startAutoSync(){syncAll(false);clearInterval(syncTimer);syncTimer=setInterval(()=>syncAll(false),60000);clearInterval(window._cdTimer);window._cdTimer=setInterval(updateCountdown,60000);}
 
+// ── FUSO DE LISBOA ──────────────────────────────────
+// Converte um horário "de parede" de Lisboa para timestamp UTC (ms),
+// para que o bloqueio de apostas seja igual em qualquer fuso do usuário.
+function lisbonOffsetHours(year, month, day) {
+  // Horário de verão de Lisboa: último domingo de março até último domingo de outubro
+  const lastSunday = (y, m) => {
+    const d = new Date(Date.UTC(y, m+1, 0)); // último dia do mês
+    return d.getUTCDate() - d.getUTCDay();   // recua até domingo
+  };
+  const dstStart = lastSunday(year, 2);  // março (mês 2)
+  const dstEnd   = lastSunday(year, 9);  // outubro (mês 9)
+  const afterStart = (month > 2) || (month === 2 && day >= dstStart);
+  const beforeEnd  = (month < 9) || (month === 9 && day < dstEnd);
+  return (afterStart && beforeEnd) ? 1 : 0; // +1 no verão, +0 no inverno
+}
+
+function lisbonToUTC(year, month, day, hour, minute) {
+  const off = lisbonOffsetHours(year, month, day);
+  // hora de Lisboa = UTC + off  →  UTC = hora de Lisboa - off
+  return Date.UTC(year, month, day, hour - off, minute, 0, 0);
+}
+
+// Formata data/hora no FUSO LOCAL do usuário a partir do timestamp do jogo
+function fmtLocalDate(kickoff, fallbackData, fallbackHora) {
+  if (!kickoff) return `${fallbackData} · ${(fallbackHora||'').trim()}`;
+  try {
+    const d = new Date(kickoff);
+    const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    const dia = d.getDate();
+    const mes = meses[d.getMonth()];
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+    const horaStr = mm === '00' ? `${hh}h` : `${hh}h${mm}`;
+    return `${dia} ${mes} · ${horaStr}`;
+  } catch(e) {
+    return `${fallbackData} · ${(fallbackHora||'').trim()}`;
+  }
+}
+
 function rowToMatch(row) {
   const gh=parseInt(row.gol_casa),ga=parseInt(row.gol_visit);
   const sheetStatus=(row.status||'upcoming').toLowerCase().trim();
@@ -711,17 +818,19 @@ function rowToMatch(row) {
     const m2=raw.match(/([a-zA-Záéíóú.]+)\s+(\d{1,2})/);
     if(m2){const mn=m2[1].replace('.','').toLowerCase();const mp={'jan':'Jan','fev':'Fev','mar':'Mar','abr':'Abr','mai':'Mai','jun':'Jun','jul':'Jul','ago':'Ago','set':'Set','out':'Out','nov':'Nov','dez':'Dez'};data=(mp[mn]||m2[1])+' '+m2[2];}
   }
-  // Calcula timestamp do início do jogo
+  // Calcula timestamp do início do jogo — SEMPRE no fuso de Lisboa,
+  // independente de onde o usuário esteja (Brasil, EUA, etc.)
   let kickoff = null;
   try {
     const d = new Date(raw);
     if (!isNaN(d.getTime())) {
       const hora = String(row.hora||'').trim();
       const hm = hora.match(/(\d{1,2})[h:]?(\d{2})?/);
-      if (hm) {
-        d.setHours(parseInt(hm[1])||0, parseInt(hm[2])||0, 0, 0);
-      }
-      kickoff = d.getTime();
+      const hh = hm ? (parseInt(hm[1])||0) : 0;
+      const mm = hm ? (parseInt(hm[2])||0) : 0;
+      // Componentes da data (ano/mês/dia) lidos da string
+      const yr = d.getFullYear(), mo = d.getMonth(), dy = d.getDate();
+      kickoff = lisbonToUTC(yr, mo, dy, hh, mm);
     }
   } catch(e) {}
 
@@ -740,7 +849,7 @@ function rowToMatch(row) {
     id:parseInt(row.id)||0,
     home:row.time_casa||'—',hFlag:getFlag(row.time_casa),
     away:row.time_visit||'—',aFlag:getFlag(row.time_visit),
-    round:row.fase||'',date:`${data} · ${(row.hora||'').trim()}`,
+    round:row.fase||'',date:fmtLocalDate(kickoff, data, row.hora),
     status,score:hasScore?{h:gh,a:ga}:null,
     kickoff,
   };
@@ -798,6 +907,126 @@ async function syncMyBets() {
       updateHome();
     }
   } catch(e) {}
+}
+
+// ── PALPITE DE CAMPEÃO ──────────────────────────────
+let myChamp = null; // {time1, time2, time3}
+
+// Lista de seleções disponíveis (vem dos jogos + lista padrão)
+function getTeamList(){
+  const fromMatches = new Set();
+  matches.forEach(m => {
+    if(m.home && m.home!=='—') fromMatches.add(m.home);
+    if(m.away && m.away!=='—') fromMatches.add(m.away);
+  });
+  return Array.from(fromMatches).sort((a,b)=>a.localeCompare(b));
+}
+
+// Mata-mata começa? (trava edição) — detecta fase não-grupo já em andamento
+function champLocked(){
+  // Trava quando algum jogo de mata-mata (fase sem "grupo") já começou
+  return matches.some(m => {
+    const f=(m.round||'').toLowerCase();
+    const isMata = f && !f.includes('grupo');
+    return isMata && (m.status==='live' || m.status==='done');
+  });
+}
+
+function openChampModal(){
+  if(champLocked()){
+    showToast('🔒 Palpite encerrado — o mata-mata já começou');
+    return;
+  }
+  // Preenche com palpite atual
+  for(let i=1;i<=3;i++){
+    const inp = document.getElementById('champ-in-'+i);
+    if(inp) inp.value = myChamp ? (myChamp['time'+i]||'') : '';
+    const sug = document.getElementById('champ-sug-'+i);
+    if(sug){ sug.classList.remove('show'); sug.innerHTML=''; }
+  }
+  document.getElementById('champ-modal').style.display='flex';
+}
+
+function closeChampModal(){
+  document.getElementById('champ-modal').style.display='none';
+}
+
+function champSuggest(slot){
+  const inp = document.getElementById('champ-in-'+slot);
+  const box = document.getElementById('champ-sug-'+slot);
+  if(!inp || !box) return;
+  const q = inp.value.trim().toLowerCase();
+  if(!q){ box.classList.remove('show'); box.innerHTML=''; return; }
+  const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const matches_ = getTeamList().filter(t => norm(t).includes(norm(q))).slice(0,8);
+  if(!matches_.length){ box.classList.remove('show'); box.innerHTML=''; return; }
+  box.innerHTML = matches_.map(t =>
+    `<div class="champ-sug-item" onclick="champPick(${slot}, '${t.replace(/'/g,"\\'")}')">${getFlag(t)} ${t}</div>`
+  ).join('');
+  box.classList.add('show');
+}
+
+function champPick(slot, time){
+  const inp = document.getElementById('champ-in-'+slot);
+  const box = document.getElementById('champ-sug-'+slot);
+  if(inp) inp.value = time;
+  if(box){ box.classList.remove('show'); box.innerHTML=''; }
+}
+
+function saveChamp(){
+  const t1 = document.getElementById('champ-in-1').value.trim();
+  const t2 = document.getElementById('champ-in-2').value.trim();
+  const t3 = document.getElementById('champ-in-3').value.trim();
+  if(!t1 || !t2 || !t3){ showToast('Escolha as 3 seleções'); return; }
+  if(t1===t2 || t1===t3 || t2===t3){ showToast('Escolha 3 seleções diferentes'); return; }
+
+  myChamp = {time1:t1, time2:t2, time3:t3};
+  S.set('my_champ', myChamp);
+  renderChampCard();
+  closeChampModal();
+  showToast('🏆 Palpite de campeão salvo!');
+
+  api({action:'saveCampeao', usuario:userEmail||userName, display_name:userName, time1:t1, time2:t2, time3:t3}).catch(()=>{});
+}
+
+function renderChampCard(){
+  const podium = document.getElementById('champ-podium');
+  const hint = document.getElementById('champ-edit-hint');
+  if(!podium) return;
+  myChamp = myChamp || S.get('my_champ', null);
+  const locked = champLocked();
+
+  if(myChamp && myChamp.time1){
+    const medals = ['🥇','🥈','🥉'];
+    podium.innerHTML = [myChamp.time1, myChamp.time2, myChamp.time3].map((t,i) =>
+      `<div style="display:flex;align-items:center;gap:7px;margin-top:${i?6:0}px;">
+        <span style="font-size:14px;">${medals[i]}</span>
+        <span>${getFlag(t)}</span>
+        <span style="font-size:13px;color:var(--text);">${t}</span>
+        <span style="font-size:11px;color:var(--muted);margin-left:auto;">${[10,7,4][i]}pts</span>
+      </div>`
+    ).join('');
+    if(hint) hint.textContent = locked ? '🔒 Encerrado' : 'Editar →';
+  } else {
+    podium.innerHTML = 'Quem leva a taça? Escolha seu pódio e ganhe pontos bônus.';
+    if(hint) hint.textContent = locked ? '🔒 Encerrado' : 'Tocar para palpitar →';
+  }
+}
+
+// Busca palpite do servidor ao sincronizar
+async function syncMyChamp(){
+  if(!userEmail) return;
+  try {
+    const r = await api({action:'getCampeoes'});
+    if(!r.ok || !r.campeoes) return;
+    const emailLow = (userEmail||'').toLowerCase();
+    const mine = r.campeoes.find(x => (x.usuario||'').toLowerCase() === emailLow);
+    if(mine && mine.time1){
+      myChamp = {time1:mine.time1, time2:mine.time2, time3:mine.time3};
+      S.set('my_champ', myChamp);
+      renderChampCard();
+    }
+  } catch(e){}
 }
 
 // ── AUTH ──
@@ -1172,6 +1401,7 @@ function calcPoints(bet,result){
 function myStats(){
   const bets=myBets();let pts=0,hits=0,exact=0,betCount=Object.keys(bets).length;
   matches.forEach(m=>{const p=calcPoints(bets[m.id],m.score);if(p!==null){pts+=p;if(p>0)hits++;if(p===3)exact++;}});
+  pts += champBonus(myChamp || S.get('my_champ', null));
   return{pts,hits,exact,betCount};
 }
 
@@ -1257,6 +1487,7 @@ function renderTodayGames(){
 function updateHome(){
   try {
     renderTodayGames();
+    renderChampCard();
     const{pts,hits,betCount}=myStats();
     const el=id=>document.getElementById(id);
     if(el('stat-pts'))  el('stat-pts').textContent=pts;
