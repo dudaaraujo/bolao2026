@@ -739,27 +739,46 @@ async function syncMyBets() {
     if(!r.ok || !r.apostas) return;
     const emailLow = userEmail.toLowerCase();
     const local = myBets();
-    let changed = false;
+
+    // Monta o conjunto de apostas que o servidor conhece para este usuário
+    const server = {};
     r.apostas.forEach(a => {
-      const dono = (a.usuario||'').toLowerCase();
-      if(dono !== emailLow) return;
+      if((a.usuario||'').toLowerCase() !== emailLow) return;
       const jid = parseInt(a.jogo_id);
       const gh = parseInt(a.gol_casa), ga = parseInt(a.gol_visit);
       if(isNaN(jid) || isNaN(gh) || isNaN(ga)) return;
-      // Usa o timestamp do servidor pra decidir qual é mais recente
-      const serverTs = a.atualizado_em || a.criado_em || '';
-      const localBet = local[jid];
-      if(!localBet) {
-        local[jid] = {h:gh, a:ga, ts:serverTs};
-        changed = true;
-      } else if(serverTs && localBet.ts && serverTs > localBet.ts) {
-        // servidor mais recente
-        local[jid] = {h:gh, a:ga, ts:serverTs};
-        changed = true;
+      server[jid] = {h:gh, a:ga, ts:(a.atualizado_em || a.criado_em || '')};
+    });
+
+    // Janela de proteção: apostas locais feitas nos últimos 2 min podem ainda
+    // não ter chegado ao servidor — não apagamos essas.
+    const PROTECT_MS = 2*60*1000;
+    const agora = Date.now();
+    const merged = {};
+    let changed = false;
+
+    // 1) Tudo que o servidor tem entra (fonte da verdade)
+    Object.keys(server).forEach(jid => {
+      merged[jid] = server[jid];
+      const lb = local[jid];
+      if(!lb || lb.h!==server[jid].h || lb.a!==server[jid].a) changed = true;
+    });
+
+    // 2) Apostas locais que NÃO estão no servidor:
+    //    mantém só se forem muito recentes (ainda subindo), senão remove
+    Object.keys(local).forEach(jid => {
+      if(merged[jid]) return; // já veio do servidor
+      const lb = local[jid];
+      const ts = lb.ts ? new Date(lb.ts).getTime() : 0;
+      if(ts && (agora - ts) < PROTECT_MS) {
+        merged[jid] = lb; // recém-feita, protege
+      } else {
+        changed = true; // foi removida no servidor → some daqui também
       }
     });
+
     if(changed) {
-      saveBets(local);
+      saveBets(merged);
       renderMatches();
       updateHome();
     }
