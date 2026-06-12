@@ -1413,7 +1413,7 @@ function updateCountdown(){
     const totalDias = Math.floor((diaFim - diaInicio)/864e5) + 1;
     set('hero-label','🔥 Copa em andamento');
     set('countdown-days', diaCopa);
-    set('hero-unit','DIA');
+    set('hero-unit', diaCopa === 1 ? 'DIA' : 'DIAS');
     set('hero-sub','de ' + totalDias + ' da Copa');
     // próximo jogo data/hora
     const bets = (typeof myBets==='function')?myBets():{};
@@ -1498,12 +1498,12 @@ function renderTodayGames(){
     const placar = m.score ? `${m.score.h}×${m.score.a}` : '';
 
     if(m.status==='done'){
-      // FINALIZADO — só o placar + seu palpite
-      statusLinha = `<span style="font-size:12px;color:var(--text);font-weight:700;">🏁 Final: ${placar}</span>${betTxt}`;
+      // FINALIZADO — placar já está em cima, aqui só "Finalizado" + palpite
+      statusLinha = `<span style="font-size:11px;color:var(--muted);font-weight:600;">🏁 Finalizado</span>${betTxt}`;
       borderColor = '#3a5070'; opacity='.85';
     } else if(m.status==='live'){
-      // AO VIVO — placar parcial + seu palpite
-      statusLinha = `<span style="font-size:12px;color:var(--red);font-weight:700;">🔴 ${placar||'0×0'} ao vivo</span>${betTxt}`;
+      // AO VIVO — placar já está em cima, aqui só "Ao vivo" + palpite
+      statusLinha = `<span style="font-size:11px;color:var(--red);font-weight:600;">🔴 Ao vivo</span>${betTxt}`;
       borderColor = 'var(--red)';
     } else if(bet){
       statusLinha = `<span style="font-size:12px;color:var(--green);font-weight:600;">Sua aposta: ${bet.h}×${bet.a} ✓</span>`;
@@ -1523,7 +1523,7 @@ function renderTodayGames(){
         <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
           <span>${m.hFlag}</span><span style="font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.home}</span>
         </div>
-        <span style="font-size:13px;color:var(--muted);padding:0 8px;">×</span>
+        <span style="font-size:${placar?'15px':'13px'};color:${placar?'var(--text)':'var(--muted)'};font-weight:${placar?'700':'400'};padding:0 10px;white-space:nowrap;">${placar||'×'}</span>
         <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;justify-content:flex-end;">
           <span style="font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.away}</span><span>${m.aFlag}</span>
         </div>
