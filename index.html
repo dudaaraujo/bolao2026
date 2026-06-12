@@ -867,16 +867,17 @@ function rowToMatch(row) {
   const visitP=row.gol_visit!==''&&row.gol_visit!==undefined&&row.gol_visit!==null;
   const hasScore=casaP&&visitP&&!isNaN(gh)&&!isNaN(ga);
 
-  // Status automático: planilha tem prioridade quando marca done.
-  // Se há placar e o jogo já começou, considera FINALIZADO.
-  const GAME_DURATION_MS = 2*60*60*1000; // 2 horas
+  // Status automático:
+  // - Placar preenchido na planilha → FINALIZADO (independe da hora)
+  // - Jogo começou mas sem placar → ao vivo
+  // - Antes do horário → não iniciado
   let status = sheetStatus;
-  if (sheetStatus !== 'done' && kickoff) {
-    const now = Date.now();
-    const comecou = now >= kickoff;
-    if (!comecou) status = 'upcoming';
-    else if (hasScore && now >= kickoff + GAME_DURATION_MS) status = 'done';
-    else status = 'live';  // começou: ao vivo (com ou sem placar parcial)
+  if (sheetStatus !== 'done') {
+    if (hasScore) {
+      status = 'done';  // tem placar = jogo acabou
+    } else if (kickoff) {
+      status = (Date.now() >= kickoff) ? 'live' : 'upcoming';
+    }
   }
 
   return {
@@ -1452,6 +1453,16 @@ function myStats(){
 }
 
 // ── HOME ──
+function acertoLabel(bet, score){
+  if(!bet || !score) return '';
+  const p = calcPoints(bet, score);
+  if(p===null) return '';
+  if(p===3) return ' <span style="color:var(--gold);font-size:11px;font-weight:700;">★ +3</span>';
+  if(p===2) return ' <span style="color:var(--green);font-size:11px;font-weight:700;">+2</span>';
+  if(p===1) return ' <span style="color:var(--green);font-size:11px;font-weight:700;">+1</span>';
+  return ' <span style="color:var(--red);font-size:11px;font-weight:700;">+0</span>';
+}
+
 function renderTodayGames(){
   const section = document.getElementById('today-section');
   const list = document.getElementById('today-list');
@@ -1483,19 +1494,23 @@ function renderTodayGames(){
     if(podeApostar && !bet) pendentes++;
 
     let statusLinha, borderColor, opacity='1';
-    if(bet){
+    const betTxt = bet ? `<span style="color:var(--muted);font-weight:400;"> · seu palpite ${bet.h}×${bet.a}</span>` : '';
+    const placar = m.score ? `${m.score.h}×${m.score.a}` : '';
+
+    if(m.status==='done'){
+      // FINALIZADO — só o placar + seu palpite
+      statusLinha = `<span style="font-size:12px;color:var(--text);font-weight:700;">🏁 Final: ${placar}</span>${betTxt}`;
+      borderColor = '#3a5070'; opacity='.85';
+    } else if(m.status==='live'){
+      // AO VIVO — placar parcial + seu palpite
+      statusLinha = `<span style="font-size:12px;color:var(--red);font-weight:700;">🔴 ${placar||'0×0'} ao vivo</span>${betTxt}`;
+      borderColor = 'var(--red)';
+    } else if(bet){
       statusLinha = `<span style="font-size:12px;color:var(--green);font-weight:600;">Sua aposta: ${bet.h}×${bet.a} ✓</span>`;
       borderColor = 'var(--green)';
     } else if(podeApostar){
       statusLinha = `<span style="font-size:12px;color:#58a6ff;font-weight:600;">Toque para apostar</span>`;
       borderColor = 'var(--green)';
-    } else if(m.status==='live'){
-      statusLinha = `<span style="font-size:11px;color:var(--red);font-weight:600;">🔴 Ao vivo</span>`;
-      borderColor = 'var(--red)';
-    } else if(m.status==='done'){
-      const sc = m.score ? `${m.score.h}×${m.score.a}` : '';
-      statusLinha = `<span style="font-size:11px;color:var(--muted);font-weight:600;">Encerrado ${sc}</span>`;
-      borderColor = '#3a5070'; opacity='.7';
     } else {
       statusLinha = `<span style="font-size:11px;color:#ff8c00;font-weight:600;">🔒 Apostas encerradas</span>`;
       borderColor = '#ff8c00'; opacity='.75';
