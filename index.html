@@ -862,18 +862,22 @@ function rowToMatch(row) {
     }
   } catch(e) {}
 
-  // Status automático pelo horário (a planilha tem prioridade quando marca done/live)
+  // Placar preenchido?
+  const casaP=row.gol_casa!==''&&row.gol_casa!==undefined&&row.gol_casa!==null;
+  const visitP=row.gol_visit!==''&&row.gol_visit!==undefined&&row.gol_visit!==null;
+  const hasScore=casaP&&visitP&&!isNaN(gh)&&!isNaN(ga);
+
+  // Status automático: planilha tem prioridade quando marca done.
+  // Se há placar e o jogo já começou, considera FINALIZADO.
   const GAME_DURATION_MS = 2*60*60*1000; // 2 horas
   let status = sheetStatus;
   if (sheetStatus !== 'done' && kickoff) {
     const now = Date.now();
-    if (now >= kickoff && now < kickoff + GAME_DURATION_MS) status = 'live';
-    else if (now >= kickoff + GAME_DURATION_MS) status = 'done';
-    else status = 'upcoming';
+    const comecou = now >= kickoff;
+    if (!comecou) status = 'upcoming';
+    else if (hasScore && now >= kickoff + GAME_DURATION_MS) status = 'done';
+    else status = 'live';  // começou: ao vivo (com ou sem placar parcial)
   }
-  const casaP=row.gol_casa!==''&&row.gol_casa!==undefined&&row.gol_casa!==null;
-  const visitP=row.gol_visit!==''&&row.gol_visit!==undefined&&row.gol_visit!==null;
-  const hasScore=casaP&&visitP&&!isNaN(gh)&&!isNaN(ga);
 
   return {
     id:parseInt(row.id)||0,
@@ -1400,12 +1404,16 @@ function updateCountdown(){
     const hh=String(fk.getHours()).padStart(2,'0'), mm=String(fk.getMinutes()).padStart(2,'0');
     set('hero-date',`🗓 ${fk.getDate()} de ${meses[fk.getMonth()]} · ${hh}h${mm!=='00'?mm:''} (seu horário)`);
   } else if (now <= end) {
-    // DURANTE — dia atual da Copa
-    const diaCopa = Math.floor((now-start)/864e5) + 1;
+    // DURANTE — dia atual da Copa (conta DIAS DE CALENDÁRIO, vira à meia-noite)
+    const diaInicio = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const diaFim    = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    const hoje      = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diaCopa   = Math.floor((hoje - diaInicio)/864e5) + 1;
+    const totalDias = Math.floor((diaFim - diaInicio)/864e5) + 1;
     set('hero-label','🔥 Copa em andamento');
     set('countdown-days', diaCopa);
     set('hero-unit','DIA');
-    set('hero-sub','de Copa');
+    set('hero-sub','de ' + totalDias + ' da Copa');
     // próximo jogo data/hora
     const bets = (typeof myBets==='function')?myBets():{};
     const prox = matches.find(m => m.status==='upcoming');
