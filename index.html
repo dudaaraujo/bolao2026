@@ -1867,13 +1867,7 @@ function renderRanking(){
     </div>`;
   }).join('');
 
-  // Minha posição destacada se fora da tela
-  const myPos=all.findIndex(r=>(r.usuario||'').toLowerCase()===(userName||'').toLowerCase());
-  const rankLabel=document.getElementById('rank-label');
-  if(rankLabel){
-    const label=rankTab==='geral'?'RANKING GERAL':'PLACAR DO GRUPO';
-    rankLabel.textContent=label+(myPos>=0?' — Você: '+(myPos+1)+'º':'');
-  }
+
 
   // ── BADGES com regras corretas ──
   const totalDone=matches.filter(m=>m.status==='done').length;
@@ -1903,13 +1897,20 @@ function renderRanking(){
   const badgeVidente=document.getElementById('badge-vidente');
   if(badgeVidente) badgeVidente.className='badge-item'+(acPct>=70&&totalDone>=3?' earned':'');
 
-  // Atualiza resumo do usuário
-  const myRankPos=all.findIndex(r=>(r.usuario||'').toLowerCase()===(userName||'').toLowerCase());
+  // Atualiza resumo do usuário — compara por email OU nome
+  const emailLow=(userEmail||'').toLowerCase();
+  const nameLow=(userName||'').toLowerCase();
+  const myRankPos=all.findIndex(r=>{
+    const u=(r.usuario||'').toLowerCase();
+    return u===emailLow || u===nameLow;
+  });
+  // Usa os dados reais da linha do ranking (não os locais, que podem divergir)
+  const myRow = myRankPos>=0 ? all[myRankPos] : null;
   const el=id=>document.getElementById(id);
-  if(el('rs-pts'))  el('rs-pts').textContent=pts;
-  if(el('rs-pos'))  el('rs-pos').textContent=myRankPos>=0?(myRankPos+1)+'º':'—';
-  if(el('rs-exact'))el('rs-exact').textContent=exact;
-  if(el('rs-hits')) el('rs-hits').textContent=hits;
+  if(el('rs-pts'))  el('rs-pts').textContent = myRow ? (myRow.pts||0) : pts;
+  if(el('rs-pos'))  el('rs-pos').textContent = myRankPos>=0 ? (myRankPos+1)+'º' : '—';
+  if(el('rs-exact'))el('rs-exact').textContent = myRow ? (myRow.exatos||0) : exact;
+  if(el('rs-hits')) el('rs-hits').textContent = myRow ? (myRow.acertos||0) : hits;
 }
 
 // ── GRUPO ──
