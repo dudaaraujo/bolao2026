@@ -302,21 +302,28 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   <div id="main">
     <!-- HOME -->
     <div id="screen-home" class="screen active">
-      <div class="home-hero">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:4px;" id="hero-label">Copa do Mundo FIFA</div>
-        <div style="display:flex;align-items:baseline;gap:8px;">
+      <div class="home-hero" style="text-align:center;">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px;" id="hero-label">Copa do Mundo FIFA</div>
+        <div style="display:flex;align-items:baseline;justify-content:center;gap:8px;margin-bottom:6px;">
           <div class="hero-days" id="countdown-days">—</div>
-          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--green);" id="hero-unit">DIAS</div><div style="font-size:11px;color:var(--muted);" id="hero-sub">para o início</div></div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--green);" id="hero-unit">DIAS</div>
         </div>
-        <div class="hero-date" id="hero-date">🗓 11 de Junho de 2026 · EUA / CAN / MEX</div>
+        <div id="hero-sub" style="font-size:15px;color:var(--text);margin-bottom:14px;">para o início</div>
+        <div id="hero-progress-wrap" style="display:none;">
+          <div style="background:var(--bg);border-radius:5px;height:8px;overflow:hidden;margin-bottom:6px;">
+            <div id="hero-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--green),var(--gold));border-radius:5px;transition:width .5s;"></div>
+          </div>
+          <div id="hero-progress-label" style="font-size:11px;color:var(--muted);"></div>
+        </div>
+        <div class="hero-date" id="hero-date" style="display:none;">🗓 11 de Junho de 2026 · EUA / CAN / MEX</div>
       </div>
 
       <!-- JOGOS DE HOJE -->
       <div id="today-section" style="display:none;margin-bottom:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
           <div style="display:flex;align-items:center;gap:7px;">
-            <span style="font-size:15px;">⚡</span>
-            <span style="font-size:15px;font-weight:600;color:var(--text);">Jogos de hoje</span>
+            <span style="font-size:15px;">⚽</span>
+            <span style="font-size:15px;font-weight:600;color:var(--text);">Próximos jogos</span>
           </div>
           <span id="today-pending-badge" style="display:none;font-size:10px;background:rgba(255,140,0,.15);color:#ff8c00;padding:3px 9px;border-radius:10px;font-weight:600;"></span>
         </div>
@@ -693,6 +700,9 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 
+// Mantém o login salvo mesmo fechando o app (inclusive na PWA da tela inicial)
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e => console.warn('persistence:', e));
+
 // ── STORAGE ──
 const S = {
   get:(k,d)=>{try{const v=localStorage.getItem('b26_'+k);return v!==null?JSON.parse(v):d;}catch{return d;}},
@@ -1065,10 +1075,26 @@ async function syncMyChamp(){
 }
 
 // ── AUTH ──
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
 function loginGoogle() {
-  auth.signInWithPopup(googleProvider).catch(e => {
-    showToast('⚠️ Erro ao entrar: ' + (e.message||e.code||'tente novamente'));
-  });
+  if (isStandalone()) {
+    // Em PWA (tela inicial), popup costuma ser bloqueado → usa redirect
+    auth.signInWithRedirect(googleProvider).catch(e => {
+      showToast('⚠️ Erro ao entrar: ' + (e.message||e.code||'tente novamente'));
+    });
+  } else {
+    auth.signInWithPopup(googleProvider).catch(e => {
+      // Se popup falhar, tenta redirect como fallback
+      if (e.code === 'auth/popup-blocked' || e.code === 'auth/cancelled-popup-request') {
+        auth.signInWithRedirect(googleProvider).catch(()=>{});
+      } else {
+        showToast('⚠️ Erro ao entrar: ' + (e.message||e.code||'tente novamente'));
+      }
+    });
+  }
 }
 
 function updateHeaderUser() {
@@ -1284,6 +1310,9 @@ function init() {
   const ob = document.getElementById('onboarding');
   ob.style.display = 'none'; // Firebase onAuthStateChanged vai controlar
 
+  // Processa retorno do login via redirect (PWA)
+  auth.getRedirectResult().catch(()=>{});
+
   // Escuta mudanças de autenticação
   auth.onAuthStateChanged(user => {
     if (user) {
@@ -1404,27 +1433,31 @@ function updateCountdown(){
     const meses=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
     const hh=String(fk.getHours()).padStart(2,'0'), mm=String(fk.getMinutes()).padStart(2,'0');
     set('hero-date',`🗓 ${fk.getDate()} de ${meses[fk.getMonth()]} · ${hh}h${mm!=='00'?mm:''} (seu horário)`);
+    const wrapA = document.getElementById('hero-progress-wrap'); if(wrapA) wrapA.style.display='none';
+    const hdA = document.getElementById('hero-date'); if(hdA) hdA.style.display='block';
   } else if (now <= end) {
     // DURANTE — dia atual da Copa (conta DIAS DE CALENDÁRIO, vira à meia-noite)
     const diaInicio = new Date(start.getFullYear(), start.getMonth(), start.getDate());
     const diaFim    = new Date(end.getFullYear(), end.getMonth(), end.getDate());
     const hoje      = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const diaCopa   = Math.floor((hoje - diaInicio)/864e5) + 1;
+    const diaCopa   = Math.max(1, Math.floor((hoje - diaInicio)/864e5) + 1);
     const totalDias = Math.floor((diaFim - diaInicio)/864e5) + 1;
     set('hero-label','🔥 Copa em andamento');
     set('countdown-days', diaCopa);
     set('hero-unit', diaCopa === 1 ? 'DIA' : 'DIAS');
-    set('hero-sub','de ' + totalDias + ' da Copa');
-    // próximo jogo data/hora
-    const bets = (typeof myBets==='function')?myBets():{};
-    const prox = matches.find(m => m.status==='upcoming');
-    if (prox) {
-      set('hero-date','⚽ Próximo: ' + prox.home + ' × ' + prox.away + ' · ' + prox.date);
-    } else if (matches.some(m=>m.status==='live')) {
-      set('hero-date','🔴 Tem jogo ao vivo agora!');
-    } else {
-      set('hero-date','🗓 Acompanhe os jogos na aba Jogos');
-    }
+    // Subtítulo com total destacado
+    const sub = document.getElementById('hero-sub');
+    if (sub) sub.innerHTML = 'de <span style="font-size:26px;font-weight:700;color:var(--gold);">' + totalDias + '</span> dias da Copa';
+    // Barra de progresso
+    const pct = Math.min(100, Math.round((diaCopa / totalDias) * 100));
+    const wrap = document.getElementById('hero-progress-wrap');
+    const bar  = document.getElementById('hero-progress-bar');
+    const lbl  = document.getElementById('hero-progress-label');
+    if (wrap) wrap.style.display = 'block';
+    if (bar) bar.style.width = pct + '%';
+    if (lbl) lbl.textContent = pct + '% da Copa concluída';
+    const hd = document.getElementById('hero-date');
+    if (hd) hd.style.display = 'none';
   } else {
     // DEPOIS — encerrada
     set('hero-label','Copa do Mundo FIFA');
@@ -1432,6 +1465,8 @@ function updateCountdown(){
     set('hero-unit','FIM');
     set('hero-sub','Copa encerrada');
     set('hero-date','Obrigado por participar!');
+    const wrapD = document.getElementById('hero-progress-wrap'); if(wrapD) wrapD.style.display='none';
+    const hdD = document.getElementById('hero-date'); if(hdD) hdD.style.display='block';
   }
 }
 
@@ -1469,14 +1504,11 @@ function renderTodayGames(){
   const badge = document.getElementById('today-pending-badge');
   if(!section || !list) return;
 
-  const hoje = new Date();
-  const sameDay = (k) => {
-    if(!k) return false;
-    const d = new Date(k);
-    return d.getFullYear()===hoje.getFullYear() && d.getMonth()===hoje.getMonth() && d.getDate()===hoje.getDate();
-  };
-
-  const jogosHoje = matches.filter(m => sameDay(m.kickoff)).sort((a,b)=>(a.kickoff||0)-(b.kickoff||0));
+  // Próximos 2 jogos que ainda não finalizaram (upcoming ou live), ordem cronológica
+  const jogosHoje = matches
+    .filter(m => m.status !== 'done' && m.kickoff)
+    .sort((a,b)=>(a.kickoff||0)-(b.kickoff||0))
+    .slice(0, 2);
 
   if(!jogosHoje.length){
     section.style.display = 'none';
@@ -1513,7 +1545,7 @@ function renderTodayGames(){
       borderColor = '#ff8c00'; opacity='.75';
     }
 
-    const hora = (m.date||'').split('·').pop().trim();
+    const hora = (m.date||'').trim();  // dia + hora completos
 
     return `<div onclick="openBet(${m.id})" style="background:var(--bg3);border-left:3px solid ${borderColor};border-radius:0 8px 8px 0;padding:11px 13px;margin-bottom:8px;cursor:pointer;opacity:${opacity};">
       <div style="display:flex;align-items:center;justify-content:space-between;">
