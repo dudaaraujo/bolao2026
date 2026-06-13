@@ -302,22 +302,27 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   <div id="main">
     <!-- HOME -->
     <div id="screen-home" class="screen active">
-      <div class="home-hero" style="text-align:center;">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px;" id="hero-label">Copa do Mundo FIFA</div>
-        <div style="display:flex;align-items:baseline;justify-content:center;gap:8px;margin-bottom:6px;">
-          <div class="hero-days" id="countdown-days">—</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--green);" id="hero-unit">DIAS</div>
-        </div>
-        <div id="hero-sub" style="font-size:15px;color:var(--text);margin-bottom:14px;">para o início</div>
-        <div id="hero-progress-wrap" style="display:none;">
-          <div style="background:var(--bg);border-radius:5px;height:8px;overflow:hidden;margin-bottom:6px;">
-            <div id="hero-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--green),var(--gold));border-radius:5px;transition:width .5s;"></div>
+      <div class="home-hero" style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:4px;" id="hero-label">Copa do Mundo FIFA</div>
+          <div style="display:flex;align-items:baseline;gap:8px;">
+            <div class="hero-days" id="countdown-days">—</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);" id="hero-unit">DIAS</div>
           </div>
-          <div id="hero-progress-label" style="font-size:11px;color:var(--muted);"></div>
+          <div id="hero-sub" style="font-size:13px;color:var(--muted);">para o início</div>
+          <div class="hero-date" id="hero-date" style="font-size:13px;color:var(--gold);margin-top:4px;">—</div>
         </div>
-        <div class="hero-date" id="hero-date" style="display:none;">🗓 11 de Junho de 2026 · EUA / CAN / MEX</div>
+        <div id="hero-stats" style="text-align:right;padding-left:16px;border-left:1px solid rgba(255,255,255,.1);display:none;">
+          <div style="margin-bottom:10px;">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--text);line-height:1;" id="hero-pts">0</div>
+            <div style="font-size:11px;color:var(--muted);">pontos</div>
+          </div>
+          <div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);line-height:1;" id="hero-pos">—</div>
+            <div style="font-size:11px;color:var(--muted);">posição</div>
+          </div>
+        </div>
       </div>
-
       <!-- JOGOS DE HOJE -->
       <div id="today-section" style="display:none;margin-bottom:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
@@ -344,21 +349,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         </div>
       </div>
 
-      <div class="stats-row">
-        <div class="stat-card"><div class="stat-num" id="stat-pts">0</div><div class="stat-lbl">Seus pontos</div></div>
-        <div class="stat-card"><div class="stat-num" style="color:var(--gold);" id="stat-pos">—</div><div class="stat-lbl">Posição geral</div></div>
-        <div class="stat-card"><div class="stat-num" id="stat-bets">0</div><div class="stat-lbl">Apostas feitas</div></div>
-        <div class="stat-card"><div class="stat-num" style="color:var(--green);" id="stat-hits">0</div><div class="stat-lbl">Acertos</div></div>
-      </div>
-      <div class="next-match" onclick="goToNextMatch()" style="cursor:pointer;">
-        <div class="nm-label">⚡ Próximo jogo sem aposta</div>
-        <div class="nm-teams">
-          <div class="nm-team"><span class="nm-flag" id="nm-f1">⚽</span><div class="nm-name" id="nm-n1">—</div></div>
-          <div class="nm-vs">VS</div>
-          <div class="nm-team"><span class="nm-flag" id="nm-f2">⚽</span><div class="nm-name" id="nm-n2">—</div></div>
-        </div>
-        <div class="nm-hint" id="nm-hint">Carregando...</div>
-      </div>
+
+      
     </div>
 
     <!-- JOGOS -->
@@ -1433,8 +1425,8 @@ function updateCountdown(){
     const meses=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
     const hh=String(fk.getHours()).padStart(2,'0'), mm=String(fk.getMinutes()).padStart(2,'0');
     set('hero-date',`🗓 ${fk.getDate()} de ${meses[fk.getMonth()]} · ${hh}h${mm!=='00'?mm:''} (seu horário)`);
-    const wrapA = document.getElementById('hero-progress-wrap'); if(wrapA) wrapA.style.display='none';
     const hdA = document.getElementById('hero-date'); if(hdA) hdA.style.display='block';
+    const hsA = document.getElementById('hero-stats'); if(hsA) hsA.style.display='none';
   } else if (now <= end) {
     // DURANTE — dia atual da Copa (conta DIAS DE CALENDÁRIO, vira à meia-noite)
     const diaInicio = new Date(start.getFullYear(), start.getMonth(), start.getDate());
@@ -1445,19 +1437,11 @@ function updateCountdown(){
     set('hero-label','🔥 Copa em andamento');
     set('countdown-days', diaCopa);
     set('hero-unit', diaCopa === 1 ? 'DIA' : 'DIAS');
-    // Subtítulo com total destacado
-    const sub = document.getElementById('hero-sub');
-    if (sub) sub.innerHTML = 'de <span style="font-size:26px;font-weight:700;color:var(--gold);">' + totalDias + '</span> dias da Copa';
-    // Barra de progresso
-    const pct = Math.min(100, Math.round((diaCopa / totalDias) * 100));
-    const wrap = document.getElementById('hero-progress-wrap');
-    const bar  = document.getElementById('hero-progress-bar');
-    const lbl  = document.getElementById('hero-progress-label');
-    if (wrap) wrap.style.display = 'block';
-    if (bar) bar.style.width = pct + '%';
-    if (lbl) lbl.textContent = pct + '% da Copa concluída';
+    set('hero-sub', 'de ' + totalDias + ' da Copa');
     const hd = document.getElementById('hero-date');
     if (hd) hd.style.display = 'none';
+    const hs = document.getElementById('hero-stats');
+    if (hs) hs.style.display = 'block';
   } else {
     // DEPOIS — encerrada
     set('hero-label','Copa do Mundo FIFA');
@@ -1465,8 +1449,8 @@ function updateCountdown(){
     set('hero-unit','FIM');
     set('hero-sub','Copa encerrada');
     set('hero-date','Obrigado por participar!');
-    const wrapD = document.getElementById('hero-progress-wrap'); if(wrapD) wrapD.style.display='none';
     const hdD = document.getElementById('hero-date'); if(hdD) hdD.style.display='block';
+    const hsD = document.getElementById('hero-stats'); if(hsD) hsD.style.display='block';
   }
 }
 
