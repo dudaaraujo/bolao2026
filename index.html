@@ -708,6 +708,9 @@ let currentFilter='todos', teamFilter='', currentMatch=null, scoreH=0, scoreA=0;
 syncTimer=null;
 
 const myBets=()=>S.get('bets_global',{});
+// Estado de dias encolhidos (persiste entre syncs e sessões)
+const collapsedDias = new Set(S.get('collapsed_dias', []));
+function saveCollapsedDias(){ S.set('collapsed_dias', Array.from(collapsedDias)); }
 const BET_LOCK_MIN = 15; // minutos antes do jogo que trava a aposta
 function isBettingClosed(m){
   if(m.status==='done' || m.status==='live') return true;
@@ -1605,12 +1608,6 @@ function renderMatches(){
   const list=document.getElementById('matches-list');
   if(!list) return;
 
-  // Salva estado de expansão antes de re-renderizar
-  const expandedFases = new Set();
-  document.querySelectorAll('.fase-header:not(.collapsed)').forEach(el => {
-    expandedFases.add(el.id.replace('hdr-',''));
-  });
-
   if(!matches.length){list.innerHTML='<div class="empty-state">Aguardando conexão com a planilha...</div>';return;}
 
   let pool=matches.filter(m=>{
@@ -1628,16 +1625,29 @@ function renderMatches(){
 
   if(!pool.length){list.innerHTML='<div class="empty-state">Nenhum jogo nesta categoria</div>';return;}
 
-  // Agrupa por fase
-  const byFase={};
+  // Agrupa por DIA (chave = data ISO yyyy-mm-dd do kickoff, no fuso local)
+  const meses=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const diasSem=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+  const byDia={};
   pool.forEach(m=>{
-    const f=m.round||'Outros';
-    if(!byFase[f])byFase[f]=[];
-    byFase[f].push(m);
+    let key, label;
+    if(m.kickoff){
+      const d=new Date(m.kickoff);
+      key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      label=`${diasSem[d.getDay()]}, ${d.getDate()} ${meses[d.getMonth()].toUpperCase()}`;
+    } else {
+      key='sem-data'; label='SEM DATA';
+    }
+    if(!byDia[key]) byDia[key]={label, jogos:[]};
+    byDia[key].jogos.push(m);
   });
-  Object.values(byFase).forEach(arr=>arr.sort((a,b)=>(statusOrd[a.status]||1)-(statusOrd[b.status]||1)));
 
-  list.innerHTML=Object.entries(byFase).map(([fase,arr])=>{
+  // Ordena dias cronologicamente e jogos por horário dentro do dia
+  const diasOrdenados = Object.keys(byDia).sort();
+  diasOrdenados.forEach(k => byDia[k].jogos.sort((a,b)=>(a.kickoff||0)-(b.kickoff||0)));
+
+  list.innerHTML=diasOrdenados.map(diaKey=>{
+    const {label, jogos:arr} = byDia[diaKey];
     const cards=arr.map(m=>{
       const bet=bets[m.id],pts=bet&&m.score?calcPoints(bet,m.score):null;
       const closed=isBettingClosed(m);
@@ -1650,73 +1660,79 @@ function renderMatches(){
       const ptsColor=pts===3?'var(--gold)':pts>0?'var(--green)':'var(--red)';
       const ptsLabel=pts===3?'⭐ +3 pts':pts===2?'+2 pts':pts===1?'+1 pt':'✗ 0 pts';
       const ptsBadge=pts!==null?`<div class="pts-badge" style="color:${ptsColor};background:${ptsColor}18;border:1px solid ${ptsColor}44;">${ptsLabel}</div>`:'';
+      // hora curta
+      const hora=(m.date||'').split('·').pop().trim();
       return `<div class="match-card ${bet?'has-bet':''}" onclick="openBet(${m.id})">
-        <div class="match-header"><span class="match-round">${m.round}</span><span class="match-status status-${m.status}">${m.status==='live'?`<span class="pulse">${sl}</span>`:sl}</span></div>
+        <div class="match-header"><span class="match-round">${m.round}</span><span class="match-status status-${m.status==="upcoming"&&closed?"closed":m.status}">${m.status==='live'?`<span class="pulse">${sl}</span>`:sl}</span></div>
         <div class="match-teams">
           <div class="match-team"><span class="team-flag">${m.hFlag}</span><span class="team-name">${m.home}</span></div>
           <div class="match-score ${m.score?'':'pending'}">${m.score?m.score.h+' – '+m.score.a:'–'}</div>
           <div class="match-team right"><span class="team-name">${m.away}</span><span class="team-flag">${m.aFlag}</span></div>
         </div>
         <div class="match-footer">
-          <span class="match-time">🕐 ${m.date}</span>
+          <span class="match-time">🕐 ${hora}</span>
           <span class="bet-label">${betLine}</span>
         </div>
         ${ptsBadge?`<div style="padding:4px 0 2px;">${ptsBadge}</div>`:''}
       </div>`;
     }).join('');
-    const faseId = 'fase-'+fase.replace(/[^a-zA-Z0-9]/g,'_');
+
+    const diaId = 'dia-'+diaKey.replace(/[^a-zA-Z0-9]/g,'_');
     const betCount = arr.filter(m=>bets[m.id]).length;
     const liveCount = arr.filter(m=>m.status==='live').length;
-    const badge = liveCount>0
-      ? `<span style="background:rgba(255,71,87,.2);color:var(--red);font-size:10px;padding:2px 7px;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:600;">● AO VIVO</span>`
-      : betCount>0
-        ? betCount===arr.length
-          ? `<span style="background:var(--green-glow);color:var(--green);font-size:10px;padding:2px 7px;border-radius:10px;font-family:'DM Sans',sans-serif;">${betCount}/${arr.length} apostas</span>`
-          : `<span style="background:rgba(255,193,7,.12);color:#ffc107;font-size:10px;padding:2px 7px;border-radius:10px;font-family:'DM Sans',sans-serif;">⚠ ${betCount}/${arr.length} apostas</span>`
-        : `<span style="font-size:10px;color:var(--muted);font-family:'DM Sans',sans-serif;">${arr.length} jogos</span>`;
+    const podeApostarCount = arr.filter(m=>m.status==='upcoming'&&!isBettingClosed(m)).length;
+    let badge;
+    if(liveCount>0){
+      badge=`<span style="background:rgba(255,71,87,.2);color:var(--red);font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;">● AO VIVO</span>`;
+    } else if(podeApostarCount>0 && betCount<arr.length){
+      badge=`<span style="background:rgba(255,193,7,.12);color:#ffc107;font-size:10px;padding:2px 7px;border-radius:10px;">⚠ ${betCount}/${arr.length}</span>`;
+    } else if(betCount===arr.length && arr.length>0){
+      badge=`<span style="background:var(--green-glow);color:var(--green);font-size:10px;padding:2px 7px;border-radius:10px;">${betCount}/${arr.length} ✓</span>`;
+    } else {
+      badge=`<span style="font-size:10px;color:var(--muted);">${arr.length} jogo${arr.length>1?'s':''}</span>`;
+    }
+
+    const isCollapsed = collapsedDias.has(diaId);
     return `<div style="margin-bottom:4px;">
-      <div class="fase-header" id="hdr-${faseId}" onclick="toggleFase('${faseId}')">
-        <span>${fase.toUpperCase()}</span>
+      <div class="fase-header ${isCollapsed?'collapsed':''}" id="hdr-${diaId}" onclick="toggleDia('${diaId}')">
+        <span>${label}</span>
         <div style="display:flex;align-items:center;gap:8px;">
           ${badge}
           <span class="fase-arrow">▼</span>
         </div>
       </div>
-      <div class="fase-body" id="body-${faseId}" style="max-height:2000px;">${cards}</div>
+      <div class="fase-body ${isCollapsed?'collapsed':''}" id="body-${diaId}" style="max-height:${isCollapsed?'0':'4000px'};">${cards}</div>
     </div>`;
   }).join('');
-
-  // Restaura fases que estavam abertas antes do sync
-  expandedFases.forEach(faseId => {
-    const hdr  = document.getElementById('hdr-'+faseId);
-    const body = document.getElementById('body-'+faseId);
-    if (hdr && body) {
-      hdr.classList.remove('collapsed');
-      body.classList.remove('collapsed');
-      body.style.maxHeight = '2000px';
-    }
-  });
 }
 
-function toggleFase(faseId) {
-  const hdr  = document.getElementById('hdr-'+faseId);
-  const body = document.getElementById('body-'+faseId);
+
+function toggleDia(diaId) {
+  const hdr  = document.getElementById('hdr-'+diaId);
+  const body = document.getElementById('body-'+diaId);
   if (!hdr || !body) return;
   const isCollapsed = hdr.classList.contains('collapsed');
   if (isCollapsed) {
+    // Abrir
+    collapsedDias.delete(diaId);
     hdr.classList.remove('collapsed');
     body.classList.remove('collapsed');
     body.style.maxHeight = body.scrollHeight + 'px';
-    // Remove fixed height after transition
-    setTimeout(() => { if(!hdr.classList.contains('collapsed')) body.style.maxHeight = '2000px'; }, 260);
+    setTimeout(() => { if(!hdr.classList.contains('collapsed')) body.style.maxHeight = '4000px'; }, 260);
   } else {
+    // Encolher
+    collapsedDias.add(diaId);
     body.style.maxHeight = body.scrollHeight + 'px';
     requestAnimationFrame(() => {
       body.classList.add('collapsed');
       hdr.classList.add('collapsed');
     });
   }
+  saveCollapsedDias();
 }
+
+// Alias (compatibilidade)
+function toggleFase(id){ toggleDia(id); }
 
 function goToNextMatch(){
   const bets = myBets();
