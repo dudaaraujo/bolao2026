@@ -1074,22 +1074,51 @@ function isStandalone() {
   return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 }
 
+// Detecta iOS/Safari (onde redirect quebra por causa da partição de armazenamento)
+function isAppleWebkit() {
+  const ua = navigator.userAgent;
+  const iOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const safari = /^((?!chrome|android|crios|fxios).)*safari/i.test(ua);
+  return iOS || safari;
+}
+
 function loginGoogle() {
-  if (isStandalone()) {
-    // Em PWA (tela inicial), popup costuma ser bloqueado → usa redirect
-    auth.signInWithRedirect(googleProvider).catch(e => {
-      showToast('⚠️ Erro ao entrar: ' + (e.message||e.code||'tente novamente'));
-    });
-  } else {
-    auth.signInWithPopup(googleProvider).catch(e => {
-      // Se popup falhar, tenta redirect como fallback
-      if (e.code === 'auth/popup-blocked' || e.code === 'auth/cancelled-popup-request') {
-        auth.signInWithRedirect(googleProvider).catch(()=>{});
+  googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+  const btn = document.getElementById('btn-google');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+  const reativa = () => { if (btn) { btn.disabled = false; btn.style.opacity = '1'; } };
+
+  // SEMPRE popup. No iOS/Safari o redirect quebra ("missing initial state"),
+  // e o popup funciona inclusive em PWA. Em outros navegadores também é o ideal.
+  auth.signInWithPopup(googleProvider)
+    .then(() => { /* onAuthStateChanged cuida do resto */ })
+    .catch(e => {
+      reativa();
+      // Só cai pra redirect se NÃO for iOS/Safari (onde redirect não funciona)
+      const redirectCodes = ['auth/popup-blocked', 'auth/operation-not-supported-in-this-environment'];
+      if (redirectCodes.includes(e.code) && !isAppleWebkit()) {
+        if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+        auth.signInWithRedirect(googleProvider).catch(err => {
+          reativa();
+          showToast('⚠️ ' + traduzErroLogin(err));
+        });
+      } else if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+        // usuário fechou — não mostra erro feio
       } else {
-        showToast('⚠️ Erro ao entrar: ' + (e.message||e.code||'tente novamente'));
+        showToast('⚠️ ' + traduzErroLogin(e));
       }
     });
-  }
+}
+
+// Traduz códigos de erro do Firebase para mensagens claras
+function traduzErroLogin(e) {
+  const code = e.code || '';
+  if (code === 'auth/unauthorized-domain') return 'Este site não está autorizado no Firebase. Avise o organizador.';
+  if (code === 'auth/network-request-failed') return 'Sem conexão. Verifique a internet.';
+  if (code === 'auth/too-many-requests') return 'Muitas tentativas. Aguarde um pouco.';
+  if (code === 'auth/popup-closed-by-user') return 'Login cancelado.';
+  return e.message || code || 'Erro ao entrar, tente novamente';
 }
 
 function updateHeaderUser() {
@@ -1303,13 +1332,16 @@ function renderTabela() {
 // ── INIT ──
 function init() {
   const ob = document.getElementById('onboarding');
-  ob.style.display = 'none'; // Firebase onAuthStateChanged vai controlar
+  ob.style.display = 'none';
 
-  // Processa retorno do login via redirect (PWA)
+  // Processa retorno do login via redirect (caso tenha sido usado).
+  // Ignora erros de "missing initial state" (típico do Safari, inofensivo aqui).
   auth.getRedirectResult().catch(()=>{});
 
   // Escuta mudanças de autenticação
   auth.onAuthStateChanged(user => {
+    const btn = document.getElementById('btn-google');
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
     if (user) {
       userName  = user.displayName || user.email.split('@')[0];
       userEmail = user.email;
