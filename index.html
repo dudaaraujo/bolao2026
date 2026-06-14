@@ -1193,13 +1193,16 @@ function calcStandings(jogosGrupo) {
   };
 
   arr.sort((a, b) => {
+    // 1. Pontos
     if(b.pts !== a.pts) return b.pts - a.pts;
-    if(b.sg  !== a.sg)  return b.sg - a.sg;
-    if(b.gp  !== a.gp)  return b.gp - a.gp;
-    // Confronto direto
+    // 2. Confronto direto (pts, saldo, gols) — vale para empate entre dois times
     let h = headToHead(a, b, 'pts'); if(h) return h;
     h = headToHead(a, b, 'sg');      if(h) return h;
     h = headToHead(a, b, 'gp');      if(h) return h;
+    // 3. Critérios gerais
+    if(b.sg  !== a.sg)  return b.sg - a.sg;
+    if(b.gp  !== a.gp)  return b.gp - a.gp;
+    // 4. Sorteio (nome)
     return a.name.localeCompare(b.name);
   });
 
