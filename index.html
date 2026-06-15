@@ -23,6 +23,18 @@
 body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
 #app{max-width:430px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
 
+/* SPLASH */
+#splash{position:fixed;inset:0;z-index:99999;background:linear-gradient(160deg,#0a1628 0%,#162340 60%,#1f3356 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .5s ease,visibility .5s ease;}
+#splash.hide{opacity:0;visibility:hidden;pointer-events:none;}
+.splash-logo{animation:splashFloat 2.4s ease-in-out infinite;}
+.splash-title{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.08em;color:#f0f4ff;text-align:center;line-height:1;animation:splashFadeIn .8s ease both;}
+.splash-title .accent{display:block;color:#00c853;margin-top:2px;}
+.splash-tag{font-size:12px;color:#7a90b8;letter-spacing:.18em;text-transform:uppercase;font-weight:600;animation:splashFadeIn 1.2s ease both;margin-top:4px;}
+.splash-spinner{margin-top:18px;width:32px;height:32px;border:3px solid rgba(255,214,0,.15);border-top-color:#ffd600;border-radius:50%;animation:splashSpin .9s linear infinite;}
+@keyframes splashFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+@keyframes splashFadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes splashSpin{to{transform:rotate(360deg);}}
+
 /* HEADER */
 #header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;position:sticky;top:0;z-index:100;}
 .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
@@ -328,6 +340,31 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-auth-compat.js"></script>
 </head>
 <body>
+<!-- SPLASH SCREEN -->
+<div id="splash">
+  <svg class="splash-logo" width="120" height="120" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="16" cy="18" rx="10" ry="12" fill="#1f3356"/>
+    <polygon points="9,8 11,3 14,8" fill="#1f3356"/>
+    <polygon points="23,8 21,3 18,8" fill="#1f3356"/>
+    <ellipse cx="16" cy="15" rx="8" ry="7" fill="#162340"/>
+    <circle cx="12" cy="13" r="3.5" fill="#ffd600"/>
+    <circle cx="12" cy="13" r="2" fill="#0a1628"/>
+    <circle cx="11" cy="12" r="0.8" fill="white" opacity="0.9"/>
+    <circle cx="20" cy="13" r="3.5" fill="white"/>
+    <polygon points="20,9.5 21.5,11.5 20.8,13.5 19.2,13.5 18.5,11.5" fill="#1a2b48"/>
+    <circle cx="20" cy="13" r="1.5" fill="#00c853"/>
+    <circle cx="19" cy="12" r="0.7" fill="white" opacity="0.8"/>
+    <polygon points="16,17 14,20 18,20" fill="#ffd600"/>
+    <path d="M4,27 Q16,24 28,27" stroke="#2a3f60" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  </svg>
+  <div class="splash-title">
+    Onde a Coruja
+    <span class="accent">Dorme</span>
+  </div>
+  <div class="splash-tag">Bolão Copa do Mundo</div>
+  <div class="splash-spinner"></div>
+</div>
+
 <div id="app">
   <div id="header">
     <div class="header-top">
@@ -775,8 +812,8 @@ const FLAG_ISO = {
   'nova zelandia':'nz','nova zelândia':'nz','paraguai':'py','bolivia':'bo','bolívia':'bo','venezuela':'ve',
   'bosnia':'ba','bósnia':'ba','bosnia e herzegovina':'ba','bósnia e herzegovina':'ba',
   'haiti':'ht','curacao':'cw','curaçao':'cw','cabo verde':'cv',
-  'congo':'cg','republica do congo':'cg','república do congo':'cg',
-  'rd congo':'cd','republica democratica do congo':'cd','república democrática do congo':'cd','congo democratico':'cd',
+  'congo':'cd','rd congo':'cd','republica democratica do congo':'cd','república democrática do congo':'cd','congo democratico':'cd','congo democrático':'cd',
+  'republica do congo':'cg','república do congo':'cg','congo brazzaville':'cg',
 };
 
 function isoFor(v) {
@@ -1462,6 +1499,25 @@ function init() {
   const ob = document.getElementById('onboarding');
   ob.style.display = 'none';
 
+  // Splash: garante exibição mínima de 1.2s e esconde quando o auth resolver
+  const splashStart = Date.now();
+  let splashHidden = false;
+  function hideSplash() {
+    if (splashHidden) return;
+    splashHidden = true;
+    const elapsed = Date.now() - splashStart;
+    const wait = Math.max(0, 1200 - elapsed);
+    setTimeout(() => {
+      const s = document.getElementById('splash');
+      if (s) {
+        s.classList.add('hide');
+        setTimeout(() => s.remove(), 600);
+      }
+    }, wait);
+  }
+  // Failsafe: se algo travar, esconde após 6s mesmo assim
+  setTimeout(hideSplash, 6000);
+
   // Processa retorno do login via redirect (caso tenha sido usado).
   // Ignora erros de "missing initial state" (típico do Safari, inofensivo aqui).
   auth.getRedirectResult().catch(()=>{});
@@ -1487,6 +1543,7 @@ function init() {
       updateHeaderUser();
       updateAdminNav();
     }
+    hideSplash();
   });
 }
 
