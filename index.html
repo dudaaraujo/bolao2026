@@ -1030,16 +1030,20 @@ function rowToMatch(row) {
   const visitP=row.gol_visit!==''&&row.gol_visit!==undefined&&row.gol_visit!==null;
   const hasScore=casaP&&visitP&&!isNaN(gh)&&!isNaN(ga);
 
-  // Status automático:
-  // - Placar preenchido na planilha → FINALIZADO (independe da hora)
-  // - Jogo começou mas sem placar → ao vivo
-  // - Antes do horário → não iniciado
+  // Status:
+  // - Se a planilha diz explicitamente 'live' ou 'done', respeita
+  // - Senão (upcoming/vazio), calcula com base no kickoff e 2h após início
   let status = sheetStatus;
-  if (sheetStatus !== 'done') {
-    if (hasScore) {
-      status = 'done';  // tem placar = jogo acabou
-    } else if (kickoff) {
-      status = (Date.now() >= kickoff) ? 'live' : 'upcoming';
+  if (!sheetStatus || sheetStatus === 'upcoming') {
+    if (kickoff) {
+      const TWO_HOURS = 2 * 60 * 60 * 1000;
+      const diff = Date.now() - kickoff;
+      if (hasScore && diff >= TWO_HOURS) status = 'done';
+      else if (diff >= 0)                status = 'live';
+      else                               status = 'upcoming';
+    } else if (hasScore) {
+      // Sem kickoff mas com placar — antigo comportamento
+      status = 'done';
     }
   }
 
