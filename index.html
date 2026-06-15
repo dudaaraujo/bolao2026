@@ -238,6 +238,24 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .standings-table tbody tr:last-child td{border-bottom:none;}
 .standings-table td:nth-child(2){min-width:90px;}
 
+/* ── ADMIN ── */
+.admin-filter-row{display:flex;gap:6px;margin-bottom:14px;}
+.admin-filter-btn{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;transition:all .2s;}
+.admin-filter-btn.active{background:var(--red);color:#fff;border-color:var(--red);font-weight:600;}
+.admin-match-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 15px;margin-bottom:10px;}
+.admin-match-card.done{border-left:3px solid var(--green);}
+.admin-match-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.admin-score-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;}
+.admin-team-name{font-size:14px;font-weight:600;flex:1;text-align:center;}
+.admin-score-group{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.admin-score-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;line-height:1;}
+.admin-score-btn:active{background:var(--green);color:#000;border-color:var(--green);}
+.admin-score-val{font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--text);min-width:36px;text-align:center;}
+.admin-score-sep{font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--muted);}
+.admin-nav-btn{background:none;border:none;color:var(--red);cursor:pointer;flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;font-size:10px;font-family:'DM Sans',sans-serif;transition:color .2s;}
+.admin-nav-btn svg{width:22px;height:22px;}
+.admin-nav-btn.active svg{filter:drop-shadow(0 0 5px rgba(255,71,87,.5));}
+
 /* ── BANDEIRAS (imagens) ── */
 .flag-img{width:24px;height:16px;object-fit:cover;border-radius:2px;vertical-align:middle;display:inline-block;box-shadow:0 0 0 0.5px rgba(255,255,255,.15);}
 .flag-fallback{font-size:18px;}
@@ -460,6 +478,17 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         <div id="quiz-rank-list"></div>
       </div>
     </div>
+    <!-- ADMIN -->
+    <div id="screen-admin" class="screen">
+      <div class="section-title" style="color:var(--red);">⚙ Painel Admin</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">Atualize os placares dos jogos</div>
+      <div class="admin-filter-row">
+        <button class="admin-filter-btn active" id="admin-f-todos"   onclick="adminFilter('todos')">Todos</button>
+        <button class="admin-filter-btn"        id="admin-f-pend"    onclick="adminFilter('pendentes')">Pendentes</button>
+        <button class="admin-filter-btn"        id="admin-f-done"    onclick="adminFilter('encerrados')">Encerrados</button>
+      </div>
+      <div id="admin-list"></div>
+    </div>
   </div>
 
   <div id="bottomnav">
@@ -481,6 +510,21 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         <span id="quiz-badge" style="display:none;position:absolute;top:-3px;right:-5px;width:8px;height:8px;background:#ff4757;border-radius:50%;border:1.5px solid var(--bg2);"></span>
       </div>Quiz
     </button>
+    <button class="nav-btn" id="nav-admin" onclick="goScreen('admin')" style="display:none;color:var(--red);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M17 13l2 2 4-4" stroke-width="2.2"/></svg>Admin
+    </button>
+</div>
+
+<!-- MODAL CONFIRMAÇÃO ADMIN -->
+<div id="admin-confirm-backdrop" class="modal-backdrop" style="display:none;" onclick="if(event.target===this)closeAdminConfirm()">
+  <div class="modal" style="max-height:70vh;">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Confirmar placar?</div>
+    <div id="admin-confirm-teams" class="bet-teams" style="margin-bottom:14px;"></div>
+    <div id="admin-confirm-score" style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:52px;color:var(--green);margin-bottom:18px;letter-spacing:.04em;"></div>
+    <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:18px;">Isso atualiza o resultado para todos os participantes.</div>
+    <button class="btn btn-green" onclick="doAdminSave()" style="margin-bottom:10px;">Confirmar ✓</button>
+    <button class="btn btn-outline" onclick="closeAdminConfirm()">Cancelar</button>
   </div>
 </div>
 
@@ -1350,6 +1394,7 @@ function init() {
       userEmail = user.email;
       userPhoto = user.photoURL || '';
       updateHeaderUser();
+      updateAdminNav();
       ob.style.display = 'none';
       boot();
       api({action:'getUsuario', nome:userName, email:userEmail}).then(r => {
@@ -1359,6 +1404,7 @@ function init() {
       ob.style.display = 'flex';
       userName = ''; userEmail = '';
       updateHeaderUser();
+      updateAdminNav();
     }
   });
 }
@@ -1423,6 +1469,7 @@ function goScreen(name){
   if(name==='ranking') renderRanking();
   if(name==='tabela') renderTabela();
   if(name==='quiz') initQuiz();
+  if(name==='admin') renderAdmin();
 }
 
 function updateCountdown(){
@@ -2141,6 +2188,143 @@ async function updateQuizRanking() {
       </div>`;
     }).join('');
   } catch(e) {}
+}
+
+// ── ADMIN ────────────────────────────────────────────
+const ADMIN_EMAIL = 'hilda.eduardaaraujo@gmail.com';
+let adminCurrentFilter = 'todos';
+let adminPendingMatch  = null; // { match, h, a }
+
+function isAdmin() {
+  return (userEmail || '').toLowerCase().trim() === ADMIN_EMAIL;
+}
+
+function updateAdminNav() {
+  const btn = document.getElementById('nav-admin');
+  if (btn) btn.style.display = isAdmin() ? 'flex' : 'none';
+}
+
+function adminFilter(f) {
+  adminCurrentFilter = f;
+  ['todos','pend','done'].forEach(k => {
+    document.getElementById('admin-f-' + k)?.classList.remove('active');
+  });
+  const map = { todos:'todos', pendentes:'pend', encerrados:'done' };
+  document.getElementById('admin-f-' + map[f])?.classList.add('active');
+  renderAdmin();
+}
+
+function renderAdmin() {
+  const list = document.getElementById('admin-list');
+  if (!list) return;
+  if (!isAdmin()) {
+    list.innerHTML = '<div class="empty-state">🔒 Acesso restrito</div>';
+    return;
+  }
+  let filtered = [...matches].sort((a, b) => (a.kickoff || 0) - (b.kickoff || 0));
+  if (adminCurrentFilter === 'pendentes')  filtered = filtered.filter(m => m.status !== 'done');
+  if (adminCurrentFilter === 'encerrados') filtered = filtered.filter(m => m.status === 'done');
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty-state">Nenhum jogo encontrado</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(m => {
+    const isDone = m.status === 'done';
+    const statusLabel = m.status === 'live'
+      ? '<span class="match-status status-live">● Ao vivo</span>'
+      : isDone
+        ? '<span class="match-status status-done">✓ Encerrado</span>'
+        : '<span class="match-status status-upcoming">Não iniciado</span>';
+    const h = isDone && m.score ? m.score.h : 0;
+    const a = isDone && m.score ? m.score.a : 0;
+    return `<div class="admin-match-card ${isDone ? 'done' : ''}" id="admin-card-${m.id}">
+      <div class="admin-match-header">
+        <span class="match-round">${m.round || ''}</span>
+        <span class="match-time">${m.date || ''}</span>
+      </div>
+      <div style="margin-bottom:10px;">${statusLabel}</div>
+      <div class="admin-score-row">
+        <span class="admin-team-name">${m.hFlag}&nbsp;${m.home}</span>
+        <div class="admin-score-group">
+          <button class="admin-score-btn" onclick="adminAdj(${m.id},'h',-1)">−</button>
+          <span class="admin-score-val" id="admin-h-${m.id}">${h}</span>
+          <button class="admin-score-btn" onclick="adminAdj(${m.id},'h',1)">+</button>
+          <span class="admin-score-sep">×</span>
+          <button class="admin-score-btn" onclick="adminAdj(${m.id},'a',-1)">−</button>
+          <span class="admin-score-val" id="admin-a-${m.id}">${a}</span>
+          <button class="admin-score-btn" onclick="adminAdj(${m.id},'a',1)">+</button>
+        </div>
+        <span class="admin-team-name">${m.aFlag}&nbsp;${m.away}</span>
+      </div>
+      <button class="btn btn-green" style="font-size:13px;padding:11px;" onclick="openAdminConfirm(${m.id})">Salvar placar</button>
+    </div>`;
+  }).join('');
+}
+
+// estado temporário dos scores editados no admin (por match id)
+const adminScores = {};
+
+function adminAdj(matchId, side, delta) {
+  if (!adminScores[matchId]) {
+    const m = matches.find(x => x.id === matchId);
+    adminScores[matchId] = {
+      h: m && m.score ? m.score.h : 0,
+      a: m && m.score ? m.score.a : 0
+    };
+  }
+  adminScores[matchId][side] = Math.max(0, adminScores[matchId][side] + delta);
+  const el = document.getElementById('admin-' + side + '-' + matchId);
+  if (el) el.textContent = adminScores[matchId][side];
+}
+
+function openAdminConfirm(matchId) {
+  const m = matches.find(x => x.id === matchId);
+  if (!m) return;
+  const sc = adminScores[matchId] || (m.score ? { h: m.score.h, a: m.score.a } : { h: 0, a: 0 });
+  adminPendingMatch = { match: m, h: sc.h, a: sc.a };
+
+  document.getElementById('admin-confirm-teams').innerHTML =
+    `<div class="bet-team"><span class="bet-flag">${m.hFlag}</span><div class="bet-name">${m.home}</div></div>
+     <span class="bet-vs">VS</span>
+     <div class="bet-team"><span class="bet-flag">${m.aFlag}</span><div class="bet-name">${m.away}</div></div>`;
+  document.getElementById('admin-confirm-score').textContent = sc.h + ' × ' + sc.a;
+  document.getElementById('admin-confirm-backdrop').style.display = 'flex';
+}
+
+function closeAdminConfirm() {
+  document.getElementById('admin-confirm-backdrop').style.display = 'none';
+  adminPendingMatch = null;
+}
+
+async function doAdminSave() {
+  if (!adminPendingMatch) return;
+  const { match, h, a } = adminPendingMatch;
+  closeAdminConfirm();
+
+  showToast('⏳ Salvando...');
+  try {
+    const r = await api({
+      action:    'updatePlacar',
+      admin:     userEmail,
+      jogo_id:   match.id,
+      gol_casa:  h,
+      gol_visit: a
+    });
+    if (!r.ok) throw new Error(r.error || 'Erro desconhecido');
+    showToast('✅ Placar salvo!');
+    // Atualiza local imediatamente para refletir sem esperar sync
+    const idx = matches.findIndex(x => x.id === match.id);
+    if (idx >= 0) {
+      matches[idx].score  = { h, a };
+      matches[idx].status = 'done';
+    }
+    delete adminScores[match.id];
+    renderAdmin();
+    renderMatches();
+    if (document.getElementById('screen-tabela').classList.contains('active')) renderTabela();
+  } catch(e) {
+    showToast('⚠️ ' + e.message);
+  }
 }
 
 init();
