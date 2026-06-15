@@ -239,22 +239,30 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .standings-table td:nth-child(2){min-width:90px;}
 
 /* ── ADMIN ── */
-.admin-filter-row{display:flex;gap:6px;margin-bottom:14px;}
-.admin-filter-btn{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;transition:all .2s;}
-.admin-filter-btn.active{background:var(--red);color:#fff;border-color:var(--red);font-weight:600;}
-.admin-match-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 15px;margin-bottom:10px;}
+.admin-tab-row{display:flex;gap:0;margin-bottom:16px;background:var(--bg2);border-radius:10px;padding:3px;}
+.admin-tab{flex:1;text-align:center;padding:8px 0;border-radius:8px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;border:none;background:none;}
+.admin-tab.active{background:var(--red);color:#fff;}
+.admin-dia-header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg3);border-radius:10px;margin-bottom:8px;cursor:pointer;user-select:none;}
+.admin-dia-label{font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--text);letter-spacing:.06em;}
+.admin-dia-meta{display:flex;align-items:center;gap:8px;}
+.admin-dia-count{font-size:11px;color:var(--muted);}
+.admin-dia-arrow{font-size:11px;color:var(--muted);transition:transform .2s;display:inline-block;}
+.admin-dia-arrow.open{transform:rotate(180deg);}
+.admin-dia-body{overflow:hidden;transition:max-height .25s ease;}
+.admin-match-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 13px;margin-bottom:8px;}
 .admin-match-card.done{border-left:3px solid var(--green);}
-.admin-match-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-.admin-score-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;}
-.admin-team-name{font-size:14px;font-weight:600;flex:1;text-align:center;}
-.admin-score-group{display:flex;align-items:center;gap:10px;flex-shrink:0;}
-.admin-score-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;line-height:1;}
+.admin-match-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.admin-sc-row{display:flex;align-items:center;gap:6px;margin-bottom:10px;}
+.admin-sc-team{display:flex;align-items:center;gap:5px;flex:1;min-width:0;}
+.admin-sc-team.right{flex-direction:row-reverse;}
+.admin-sc-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.admin-sc-controls{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.admin-score-btn{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;line-height:1;flex-shrink:0;}
 .admin-score-btn:active{background:var(--green);color:#000;border-color:var(--green);}
-.admin-score-val{font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--text);min-width:36px;text-align:center;}
-.admin-score-sep{font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--muted);}
-.admin-nav-btn{background:none;border:none;color:var(--red);cursor:pointer;flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;font-size:10px;font-family:'DM Sans',sans-serif;transition:color .2s;}
-.admin-nav-btn svg{width:22px;height:22px;}
-.admin-nav-btn.active svg{filter:drop-shadow(0 0 5px rgba(255,71,87,.5));}
+.admin-score-val{font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--text);min-width:24px;text-align:center;}
+.admin-score-val.saved{color:var(--green);}
+.admin-score-sep{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--muted);}
+.admin-btn-saved{width:100%;padding:9px;background:rgba(0,200,83,.08);color:var(--green);font-size:13px;font-weight:600;border-radius:8px;border:1px solid rgba(0,200,83,.25);cursor:pointer;font-family:'DM Sans',sans-serif;}
 
 /* ── BANDEIRAS (imagens) ── */
 .flag-img{width:24px;height:16px;object-fit:cover;border-radius:2px;vertical-align:middle;display:inline-block;box-shadow:0 0 0 0.5px rgba(255,255,255,.15);}
@@ -482,10 +490,9 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <div id="screen-admin" class="screen">
       <div class="section-title" style="color:var(--red);">⚙ Painel Admin</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">Atualize os placares dos jogos</div>
-      <div class="admin-filter-row">
-        <button class="admin-filter-btn active" id="admin-f-todos"   onclick="adminFilter('todos')">Todos</button>
-        <button class="admin-filter-btn"        id="admin-f-pend"    onclick="adminFilter('pendentes')">Pendentes</button>
-        <button class="admin-filter-btn"        id="admin-f-done"    onclick="adminFilter('encerrados')">Encerrados</button>
+      <div class="admin-tab-row">
+        <button class="admin-tab active" id="admin-tab-pend" onclick="adminTab('pendentes')">Pendentes</button>
+        <button class="admin-tab"        id="admin-tab-enc"  onclick="adminTab('encerrados')">Encerrados</button>
       </div>
       <div id="admin-list"></div>
     </div>
@@ -2192,8 +2199,9 @@ async function updateQuizRanking() {
 
 // ── ADMIN ────────────────────────────────────────────
 const ADMIN_EMAIL = 'hilda.eduardaaraujo@gmail.com';
-let adminCurrentFilter = 'todos';
-let adminPendingMatch  = null; // { match, h, a }
+let adminCurrentFilter = 'pendentes';
+let adminPendingMatch  = null;
+const adminCollapsedDias = new Set();
 
 function isAdmin() {
   return (userEmail || '').toLowerCase().trim() === ADMIN_EMAIL;
@@ -2204,13 +2212,16 @@ function updateAdminNav() {
   if (btn) btn.style.display = isAdmin() ? 'flex' : 'none';
 }
 
-function adminFilter(f) {
+function adminTab(f) {
   adminCurrentFilter = f;
-  ['todos','pend','done'].forEach(k => {
-    document.getElementById('admin-f-' + k)?.classList.remove('active');
-  });
-  const map = { todos:'todos', pendentes:'pend', encerrados:'done' };
-  document.getElementById('admin-f-' + map[f])?.classList.add('active');
+  document.getElementById('admin-tab-pend').classList.toggle('active', f === 'pendentes');
+  document.getElementById('admin-tab-enc').classList.toggle('active', f === 'encerrados');
+  renderAdmin();
+}
+
+function adminToggleDia(diaKey) {
+  if (adminCollapsedDias.has(diaKey)) adminCollapsedDias.delete(diaKey);
+  else adminCollapsedDias.add(diaKey);
   renderAdmin();
 }
 
@@ -2221,47 +2232,96 @@ function renderAdmin() {
     list.innerHTML = '<div class="empty-state">🔒 Acesso restrito</div>';
     return;
   }
-  let filtered = [...matches].sort((a, b) => (a.kickoff || 0) - (b.kickoff || 0));
-  if (adminCurrentFilter === 'pendentes')  filtered = filtered.filter(m => m.status !== 'done');
-  if (adminCurrentFilter === 'encerrados') filtered = filtered.filter(m => m.status === 'done');
+
+  const isPend = adminCurrentFilter === 'pendentes';
+
+  // Filtra e ordena
+  let filtered = matches.filter(m => isPend ? m.status !== 'done' : m.status === 'done');
+
+  // Encerrados: decrescente (mais recente primeiro); Pendentes: crescente
+  filtered.sort((a, b) => isPend
+    ? (a.kickoff || 0) - (b.kickoff || 0)
+    : (b.kickoff || 0) - (a.kickoff || 0));
+
   if (!filtered.length) {
     list.innerHTML = '<div class="empty-state">Nenhum jogo encontrado</div>';
     return;
   }
-  list.innerHTML = filtered.map(m => {
-    const isDone = m.status === 'done';
-    const statusLabel = m.status === 'live'
-      ? '<span class="match-status status-live">● Ao vivo</span>'
-      : isDone
-        ? '<span class="match-status status-done">✓ Encerrado</span>'
-        : '<span class="match-status status-upcoming">Não iniciado</span>';
-    const h = isDone && m.score ? m.score.h : 0;
-    const a = isDone && m.score ? m.score.a : 0;
-    return `<div class="admin-match-card ${isDone ? 'done' : ''}" id="admin-card-${m.id}">
-      <div class="admin-match-header">
-        <span class="match-round">${m.round || ''}</span>
-        <span class="match-time">${m.date || ''}</span>
-      </div>
-      <div style="margin-bottom:10px;">${statusLabel}</div>
-      <div class="admin-score-row">
-        <span class="admin-team-name">${m.hFlag}&nbsp;${m.home}</span>
-        <div class="admin-score-group">
-          <button class="admin-score-btn" onclick="adminAdj(${m.id},'h',-1)">−</button>
-          <span class="admin-score-val" id="admin-h-${m.id}">${h}</span>
-          <button class="admin-score-btn" onclick="adminAdj(${m.id},'h',1)">+</button>
-          <span class="admin-score-sep">×</span>
-          <button class="admin-score-btn" onclick="adminAdj(${m.id},'a',-1)">−</button>
-          <span class="admin-score-val" id="admin-a-${m.id}">${a}</span>
-          <button class="admin-score-btn" onclick="adminAdj(${m.id},'a',1)">+</button>
+
+  // Agrupa por dia (chave = string da data local)
+  const byDia = {};
+  const diaOrder = [];
+  filtered.forEach(m => {
+    const key = m.kickoff
+      ? new Date(m.kickoff).toLocaleDateString('pt-BR', {weekday:'short', day:'2-digit', month:'short'})
+      : (m.date || 'Sem data');
+    if (!byDia[key]) { byDia[key] = []; diaOrder.push(key); }
+    byDia[key].push(m);
+  });
+
+  list.innerHTML = diaOrder.map(diaKey => {
+    const jogos = byDia[diaKey];
+    // Encerrados: primeiro dia começa aberto, resto encolhido por padrão
+    const defaultOpen = isPend ? true : diaOrder.indexOf(diaKey) === 0;
+    const isOpen = adminCollapsedDias.has(diaKey) ? false : defaultOpen;
+    const count = jogos.length;
+    const label = diaKey.replace(/^\w/, c => c.toUpperCase());
+
+    const cardsHtml = jogos.map(m => {
+      const isDone = m.status === 'done';
+      const sc = adminScores[m.id] || (m.score ? { h: m.score.h, a: m.score.a } : { h: 0, a: 0 });
+      const statusPill = m.status === 'live'
+        ? `<span class="match-status status-live">● Ao vivo</span>`
+        : isDone
+          ? `<span class="match-status status-done">✓ Encerrado</span>`
+          : `<span class="match-status status-upcoming">Não iniciado</span>`;
+      const valClass = isDone ? 'admin-score-val saved' : 'admin-score-val';
+      const btnHtml = isDone
+        ? `<button class="admin-btn-saved" onclick="openAdminConfirm(${m.id})">✓ Placar salvo — editar</button>`
+        : `<button class="btn btn-green" style="font-size:13px;padding:10px;" onclick="openAdminConfirm(${m.id})">Salvar placar</button>`;
+
+      return `<div class="admin-match-card ${isDone ? 'done' : ''}" id="admin-card-${m.id}">
+        <div class="admin-match-top">
+          <span class="match-round">${m.round || ''}</span>
+          ${statusPill}
         </div>
-        <span class="admin-team-name">${m.aFlag}&nbsp;${m.away}</span>
+        <div class="admin-sc-row">
+          <div class="admin-sc-team">
+            <span>${m.hFlag}</span>
+            <span class="admin-sc-name">${m.home}</span>
+          </div>
+          <div class="admin-sc-controls">
+            <button class="admin-score-btn" onclick="adminAdj(${m.id},'h',-1)">−</button>
+            <span class="${valClass}" id="admin-h-${m.id}">${sc.h}</span>
+            <button class="admin-score-btn" onclick="adminAdj(${m.id},'h',1)">+</button>
+            <span class="admin-score-sep">×</span>
+            <button class="admin-score-btn" onclick="adminAdj(${m.id},'a',-1)">−</button>
+            <span class="${valClass}" id="admin-a-${m.id}">${sc.a}</span>
+            <button class="admin-score-btn" onclick="adminAdj(${m.id},'a',1)">+</button>
+          </div>
+          <div class="admin-sc-team right">
+            <span>${m.aFlag}</span>
+            <span class="admin-sc-name">${m.away}</span>
+          </div>
+        </div>
+        ${btnHtml}
+      </div>`;
+    }).join('');
+
+    return `<div class="admin-dia-header" onclick="adminToggleDia(${JSON.stringify(diaKey)})">
+        <span class="admin-dia-label">${label}</span>
+        <div class="admin-dia-meta">
+          <span class="admin-dia-count">${count} jogo${count !== 1 ? 's' : ''}</span>
+          <span class="admin-dia-arrow ${isOpen ? 'open' : ''}">▾</span>
+        </div>
       </div>
-      <button class="btn btn-green" style="font-size:13px;padding:11px;" onclick="openAdminConfirm(${m.id})">Salvar placar</button>
-    </div>`;
+      <div class="admin-dia-body" style="max-height:${isOpen ? '2000px' : '0'};">
+        ${cardsHtml}
+      </div>`;
   }).join('');
 }
 
-// estado temporário dos scores editados no admin (por match id)
+// Estado temporário dos scores editados no admin
 const adminScores = {};
 
 function adminAdj(matchId, side, delta) {
@@ -2282,7 +2342,6 @@ function openAdminConfirm(matchId) {
   if (!m) return;
   const sc = adminScores[matchId] || (m.score ? { h: m.score.h, a: m.score.a } : { h: 0, a: 0 });
   adminPendingMatch = { match: m, h: sc.h, a: sc.a };
-
   document.getElementById('admin-confirm-teams').innerHTML =
     `<div class="bet-team"><span class="bet-flag">${m.hFlag}</span><div class="bet-name">${m.home}</div></div>
      <span class="bet-vs">VS</span>
@@ -2300,7 +2359,6 @@ async function doAdminSave() {
   if (!adminPendingMatch) return;
   const { match, h, a } = adminPendingMatch;
   closeAdminConfirm();
-
   showToast('⏳ Salvando...');
   try {
     const r = await api({
@@ -2312,7 +2370,6 @@ async function doAdminSave() {
     });
     if (!r.ok) throw new Error(r.error || 'Erro desconhecido');
     showToast('✅ Placar salvo!');
-    // Atualiza local imediatamente para refletir sem esperar sync
     const idx = matches.findIndex(x => x.id === match.id);
     if (idx >= 0) {
       matches[idx].score  = { h, a };
