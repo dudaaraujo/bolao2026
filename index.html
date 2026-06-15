@@ -2730,9 +2730,8 @@ async function doAdminSave() {
       if (diff >= TWO_HOURS) newStatus = 'done';
       else if (diff >= 0)    newStatus = 'live';
       // diff < 0 → mantém status atual (jogo ainda não começou)
-    } else {
-      newStatus = 'done';
     }
+    // Sem kickoff → mantém status atual (não pula pra done)
     const idx = matches.findIndex(x => x.id === match.id);
     if (idx >= 0) {
       matches[idx].score  = { h, a };
