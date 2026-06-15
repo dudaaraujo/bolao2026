@@ -264,6 +264,48 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .admin-score-sep{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--muted);}
 .admin-btn-saved{width:100%;padding:9px;background:rgba(0,200,83,.08);color:var(--green);font-size:13px;font-weight:600;border-radius:8px;border:1px solid rgba(0,200,83,.25);cursor:pointer;font-family:'DM Sans',sans-serif;}
 
+/* ── VER PALPITES ── */
+.btn-see-bets{margin-top:8px;width:100%;font-size:11px;font-weight:600;padding:7px 10px;background:rgba(255,214,0,.08);color:var(--gold);border:1px solid rgba(255,214,0,.2);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:'DM Sans',sans-serif;}
+.btn-see-bets:hover{background:rgba(255,214,0,.14);}
+.rank-item.clickable{cursor:pointer;transition:border-color .2s;}
+.rank-item.clickable:hover{border-color:var(--green);}
+
+.bets-modal-header{background:var(--surface);border-radius:9px;padding:11px;display:flex;justify-content:space-around;align-items:center;margin-bottom:14px;font-size:12px;color:var(--text);}
+.bets-modal-real{font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--green);}
+.bets-modal-real.pending{color:var(--muted);font-size:20px;}
+.bets-list-header{font-size:10px;color:var(--muted);letter-spacing:.06em;font-weight:600;margin-bottom:8px;text-transform:uppercase;display:flex;justify-content:space-between;}
+.bet-row{background:var(--surface);border-radius:9px;padding:9px 11px;margin-bottom:6px;display:flex;align-items:center;gap:9px;}
+.bet-row.me{background:rgba(0,200,83,.08);border:1px solid rgba(0,200,83,.25);}
+.bet-row-avt{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.bet-row-info{flex:1;min-width:0;}
+.bet-row-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bet-row-meta{font-size:10px;color:var(--muted);margin-top:1px;}
+.bet-row-score{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--text);letter-spacing:.04em;flex-shrink:0;}
+.bet-row-score.exact{color:var(--gold);}
+.bet-row-pts{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;flex-shrink:0;min-width:32px;text-align:center;}
+.bet-row-pts.gold{background:rgba(255,214,0,.15);color:var(--gold);}
+.bet-row-pts.green{background:rgba(0,200,83,.15);color:var(--green);}
+.bet-row-pts.zero{background:rgba(122,144,184,.1);color:var(--muted);}
+.bet-row-hidden{font-family:'DM Sans',sans-serif;font-size:11px;color:var(--muted);flex-shrink:0;font-style:italic;}
+.bets-miss{font-size:11px;color:var(--muted);text-align:center;padding:10px 0;font-style:italic;}
+
+.person-modal-head{display:flex;align-items:center;gap:11px;margin-bottom:14px;}
+.person-modal-avt{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;}
+.person-modal-info{flex:1;min-width:0;}
+.person-modal-name{font-size:15px;font-weight:700;color:var(--text);}
+.person-modal-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.person-modal-pts-block{text-align:right;flex-shrink:0;}
+.person-modal-pts{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--green);line-height:1;}
+.person-modal-pts-l{font-size:9px;color:var(--muted);}
+.pbet{display:flex;align-items:center;gap:8px;padding:8px 11px;background:var(--surface);border-radius:9px;margin-bottom:5px;font-size:11px;}
+.pbet-info{flex:1;min-width:0;}
+.pbet-match{color:var(--text);font-weight:600;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pbet-round{font-size:9px;color:var(--muted);margin-top:1px;}
+.pbet-bet{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--text);letter-spacing:.04em;flex-shrink:0;}
+.pbet-bet.exact{color:var(--gold);}
+.pbet-bet.hidden{color:var(--muted);font-size:12px;font-family:'DM Sans',sans-serif;font-style:italic;}
+.pbet-no-bet{font-size:11px;color:var(--muted);font-style:italic;flex-shrink:0;}
+
 /* ── BANDEIRAS (imagens) ── */
 .flag-img{width:24px;height:16px;object-fit:cover;border-radius:2px;vertical-align:middle;display:inline-block;box-shadow:0 0 0 0.5px rgba(255,255,255,.15);}
 .flag-fallback{font-size:18px;}
@@ -528,6 +570,27 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     </button>
 </div>
 
+<!-- MODAL VER PALPITES DO JOGO -->
+<div id="bets-game-backdrop" class="modal-backdrop" style="display:none;" onclick="if(event.target===this)closeBetsModal()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="bets-game-title">Palpites do jogo</div>
+    <div id="bets-game-header"></div>
+    <div id="bets-game-list"></div>
+    <button class="btn btn-outline" onclick="closeBetsModal()" style="margin-top:12px;border:none;color:var(--muted);">Fechar</button>
+  </div>
+</div>
+
+<!-- MODAL VER PALPITES DA PESSOA -->
+<div id="bets-person-backdrop" class="modal-backdrop" style="display:none;" onclick="if(event.target===this)closeBetsModal()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="bets-person-head"></div>
+    <div id="bets-person-list"></div>
+    <button class="btn btn-outline" onclick="closeBetsModal()" style="margin-top:12px;border:none;color:var(--muted);">Fechar</button>
+  </div>
+</div>
+
 <!-- MODAL CONFIRMAÇÃO ADMIN -->
 <div id="admin-confirm-backdrop" class="modal-backdrop" style="display:none;" onclick="if(event.target===this)closeAdminConfirm()">
   <div class="modal" style="max-height:70vh;">
@@ -760,6 +823,7 @@ const S = {
 
 // ── ESTADO ──
 let matchesRaw=[], matches=[], ranking=[], rankingGeral=[];
+let allBets=[]; // todas as apostas do grupo GERAL (de todos os usuários)
 let userName='', userEmail='', userPhoto='';
 let currentFilter='todos', teamFilter='', currentMatch=null, scoreH=0, scoreA=0;
 syncTimer=null;
@@ -958,6 +1022,10 @@ async function syncMyBets() {
   try {
     const r = await api({action:'getApostas', grupo:'GERAL'});
     if(!r.ok || !r.apostas) return;
+
+    // Guarda TODAS as apostas do grupo (para mostrar palpites de outros)
+    allBets = r.apostas;
+
     const emailLow = userEmail.toLowerCase();
     const local = myBets();
 
@@ -1755,6 +1823,12 @@ function renderMatches(){
       const ptsColor=pts===3?'var(--gold)':pts>0?'var(--green)':'var(--red)';
       const ptsLabel=pts===3?'⭐ +3 pts':pts===2?'+2 pts':pts===1?'+1 pt':'✗ 0 pts';
       const ptsBadge=pts!==null?`<div class="pts-badge" style="color:${ptsColor};background:${ptsColor}18;border:1px solid ${ptsColor}44;">${ptsLabel}</div>`:'';
+      // Botão "ver palpites" — só quando as apostas estão fechadas
+      const showSeeBets = closed || m.status==='live' || m.status==='done';
+      const betsCount = showSeeBets ? allBets.filter(b => String(b.jogo_id) === String(m.id) && String(b.grupo||'GERAL') === 'GERAL').length : 0;
+      const seeBetsBtn = showSeeBets && betsCount > 0
+        ? `<button class="btn-see-bets" onclick="event.stopPropagation();openBetsGame(${m.id})">👁 Ver palpites de todos (${betsCount})</button>`
+        : '';
       // hora curta
       const hora=(m.date||'').split('·').pop().trim();
       return `<div class="match-card ${bet?'has-bet':''}" onclick="openBet(${m.id})">
@@ -1769,6 +1843,7 @@ function renderMatches(){
           <span class="bet-label">${betLine}</span>
         </div>
         ${ptsBadge?`<div style="padding:4px 0 2px;">${ptsBadge}</div>`:''}
+        ${seeBetsBtn}
       </div>`;
     }).join('');
 
@@ -1948,7 +2023,8 @@ function renderRanking(){
     const ptsNum=m.pts||0;
     const totalJogos=matches.filter(x=>x.status==='done').length;
     const acPct=totalJogos>0?Math.round(((m.acertos||0)/totalJogos)*100):0;
-    return `<div class="rank-item ${isMe?'me':''}">
+    const userKey = (m.usuario||'').replace(/'/g, "\\'");
+    return `<div class="rank-item clickable ${isMe?'me':''}" onclick="openBetsPerson('${userKey}')">
       <div class="rank-pos ${posColors[i]||''}">${i<3?medals[i]:i+1}</div>
       <div class="rank-avatar" style="background:${color}22;color:${color}">${ini}</div>
       <div class="rank-info">
@@ -2201,6 +2277,208 @@ async function updateQuizRanking() {
       </div>`;
     }).join('');
   } catch(e) {}
+}
+
+// ── VER PALPITES DOS OUTROS ─────────────────────────
+function closeBetsModal() {
+  document.getElementById('bets-game-backdrop').style.display = 'none';
+  document.getElementById('bets-person-backdrop').style.display = 'none';
+}
+
+function openBetsGame(matchId) {
+  const m = matches.find(x => x.id === matchId);
+  if (!m) return;
+
+  // Filtra apostas deste jogo (grupo GERAL)
+  const bets = allBets.filter(b =>
+    String(b.jogo_id) === String(matchId) &&
+    String(b.grupo || 'GERAL') === 'GERAL'
+  ).map(b => ({
+    usuario: b.usuario || '',
+    displayName: b.display_name || (b.usuario && b.usuario.includes('@') ? b.usuario.split('@')[0] : (b.usuario || '?')),
+    h: parseInt(b.gol_casa),
+    a: parseInt(b.gol_visit),
+    ts: b.atualizado_em || b.criado_em || ''
+  })).filter(b => !isNaN(b.h) && !isNaN(b.a));
+
+  // Calcula pontos se o jogo já tem placar
+  const hasResult = !!m.score;
+  bets.forEach(b => {
+    b.pts = hasResult ? calcPoints({h:b.h, a:b.a}, m.score) : null;
+  });
+
+  // Ordena: se tem resultado → por pontos desc, exato primeiro. Senão alfabético.
+  if (hasResult) {
+    bets.sort((x, y) => (y.pts||0) - (x.pts||0) || x.displayName.localeCompare(y.displayName));
+  } else {
+    bets.sort((x, y) => x.displayName.localeCompare(y.displayName));
+  }
+
+  // Header
+  const realScore = m.score
+    ? `<div class="bets-modal-real">${m.score.h} × ${m.score.a}</div>`
+    : `<div class="bets-modal-real pending">vs</div>`;
+  document.getElementById('bets-game-header').innerHTML = `
+    <div class="bets-modal-header">
+      <div style="text-align:center;">
+        <div style="font-size:24px;">${m.hFlag}</div>
+        <div style="margin-top:3px;font-size:11px;">${m.home}</div>
+      </div>
+      ${realScore}
+      <div style="text-align:center;">
+        <div style="font-size:24px;">${m.aFlag}</div>
+        <div style="margin-top:3px;font-size:11px;">${m.away}</div>
+      </div>
+    </div>
+    <div class="bets-list-header">
+      <span>${bets.length} palpite${bets.length!==1?'s':''}</span>
+      <span>${hasResult ? 'por pontos' : 'alfabético'}</span>
+    </div>
+  `;
+
+  // Lista
+  const myEmailLow = (userEmail || '').toLowerCase();
+  const myNameLow  = (userName  || '').toLowerCase();
+  document.getElementById('bets-game-list').innerHTML = bets.length === 0
+    ? '<div class="empty-state">Ninguém palpitou neste jogo</div>'
+    : bets.map(b => {
+        const isMe = (b.usuario || '').toLowerCase() === myEmailLow ||
+                     (b.usuario || '').toLowerCase() === myNameLow;
+        const color = COLORS[hashStr(b.usuario || '?') % COLORS.length];
+        const ini = b.displayName.slice(0,2).toUpperCase();
+        const dispName = isMe ? 'Você' : b.displayName;
+        const isExact = b.pts === 3;
+        let ptsHtml = '';
+        if (b.pts !== null) {
+          const cls = b.pts === 3 ? 'gold' : b.pts > 0 ? 'green' : 'zero';
+          const label = b.pts === 3 ? '+3' : b.pts === 2 ? '+2' : b.pts === 1 ? '+1' : '0';
+          ptsHtml = `<span class="bet-row-pts ${cls}">${label}</span>`;
+        }
+        return `<div class="bet-row ${isMe?'me':''}">
+          <div class="bet-row-avt" style="background:${color}22;color:${color}">${ini}</div>
+          <div class="bet-row-info">
+            <div class="bet-row-name">${dispName}</div>
+          </div>
+          <span class="bet-row-score ${isExact?'exact':''}">${b.h} × ${b.a}</span>
+          ${ptsHtml}
+        </div>`;
+      }).join('');
+
+  // Conta quantos do ranking não palpitaram neste jogo
+  const totalPart = rankingGeral.length;
+  const naoPalp = Math.max(0, totalPart - bets.length);
+  if (naoPalp > 0 && totalPart > 0) {
+    document.getElementById('bets-game-list').innerHTML +=
+      `<div class="bets-miss">${naoPalp} pessoa${naoPalp>1?'s':''} não palpitou neste jogo</div>`;
+  }
+
+  document.getElementById('bets-game-backdrop').style.display = 'flex';
+}
+
+function openBetsPerson(usuario) {
+  if (!usuario) return;
+
+  // Identifica a pessoa
+  const usuarioLow = usuario.toLowerCase();
+  const personBets = allBets.filter(b =>
+    (b.usuario || '').toLowerCase() === usuarioLow &&
+    String(b.grupo || 'GERAL') === 'GERAL'
+  );
+
+  // displayName: pega do primeiro registro de aposta ou do ranking
+  let displayName = '?';
+  if (personBets.length > 0 && personBets[0].display_name) displayName = personBets[0].display_name;
+  else {
+    const rank = rankingGeral.find(r => (r.usuario||'').toLowerCase() === usuarioLow);
+    if (rank) displayName = rank.displayName || rank.usuario || '?';
+    else if (usuario.includes('@')) displayName = usuario.split('@')[0];
+    else displayName = usuario;
+  }
+
+  const isMe = usuarioLow === (userEmail || '').toLowerCase() ||
+               usuarioLow === (userName  || '').toLowerCase();
+
+  // Stats da pessoa no ranking
+  const rankEntry = rankingGeral.find(r => (r.usuario||'').toLowerCase() === usuarioLow);
+  const pts = rankEntry ? (rankEntry.pts||0) : (isMe ? myStats().pts : 0);
+  const exatos = rankEntry ? (rankEntry.exatos||0) : (isMe ? myStats().exact : 0);
+  const sortedRank = [...rankingGeral].sort((a,b) => (b.pts||0) - (a.pts||0));
+  const pos = sortedRank.findIndex(r => (r.usuario||'').toLowerCase() === usuarioLow) + 1;
+  const posStr = pos > 0 ? `${pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos+'º'} lugar` : '—';
+
+  const color = COLORS[hashStr(usuario) % COLORS.length];
+  const ini = displayName.slice(0,2).toUpperCase();
+
+  document.getElementById('bets-person-head').innerHTML = `
+    <div class="person-modal-head">
+      <div class="person-modal-avt" style="background:${color}22;color:${color}">${ini}</div>
+      <div class="person-modal-info">
+        <div class="person-modal-name">${isMe ? 'Você' : displayName}</div>
+        <div class="person-modal-sub">${posStr} · ${exatos} exato${exatos!==1?'s':''}</div>
+      </div>
+      <div class="person-modal-pts-block">
+        <div class="person-modal-pts">${pts}</div>
+        <div class="person-modal-pts-l">PONTOS</div>
+      </div>
+    </div>
+  `;
+
+  // Mapeia apostas por jogo_id
+  const betsMap = {};
+  personBets.forEach(b => {
+    const jid = parseInt(b.jogo_id);
+    const gh = parseInt(b.gol_casa), ga = parseInt(b.gol_visit);
+    if (!isNaN(jid) && !isNaN(gh) && !isNaN(ga)) betsMap[jid] = {h:gh, a:ga};
+  });
+
+  // Lista TODOS os jogos em ordem cronológica
+  const jogosOrdenados = [...matches].sort((a,b) => (a.kickoff||0) - (b.kickoff||0));
+  let totalVisiveis = 0, totalOcultos = 0, totalSemAposta = 0;
+
+  const listHtml = jogosOrdenados.map(m => {
+    const closed = isBettingClosed(m);
+    const bet = betsMap[m.id];
+    // Se não está fechado, a pessoa pode até ter apostado, mas o palpite fica oculto
+    // EXCETO se for o próprio usuário olhando seus próprios palpites
+    const podeVer = closed || isMe;
+
+    let valHtml;
+    if (!bet) {
+      totalSemAposta++;
+      valHtml = `<span class="pbet-no-bet">sem aposta</span>`;
+    } else if (!podeVer) {
+      totalOcultos++;
+      valHtml = `<span class="pbet-bet hidden">👁⃠ oculto</span>`;
+    } else {
+      totalVisiveis++;
+      const pts = m.score ? calcPoints(bet, m.score) : null;
+      const isExact = pts === 3;
+      let ptsHtml = '';
+      if (pts !== null) {
+        const cls = pts === 3 ? 'gold' : pts > 0 ? 'green' : 'zero';
+        const label = pts === 3 ? '+3' : pts === 2 ? '+2' : pts === 1 ? '+1' : '0';
+        ptsHtml = `<span class="bet-row-pts ${cls}" style="margin-left:6px;">${label}</span>`;
+      }
+      valHtml = `<span class="pbet-bet ${isExact?'exact':''}">${bet.h} × ${bet.a}</span>${ptsHtml}`;
+    }
+
+    return `<div class="pbet">
+      <div class="pbet-info">
+        <div class="pbet-match">${m.hFlag} ${m.home} <span style="color:var(--muted);">vs</span> ${m.away} ${m.aFlag}</div>
+        <div class="pbet-round">${m.round || ''} · ${(m.date||'').split('·')[0].trim()}</div>
+      </div>
+      ${valHtml}
+    </div>`;
+  }).join('');
+
+  const headerInfo = `<div class="bets-list-header"><span>${totalVisiveis} visível${totalVisiveis!==1?'eis':''}</span>${totalOcultos>0?`<span>👁⃠ ${totalOcultos} oculto${totalOcultos>1?'s':''}</span>`:''}</div>`;
+
+  document.getElementById('bets-person-list').innerHTML = headerInfo + listHtml +
+    (totalOcultos > 0
+      ? `<div class="bets-miss">Palpites de jogos com aposta ainda aberta ficam ocultos para não dar dica.</div>`
+      : '');
+
+  document.getElementById('bets-person-backdrop').style.display = 'flex';
 }
 
 // ── ADMIN ────────────────────────────────────────────
