@@ -402,6 +402,9 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 
     <!-- RANKING -->
     <div id="screen-ranking" class="screen">
+      <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:10px;">
+        <button onclick="syncAll(true)" style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 12px;color:var(--text);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">↻ Sincronizar</button>
+      </div>
       <!-- Resumo do usuário -->
       <div id="rank-my-summary" style="background:var(--bg3);border:1px solid var(--green-glow);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;">
         <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--green);margin-bottom:8px;font-weight:600;">Seu desempenho</div>
@@ -488,7 +491,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     </div>
     <!-- ADMIN -->
     <div id="screen-admin" class="screen">
-      <div class="section-title" style="color:var(--red);">⚙ Painel Admin</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <div class="section-title" style="color:var(--red);margin:0;">⚙ Painel Admin</div>
+        <button onclick="syncAll(true)" style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 12px;color:var(--text);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">↻ Sincronizar</button>
+      </div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">Atualize os placares dos jogos</div>
       <div class="admin-tab-row">
         <button class="admin-tab active" id="admin-tab-pend" onclick="adminTab('pendentes')">Pendentes</button>
@@ -2259,10 +2265,10 @@ function renderAdmin() {
     byDia[key].push(m);
   });
 
-  list.innerHTML = diaOrder.map(diaKey => {
+  list.innerHTML = diaOrder.map((diaKey, diaIdx) => {
     const jogos = byDia[diaKey];
     // Encerrados: primeiro dia começa aberto, resto encolhido por padrão
-    const defaultOpen = isPend ? true : diaOrder.indexOf(diaKey) === 0;
+    const defaultOpen = isPend ? true : diaIdx === 0;
     const isOpen = adminCollapsedDias.has(diaKey) ? false : defaultOpen;
     const count = jogos.length;
     const label = diaKey.replace(/^\w/, c => c.toUpperCase());
@@ -2308,7 +2314,8 @@ function renderAdmin() {
       </div>`;
     }).join('');
 
-    return `<div class="admin-dia-header" onclick="adminToggleDia(${JSON.stringify(diaKey)})">
+    const safeKey = diaKey.replace(/"/g, '&quot;');
+    return `<div class="admin-dia-header" data-dia="${safeKey}">
         <span class="admin-dia-label">${label}</span>
         <div class="admin-dia-meta">
           <span class="admin-dia-count">${count} jogo${count !== 1 ? 's' : ''}</span>
@@ -2319,6 +2326,11 @@ function renderAdmin() {
         ${cardsHtml}
       </div>`;
   }).join('');
+
+  // Liga clique nos headers de dia (event delegation evita problema com aspas)
+  list.querySelectorAll('.admin-dia-header').forEach(h => {
+    h.addEventListener('click', () => adminToggleDia(h.dataset.dia));
+  });
 }
 
 // Estado temporário dos scores editados no admin
