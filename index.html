@@ -2369,7 +2369,7 @@ function openBetsGame(matchId) {
   const naoPalp = Math.max(0, totalPart - bets.length);
   if (naoPalp > 0 && totalPart > 0) {
     document.getElementById('bets-game-list').innerHTML +=
-      `<div class="bets-miss">${naoPalp} pessoa${naoPalp>1?'s':''} não palpitou neste jogo</div>`;
+      `<div class="bets-miss">${naoPalp} pessoa${naoPalp>1?'s':''} não palpit${naoPalp>1?'aram':'ou'} neste jogo</div>`;
   }
 
   document.getElementById('bets-game-backdrop').style.display = 'flex';
@@ -2448,7 +2448,7 @@ function openBetsPerson(usuario) {
       valHtml = `<span class="pbet-no-bet">sem aposta</span>`;
     } else if (!podeVer) {
       totalOcultos++;
-      valHtml = `<span class="pbet-bet hidden">👁⃠ oculto</span>`;
+      valHtml = `<span class="pbet-bet hidden">🙈 oculto</span>`;
     } else {
       totalVisiveis++;
       const pts = m.score ? calcPoints(bet, m.score) : null;
@@ -2471,7 +2471,7 @@ function openBetsPerson(usuario) {
     </div>`;
   }).join('');
 
-  const headerInfo = `<div class="bets-list-header"><span>${totalVisiveis} visível${totalVisiveis!==1?'eis':''}</span>${totalOcultos>0?`<span>👁⃠ ${totalOcultos} oculto${totalOcultos>1?'s':''}</span>`:''}</div>`;
+  const headerInfo = `<div class="bets-list-header"><span>${totalVisiveis} ${totalVisiveis===1?'visível':'visíveis'}</span>${totalOcultos>0?`<span>🙈 ${totalOcultos} oculto${totalOcultos>1?'s':''}</span>`:''}</div>`;
 
   document.getElementById('bets-person-list').innerHTML = headerInfo + listHtml +
     (totalOcultos > 0
