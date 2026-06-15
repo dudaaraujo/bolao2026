@@ -2652,23 +2652,37 @@ async function doAdminSave() {
   showToast('⏳ Salvando...');
   try {
     const r = await api({
-      action:    'updatePlacar',
-      admin:     userEmail,
-      jogo_id:   match.id,
-      gol_casa:  h,
-      gol_visit: a
+      action:     'updatePlacar',
+      admin:      userEmail,
+      jogo_id:    match.id,
+      gol_casa:   h,
+      gol_visit:  a,
+      kickoff_ms: match.kickoff || 0
     });
     if (!r.ok) throw new Error(r.error || 'Erro desconhecido');
     showToast('✅ Placar salvo!');
+    // Decide status local com a mesma lógica do Apps Script
+    let newStatus = match.status;
+    const TWO_HOURS = 2 * 60 * 60 * 1000;
+    if (match.kickoff) {
+      const diff = Date.now() - match.kickoff;
+      if (diff >= TWO_HOURS) newStatus = 'done';
+      else if (diff >= 0)    newStatus = 'live';
+      // diff < 0 → mantém status atual (jogo ainda não começou)
+    } else {
+      newStatus = 'done';
+    }
     const idx = matches.findIndex(x => x.id === match.id);
     if (idx >= 0) {
       matches[idx].score  = { h, a };
-      matches[idx].status = 'done';
+      matches[idx].status = newStatus;
     }
     delete adminScores[match.id];
     renderAdmin();
     renderMatches();
     if (document.getElementById('screen-tabela').classList.contains('active')) renderTabela();
+    // Puxa ranking atualizado do servidor (em background, sem toast)
+    syncAll(false);
   } catch(e) {
     showToast('⚠️ ' + e.message);
   }
