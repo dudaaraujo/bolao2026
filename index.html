@@ -1126,17 +1126,21 @@ function getTeamList(){
 
 // Mata-mata começa? (trava edição) — detecta fase não-grupo já em andamento
 function champLocked(){
-  // Trava quando algum jogo de mata-mata (fase sem "grupo") já começou
-  return matches.some(m => {
-    const f=(m.round||'').toLowerCase();
-    const isMata = f && !f.includes('grupo');
-    return isMata && (m.status==='live' || m.status==='done');
+  // Trava quando o primeiro jogo das oitavas (primeiro jogo do mata-mata
+  // em ordem cronológica) começa. Independente do status na planilha —
+  // usa o horário real (kickoff vs agora).
+  const mataMatches = matches.filter(m => {
+    const f = (m.round || '').toLowerCase();
+    return f && !f.includes('grupo') && m.kickoff;
   });
+  if(!mataMatches.length) return false;
+  const firstMata = mataMatches.reduce((min, m) => m.kickoff < min.kickoff ? m : min);
+  return Date.now() >= firstMata.kickoff;
 }
 
 function openChampModal(){
   if(champLocked()){
-    showToast('🔒 Palpite encerrado — o mata-mata já começou');
+    showToast('🔒 Palpite encerrado — as oitavas começaram');
     return;
   }
   // Preenche com palpite atual
