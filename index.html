@@ -276,6 +276,18 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .admin-score-sep{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--muted);}
 .admin-btn-saved{width:100%;padding:9px;background:rgba(0,200,83,.08);color:var(--green);font-size:13px;font-weight:600;border-radius:8px;border:1px solid rgba(0,200,83,.25);cursor:pointer;font-family:'DM Sans',sans-serif;}
 
+/* ── FRASE DE STATUS NO RANKING ── */
+.rk-phrase{font-size:12px;color:var(--gold);margin-top:3px;line-height:1.3;display:flex;align-items:center;gap:5px;}
+.rk-phrase-ico{font-size:10px;opacity:.7;}
+.rk-edit-icon{width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:rgba(122,144,184,.08);border:1px solid rgba(122,144,184,.2);border-radius:50%;color:var(--muted);font-size:14px;cursor:pointer;flex-shrink:0;font-family:'DM Sans',sans-serif;padding:0;}
+.rk-edit-icon:hover{color:var(--green);border-color:rgba(0,200,83,.3);}
+.frase-cat{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin:14px 0 6px;}
+.frase-cat:first-of-type{margin-top:0;}
+.frase-opt{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;color:var(--text);margin-bottom:5px;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;width:100%;text-align:left;}
+.frase-opt:hover{border-color:var(--green);}
+.frase-opt.selected{border-color:var(--gold);background:rgba(255,214,0,.08);color:var(--gold);}
+.frase-opt.none{color:var(--muted);font-style:italic;}
+
 /* ── VER PALPITES ── */
 .btn-see-bets{margin-top:8px;width:100%;font-size:11px;font-weight:600;padding:7px 10px;background:rgba(255,214,0,.08);color:var(--gold);border:1px solid rgba(255,214,0,.2);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:'DM Sans',sans-serif;}
 .btn-see-bets:hover{background:rgba(255,214,0,.14);}
@@ -755,6 +767,17 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 
     <button class="btn btn-green" onclick="saveChamp()" style="margin-top:16px;">Salvar palpite ✓</button>
     <button class="btn btn-outline" onclick="closeChampModal()" style="margin-top:8px;border:none;color:var(--muted);">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL ESCOLHER FRASE DE STATUS -->
+<div id="frase-modal-backdrop" class="modal-backdrop" style="display:none;" onclick="if(event.target===this)closeFraseModal()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Escolha seu status</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">Aparece pra todo mundo no ranking</div>
+    <div id="frase-list"></div>
+    <button class="btn btn-outline" onclick="closeFraseModal()" style="margin-top:10px;border:none;color:var(--muted);">Cancelar</button>
   </div>
 </div>
 
@@ -2080,22 +2103,24 @@ function renderRanking(){
   }
 
   document.getElementById('rank-list').innerHTML=all.map((m,i)=>{
-    const color=COLORS[hashStr(m.usuario||'?')%COLORS.length];
     const dName=m.displayName||(m.usuario&&m.usuario.includes('@')?m.usuario.split('@')[0]:m.usuario)||'?';
-    const ini=dName.slice(0,2).toUpperCase();
     const isMe=(m.usuario||'').toLowerCase()===(userEmail||'').toLowerCase()||
              (m.usuario||'').toLowerCase()===(userName||'').toLowerCase();
     const ptsNum=m.pts||0;
     const totalJogos=matches.filter(x=>x.status==='done').length;
     const acPct=totalJogos>0?Math.round(((m.acertos||0)/totalJogos)*100):0;
     const userKey = (m.usuario||'').replace(/'/g, "\\'");
+    const frase = m.frase || '';
+    const fraseHtml = frase ? `<div class="rk-phrase"><span class="rk-phrase-ico">💬</span>${frase}</div>` : '';
+    const editBtn = isMe ? `<button class="rk-edit-icon" onclick="event.stopPropagation();openFraseModal()" title="Editar status" aria-label="Editar status">✏</button>` : '';
     return `<div class="rank-item clickable ${isMe?'me':''}" onclick="openBetsPerson('${userKey}')">
       <div class="rank-pos ${posColors[i]||''}">${i<3?medals[i]:i+1}</div>
-      <div class="rank-avatar" style="background:${color}22;color:${color}">${ini}</div>
       <div class="rank-info">
         <div class="rank-name">${dName} ${isMe?'<span class="rank-badge">Você</span>':''}</div>
+        ${fraseHtml}
         <div class="rank-detail">${m.exatos||0} exatos · ${m.acertos||0} acertos${totalJogos>0?' · '+acPct+'%':''}</div>
       </div>
+      ${editBtn}
       <div style="text-align:right;">
         <div class="rank-pts">${ptsNum}</div>
         <div style="font-size:10px;color:var(--muted);">pts</div>
@@ -2344,6 +2369,83 @@ async function updateQuizRanking() {
   } catch(e) {}
 }
 
+// ── FRASES DE STATUS ────────────────────────────────
+const FRASES = [
+  { cat: 'Confiante / Top', items: [
+    'Segue a líder 👑',
+    'Hexa garantido 🏆',
+    'Já tô no topo',
+    'Profeta da bola 🔮',
+  ]},
+  { cat: 'Otimista / Provocador', items: [
+    'Cuidado, tô subindo ↗',
+    'Hoje é meu dia',
+    'Vou virar o jogo',
+    'Já pode ir desistindo',
+  ]},
+  { cat: 'Auto-deprecativo', items: [
+    'Chuto no escuro 🎯',
+    'Vendo Copa pela 1ª vez',
+    'Acerto na sorte 🍀',
+    'Lanterninha 🏮',
+  ]},
+  { cat: 'Neutro / Diversão', items: [
+    'Coruja insone 🦉',
+    'Tô no modo zen',
+    'Aqui pela festa',
+  ]},
+];
+
+// Armazena a frase atual do usuário (atualizada pelo getRanking)
+function getMyFrase() {
+  if (!userEmail) return '';
+  const me = rankingGeral.find(r => (r.usuario || '').toLowerCase() === userEmail.toLowerCase());
+  return (me && me.frase) || '';
+}
+
+function openFraseModal() {
+  const atual = getMyFrase();
+  const list = document.getElementById('frase-list');
+  let html = '';
+  FRASES.forEach(grupo => {
+    html += `<div class="frase-cat">${grupo.cat}</div>`;
+    grupo.items.forEach(frase => {
+      const escaped = frase.replace(/'/g, "\\'");
+      const sel = frase === atual ? 'selected' : '';
+      html += `<button class="frase-opt ${sel}" onclick="saveFrase('${escaped}')">${frase}</button>`;
+    });
+  });
+  // Opção de limpar
+  html += `<div class="frase-cat">Sem status</div>`;
+  html += `<button class="frase-opt none ${atual === '' ? 'selected' : ''}" onclick="saveFrase('')">— Não mostrar nada —</button>`;
+  list.innerHTML = html;
+  document.getElementById('frase-modal-backdrop').style.display = 'flex';
+}
+
+function closeFraseModal() {
+  document.getElementById('frase-modal-backdrop').style.display = 'none';
+}
+
+async function saveFrase(frase) {
+  closeFraseModal();
+  showToast('⏳ Salvando...');
+  try {
+    const r = await api({
+      action: 'setFrase',
+      email: userEmail,
+      frase: frase
+    });
+    if (!r.ok) throw new Error(r.error || 'Erro');
+    // Atualiza local imediatamente
+    const me = rankingGeral.find(rk => (rk.usuario || '').toLowerCase() === userEmail.toLowerCase());
+    if (me) me.frase = frase;
+    showToast(frase ? '✅ Status atualizado!' : '✅ Status removido');
+    renderRanking();
+  } catch(e) {
+    showToast('⚠️ ' + e.message);
+  }
+}
+
 // ── VER PALPITES DOS OUTROS ─────────────────────────
 function closeBetsModal() {
   document.getElementById('bets-game-backdrop').style.display = 'none';
@@ -2496,22 +2598,21 @@ function openBetsPerson(usuario) {
     if (!isNaN(jid) && !isNaN(gh) && !isNaN(ga)) betsMap[jid] = {h:gh, a:ga};
   });
 
-  // Lista TODOS os jogos em ordem cronológica
-  const jogosOrdenados = [...matches].sort((a,b) => (a.kickoff||0) - (b.kickoff||0));
-  let totalVisiveis = 0, totalOcultos = 0, totalSemAposta = 0;
+  // Lista APENAS jogos onde a pessoa apostou, em ordem cronológica
+  const jogosOrdenados = [...matches]
+    .filter(m => betsMap[m.id])  // apenas jogos apostados
+    .sort((a,b) => (a.kickoff||0) - (b.kickoff||0));
+  // Conta quantos jogos não apostados para a nota no rodapé
+  const totalSemAposta = matches.length - jogosOrdenados.length;
+  let totalVisiveis = 0, totalOcultos = 0;
 
   const listHtml = jogosOrdenados.map(m => {
     const closed = isBettingClosed(m);
     const bet = betsMap[m.id];
-    // Se não está fechado, a pessoa pode até ter apostado, mas o palpite fica oculto
-    // EXCETO se for o próprio usuário olhando seus próprios palpites
     const podeVer = closed || isMe;
 
     let valHtml;
-    if (!bet) {
-      totalSemAposta++;
-      valHtml = `<span class="pbet-no-bet">sem aposta</span>`;
-    } else if (!podeVer) {
+    if (!podeVer) {
       totalOcultos++;
       valHtml = `<span class="pbet-bet hidden">🙈 oculto</span>`;
     } else {
@@ -2536,12 +2637,24 @@ function openBetsPerson(usuario) {
     </div>`;
   }).join('');
 
-  const headerInfo = `<div class="bets-list-header"><span>${totalVisiveis} ${totalVisiveis===1?'visível':'visíveis'}</span>${totalOcultos>0?`<span>🙈 ${totalOcultos} oculto${totalOcultos>1?'s':''}</span>`:''}</div>`;
+  const totalApostas = jogosOrdenados.length;
+  const headerInfo = `<div class="bets-list-header"><span>${totalApostas} ${totalApostas===1?'palpite':'palpites'}</span>${totalOcultos>0?`<span>🙈 ${totalOcultos} oculto${totalOcultos>1?'s':''}</span>`:''}</div>`;
 
-  document.getElementById('bets-person-list').innerHTML = headerInfo + listHtml +
-    (totalOcultos > 0
-      ? `<div class="bets-miss">Palpites de jogos com aposta ainda aberta ficam ocultos para não dar dica.</div>`
-      : '');
+  let footerHtml = '';
+  if (totalApostas === 0) {
+    // Empty state — nenhum palpite
+    footerHtml = `<div class="empty-state">${isMe ? 'Você' : 'Esta pessoa'} ainda não apostou em nenhum jogo</div>`;
+  } else {
+    if (totalSemAposta > 0) {
+      footerHtml += `<div class="bets-miss">Não apostou em ${totalSemAposta} ${totalSemAposta===1?'jogo':'jogos'}</div>`;
+    }
+    if (totalOcultos > 0) {
+      footerHtml += `<div class="bets-miss">Palpites de jogos com aposta ainda aberta ficam ocultos para não dar dica.</div>`;
+    }
+  }
+
+  document.getElementById('bets-person-list').innerHTML =
+    (totalApostas > 0 ? headerInfo : '') + listHtml + footerHtml;
 
   document.getElementById('bets-person-backdrop').style.display = 'flex';
 }
