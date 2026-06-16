@@ -1689,7 +1689,7 @@ function updateCountdown(){
 function calcPoints(bet,result){
   if(!result||!bet) return null;
   if(bet.h===result.h&&bet.a===result.a) return 3;
-  if((bet.h-bet.a)===(result.h-result.a)&&result.h!==result.a) return 2;
+  if((bet.h-bet.a)===(result.h-result.a)) return 2;
   const w=r=>r.h>r.a?1:r.h<r.a?-1:0;
   if(w(bet)===w(result)) return 1;
   return 0;
