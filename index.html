@@ -276,6 +276,15 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .admin-score-sep{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--muted);}
 .admin-btn-saved{width:100%;padding:9px;background:rgba(0,200,83,.08);color:var(--green);font-size:13px;font-weight:600;border-radius:8px;border:1px solid rgba(0,200,83,.25);cursor:pointer;font-family:'DM Sans',sans-serif;}
 
+/* ── TELA CHEIA (FULLSCREEN PAGE) ── */
+.fullscreen-page{position:fixed;inset:0;z-index:9000;background:var(--bg);display:flex;flex-direction:column;animation:fsSlideIn .25s ease;}
+.fs-header{background:var(--bg2);padding:11px 14px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.fs-back{background:none;border:none;color:var(--text);font-size:24px;cursor:pointer;line-height:1;padding:4px 6px;font-family:'DM Sans',sans-serif;}
+.fs-back:hover{color:var(--green);}
+.fs-title{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--text);letter-spacing:.06em;flex:1;}
+.fs-body{flex:1;overflow-y:auto;padding:14px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+@keyframes fsSlideIn{from{transform:translateX(20px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+
 /* ── FRASE DE STATUS NO RANKING ── */
 .rk-phrase{font-size:12px;color:var(--gold);margin-top:3px;line-height:1.3;display:flex;align-items:center;gap:5px;}
 .rk-phrase-ico{font-size:10px;opacity:.7;}
@@ -630,13 +639,15 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   </div>
 </div>
 
-<!-- MODAL VER PALPITES DA PESSOA -->
-<div id="bets-person-backdrop" class="modal-backdrop" style="display:none;" onclick="if(event.target===this)closeBetsModal()">
-  <div class="modal">
-    <div class="modal-handle"></div>
+<!-- TELA CHEIA: VER PALPITES DA PESSOA -->
+<div id="bets-person-page" class="fullscreen-page" style="display:none;">
+  <div class="fs-header">
+    <button class="fs-back" onclick="closeBetsModal()" aria-label="Voltar">←</button>
+    <div class="fs-title">Palpites</div>
+  </div>
+  <div class="fs-body">
     <div id="bets-person-head"></div>
     <div id="bets-person-list"></div>
-    <button class="btn btn-outline" onclick="closeBetsModal()" style="margin-top:12px;border:none;color:var(--muted);">Fechar</button>
   </div>
 </div>
 
@@ -2449,7 +2460,9 @@ async function saveFrase(frase) {
 // ── VER PALPITES DOS OUTROS ─────────────────────────
 function closeBetsModal() {
   document.getElementById('bets-game-backdrop').style.display = 'none';
-  document.getElementById('bets-person-backdrop').style.display = 'none';
+  document.getElementById('bets-person-page').style.display = 'none';
+  // restaura scroll do body
+  document.body.style.overflow = '';
 }
 
 function openBetsGame(matchId) {
@@ -2656,7 +2669,12 @@ function openBetsPerson(usuario) {
   document.getElementById('bets-person-list').innerHTML =
     (totalApostas > 0 ? headerInfo : '') + listHtml + footerHtml;
 
-  document.getElementById('bets-person-backdrop').style.display = 'flex';
+  // Trava scroll do body atrás (segurança extra) e abre tela cheia
+  document.body.style.overflow = 'hidden';
+  document.getElementById('bets-person-page').style.display = 'flex';
+  // Reseta o scroll da tela cheia pro topo
+  const body = document.querySelector('#bets-person-page .fs-body');
+  if (body) body.scrollTop = 0;
 }
 
 // ── ADMIN ────────────────────────────────────────────
