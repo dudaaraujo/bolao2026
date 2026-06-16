@@ -276,6 +276,28 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .admin-score-sep{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--muted);}
 .admin-btn-saved{width:100%;padding:9px;background:rgba(0,200,83,.08);color:var(--green);font-size:13px;font-weight:600;border-radius:8px;border:1px solid rgba(0,200,83,.25);cursor:pointer;font-family:'DM Sans',sans-serif;}
 
+/* ── MENU LATERAL (DRAWER) ── */
+#drawer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:8000;display:none;opacity:0;transition:opacity .25s ease;}
+#drawer-backdrop.open{display:block;opacity:1;}
+#drawer{position:fixed;top:0;right:0;bottom:0;width:78%;max-width:320px;background:var(--bg);border-left:1px solid var(--border);z-index:8001;transform:translateX(100%);transition:transform .25s ease;display:flex;flex-direction:column;}
+#drawer.open{transform:translateX(0);}
+.dr-hdr{background:var(--bg2);padding:16px 16px;display:flex;align-items:center;gap:11px;border-bottom:1px solid var(--border);position:relative;flex-shrink:0;}
+.dr-x{position:absolute;top:10px;right:12px;background:none;border:none;color:var(--muted);font-size:22px;line-height:1;cursor:pointer;padding:4px 6px;}
+.dr-x:hover{color:var(--text);}
+.dr-avt{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;overflow:hidden;}
+.dr-avt img{width:100%;height:100%;object-fit:cover;}
+.dr-name{font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dr-email{font-size:10px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dr-list{flex:1;padding:8px 0;overflow-y:auto;}
+.dr-item{display:flex;align-items:center;gap:13px;padding:13px 18px;font-size:14px;color:var(--text);cursor:pointer;font-weight:500;background:none;border:none;width:100%;text-align:left;font-family:'DM Sans',sans-serif;}
+.dr-item:hover{background:var(--surface);}
+.dr-item.adm{color:var(--red);}
+.dr-item-ico{width:22px;font-size:16px;text-align:center;flex-shrink:0;}
+.dr-foot{padding:14px 18px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.dr-logout{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0;}
+.dr-logout:hover{color:var(--red);}
+.dr-version{font-size:10px;color:var(--muted);opacity:.6;}
+
 /* ── TELA CHEIA (FULLSCREEN PAGE) ── */
 .fullscreen-page{position:fixed;inset:0;z-index:9000;background:var(--bg);display:flex;flex-direction:column;animation:fsSlideIn .25s ease;}
 .fs-header{background:var(--bg2);padding:11px 14px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border);flex-shrink:0;}
@@ -623,9 +645,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         <span id="quiz-badge" style="display:none;position:absolute;top:-3px;right:-5px;width:8px;height:8px;background:#ff4757;border-radius:50%;border:1.5px solid var(--bg2);"></span>
       </div>Quiz
     </button>
-    <button class="nav-btn" id="nav-admin" onclick="goScreen('admin')" style="display:none;color:var(--red);">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M17 13l2 2 4-4" stroke-width="2.2"/></svg>Admin
-    </button>
 </div>
 
 <!-- MODAL VER PALPITES DO JOGO -->
@@ -636,6 +655,26 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <div id="bets-game-header"></div>
     <div id="bets-game-list"></div>
     <button class="btn btn-outline" onclick="closeBetsModal()" style="margin-top:12px;border:none;color:var(--muted);">Fechar</button>
+  </div>
+</div>
+
+<!-- MENU LATERAL (DRAWER) -->
+<div id="drawer-backdrop" onclick="closeDrawer()"></div>
+<div id="drawer">
+  <button class="dr-x" onclick="closeDrawer()" aria-label="Fechar">×</button>
+  <div class="dr-hdr">
+    <div class="dr-avt" id="drawer-avatar"></div>
+    <div style="flex:1;min-width:0;">
+      <div class="dr-name" id="drawer-name">—</div>
+      <div class="dr-email" id="drawer-email">—</div>
+    </div>
+  </div>
+  <div class="dr-list" id="drawer-list">
+    <!-- itens preenchidos via JS -->
+  </div>
+  <div class="dr-foot">
+    <button class="dr-logout" onclick="closeDrawer();logout();">Sair da conta</button>
+    <span class="dr-version">Coruja v1.0</span>
   </div>
 </div>
 
@@ -1633,9 +1672,48 @@ function obEnter() {
 
 
 function showUserMenu() {
+  openDrawer();
+}
+
+function openDrawer() {
   const name = userName || 'Usuário';
   const email = userEmail || '';
-  if (confirm(`${name}\n${email}\n\nSair da conta?`)) logout();
+  const ini = name.slice(0,2).toUpperCase();
+
+  // Avatar
+  const avtEl = document.getElementById('drawer-avatar');
+  if (userPhoto) {
+    avtEl.innerHTML = `<img src="${userPhoto}" alt="">`;
+    avtEl.style.background = 'transparent';
+  } else {
+    const color = COLORS[hashStr(email || name) % COLORS.length];
+    avtEl.innerHTML = ini;
+    avtEl.style.background = color + '22';
+    avtEl.style.color = color;
+  }
+
+  document.getElementById('drawer-name').textContent = name;
+  document.getElementById('drawer-email').textContent = email;
+
+  // Itens do menu — Admin só pra Hilda
+  let items = '';
+  if (isAdmin()) {
+    items += `<button class="dr-item adm" onclick="closeDrawer();goScreen('admin');">
+      <span class="dr-item-ico">⚙</span>
+      <span>Painel Admin</span>
+    </button>`;
+  }
+  document.getElementById('drawer-list').innerHTML = items || '<div style="padding:20px;font-size:12px;color:var(--muted);text-align:center;">Sem opções extras no momento.</div>';
+
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer-backdrop').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer-backdrop').classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 // ── NAVEGAÇÃO ──
@@ -2688,8 +2766,8 @@ function isAdmin() {
 }
 
 function updateAdminNav() {
-  const btn = document.getElementById('nav-admin');
-  if (btn) btn.style.display = isAdmin() ? 'flex' : 'none';
+  // Admin agora fica no menu lateral (drawer), não no bottomnav.
+  // Mantido como no-op para não quebrar chamadas existentes.
 }
 
 function adminTab(f) {
