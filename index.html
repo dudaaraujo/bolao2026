@@ -107,16 +107,17 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .fase-header.collapsed .fase-arrow{transform:rotate(-90deg);}
 .fase-body{overflow:hidden;transition:max-height .25s ease;}
 .fase-body.collapsed{max-height:0 !important;}
-.match-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;cursor:pointer;transition:border-color .2s;position:relative;}
+.match-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:8px;cursor:pointer;transition:border-color .2s;position:relative;}
 .match-card:hover{border-color:var(--green);}
 .match-card.has-bet{border-left:3px solid var(--green);}
-.match-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-.match-round{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
-.match-status{font-size:10px;padding:3px 8px;border-radius:10px;font-weight:600;}
-.status-upcoming{background:rgba(255,214,0,.12);color:var(--gold);}
-.status-live{background:rgba(255,71,87,.15);color:var(--red);}
-.status-done{background:rgba(122,144,184,.12);color:var(--muted);}
-.status-closed{background:rgba(255,140,0,.12);color:#ff8c00;}
+.match-meta{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted);margin-bottom:8px;letter-spacing:.04em;}
+.match-meta .sep{color:rgba(122,144,184,.4);}
+.match-meta .round{font-weight:700;text-transform:uppercase;letter-spacing:.06em;}
+.match-meta .ms{margin-left:auto;font-weight:600;display:inline-flex;align-items:center;gap:4px;}
+.match-meta .ms-done{color:var(--green);}
+.match-meta .ms-live{color:var(--red);}
+.match-meta .ms-up{color:var(--gold);}
+.match-meta .ms-closed{color:#ff8c00;}
 .match-teams{display:flex;align-items:center;justify-content:space-between;}
 .match-team{display:flex;align-items:center;gap:8px;flex:1;}
 .match-team.right{flex-direction:row-reverse;text-align:right;}
@@ -124,10 +125,15 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .team-name{font-size:14px;font-weight:600;}
 .match-score{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--green);padding:0 12px;min-width:66px;text-align:center;}
 .match-score.pending{font-size:16px;color:var(--muted);}
-.match-footer{margin-top:8px;display:flex;justify-content:space-between;align-items:center;}
-.match-time{font-size:11px;color:var(--muted);}
+.match-info-row{margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:8px;}
 .bet-label{font-size:11px;color:var(--green);font-weight:600;}
-.pts-badge{display:inline-block;margin-top:6px;font-family:'Bebas Neue',sans-serif;font-size:14px;padding:2px 8px;border-radius:6px;letter-spacing:.04em;}
+.pts-badge{display:inline-block;font-size:10px;font-weight:700;padding:3px 9px;border-radius:5px;letter-spacing:.02em;}
+/* Status pills legacy (mantém pra outras telas) */
+.match-status{font-size:10px;padding:3px 8px;border-radius:10px;font-weight:600;}
+.status-upcoming{background:rgba(255,214,0,.12);color:var(--gold);}
+.status-live{background:rgba(255,71,87,.15);color:var(--red);}
+.status-done{background:rgba(122,144,184,.12);color:var(--muted);}
+.status-closed{background:rgba(255,140,0,.12);color:#ff8c00;}
 
 /* RANKING */
 .rank-list{display:flex;flex-direction:column;gap:8px;}
@@ -569,8 +575,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 
     <!-- JOGOS -->
     <div id="screen-jogos" class="screen">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <span style="font-size:12px;color:var(--muted);">Resultados via <b style="color:var(--green)">Google Sheets</b></span>
+      <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:12px;">
         <button onclick="syncAll(true)" style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 12px;color:var(--text);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">↻ Sincronizar</button>
       </div>
       <div class="filter-row">
@@ -2321,35 +2326,48 @@ function renderMatches(){
     const cards=arr.map(m=>{
       const bet=bets[m.id],pts=bet&&m.score?calcPoints(bet,m.score):null;
       const closed=isBettingClosed(m);
-      const sl=m.status==='live'?'Ao vivo ●':m.status==='done'?'Finalizado':closed?'🔒 Apostas encerradas':'Não iniciado';
+      // Status compacto
+      let statusCls, statusTxt;
+      if (m.status==='live') { statusCls='ms-live'; statusTxt='● Ao vivo'; }
+      else if (m.status==='done') { statusCls='ms-done'; statusTxt='● Finalizado'; }
+      else if (closed) { statusCls='ms-closed'; statusTxt='🔒 Encerrado'; }
+      else { statusCls='ms-up'; statusTxt='Não iniciado'; }
+
       const betLine=bet
-        ? `<span>Sua aposta: ${bet.h}×${bet.a}</span>`
+        ? `<span class="bet-label">Sua aposta: ${bet.h}×${bet.a}</span>`
         : (m.status==='upcoming' && !closed
-            ? '<span style="color:#58a6ff;">Toque para apostar</span>'
-            : (m.status==='upcoming' && closed ? '<span style="color:var(--muted);">Sem aposta</span>' : ''));
+            ? '<span class="bet-label" style="color:#58a6ff;">Toque para apostar</span>'
+            : (m.status==='upcoming' && closed ? '<span class="bet-label" style="color:var(--muted);">Sem aposta</span>' : '<span></span>'));
+
       const ptsColor=pts===3?'var(--gold)':pts>0?'var(--green)':'var(--red)';
       const ptsLabel=pts===3?'⭐ +3 pts':pts===2?'+2 pts':pts===1?'+1 pt':'✗ 0 pts';
-      const ptsBadge=pts!==null?`<div class="pts-badge" style="color:${ptsColor};background:${ptsColor}18;border:1px solid ${ptsColor}44;">${ptsLabel}</div>`:'';
+      const ptsBadge=pts!==null?`<span class="pts-badge" style="color:${ptsColor};background:${ptsColor}18;border:1px solid ${ptsColor}44;">${ptsLabel}</span>`:'<span></span>';
+
       // Botão "ver palpites" — só quando as apostas estão fechadas
       const showSeeBets = closed || m.status==='live' || m.status==='done';
       const betsCount = showSeeBets ? allBets.filter(b => String(b.jogo_id) === String(m.id) && String(b.grupo||'GERAL') === 'GERAL').length : 0;
       const seeBetsBtn = showSeeBets && betsCount > 0
-        ? `<button class="btn-see-bets" onclick="event.stopPropagation();openBetsGame(${m.id})">👁 Ver palpites de todos (${betsCount})</button>`
+        ? `<button class="btn-see-bets" onclick="event.stopPropagation();openBetsGame(${m.id})">👁 Ver palpites</button>`
         : '';
       // hora curta
       const hora=(m.date||'').split('·').pop().trim();
+
       return `<div class="match-card ${bet?'has-bet':''}" onclick="openBet(${m.id})">
-        <div class="match-header"><span class="match-round">${m.round}</span><span class="match-status status-${m.status==="upcoming"&&closed?"closed":m.status}">${m.status==='live'?`<span class="pulse">${sl}</span>`:sl}</span></div>
+        <div class="match-meta">
+          <span class="round">${m.round}</span>
+          <span class="sep">·</span>
+          <span>${hora}</span>
+          <span class="ms ${statusCls}">${statusTxt}</span>
+        </div>
         <div class="match-teams">
           <div class="match-team"><span class="team-flag">${m.hFlag}</span><span class="team-name">${m.home}</span></div>
           <div class="match-score ${m.score?'':'pending'}">${m.score?m.score.h+' – '+m.score.a:'–'}</div>
           <div class="match-team right"><span class="team-name">${m.away}</span><span class="team-flag">${m.aFlag}</span></div>
         </div>
-        <div class="match-footer">
-          <span class="match-time">🕐 ${hora}</span>
-          <span class="bet-label">${betLine}</span>
+        <div class="match-info-row">
+          ${ptsBadge}
+          ${betLine}
         </div>
-        ${ptsBadge?`<div style="padding:4px 0 2px;">${ptsBadge}</div>`:''}
         ${seeBetsBtn}
       </div>`;
     }).join('');
