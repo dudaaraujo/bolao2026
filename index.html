@@ -276,6 +276,38 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .admin-score-sep{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--muted);}
 .admin-btn-saved{width:100%;padding:9px;background:rgba(0,200,83,.08);color:var(--green);font-size:13px;font-weight:600;border-radius:8px;border:1px solid rgba(0,200,83,.25);cursor:pointer;font-family:'DM Sans',sans-serif;}
 
+/* ── CARROSSEL DE PALPITES ── */
+.palpite-carousel{margin-bottom:16px;position:relative;}
+.palpite-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;gap:0;}
+.palpite-track::-webkit-scrollbar{display:none;}
+.palpite-slide{flex:0 0 100%;scroll-snap-align:start;scroll-snap-stop:always;}
+.palpite-dots{display:flex;justify-content:center;gap:6px;margin-top:10px;}
+.palpite-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.2);cursor:pointer;transition:all .2s;}
+.palpite-dot.active{background:var(--gold);width:20px;border-radius:4px;}
+
+/* ── ARTILHEIROS — TELA CHEIA E SELEÇÃO ── */
+.art-slots{display:flex;gap:8px;margin-bottom:16px;}
+.art-slot{flex:1;background:var(--surface);border:2px dashed rgba(255,255,255,.1);border-radius:11px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .15s;}
+.art-slot.filled{border-style:solid;border-color:rgba(255,214,0,.35);background:rgba(255,214,0,.05);}
+.art-slot.active{border-color:var(--green);background:rgba(0,200,83,.08);}
+.art-slot-medal{font-size:22px;line-height:1;}
+.art-slot-pos{font-size:9px;color:var(--muted);letter-spacing:.07em;font-weight:600;margin-top:4px;}
+.art-slot-name{font-size:11px;color:var(--text);font-weight:600;margin-top:6px;min-height:14px;word-break:break-word;line-height:1.2;}
+.art-slot-empty{font-size:10px;color:var(--muted);font-style:italic;margin-top:6px;}
+.art-slot-flag{font-size:18px;margin-top:4px;}
+
+.art-search{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:10px 12px;color:var(--text);font-size:13px;margin-bottom:10px;font-family:'DM Sans',sans-serif;}
+.art-search::placeholder{color:var(--muted);}
+.art-search:focus{outline:none;border-color:var(--green);}
+
+.art-player{display:flex;align-items:center;gap:9px;padding:9px 11px;background:var(--surface);border-radius:9px;margin-bottom:5px;cursor:pointer;border:1px solid transparent;}
+.art-player:hover{border-color:var(--border);}
+.art-player.taken{opacity:.4;cursor:not-allowed;}
+.art-player-info{flex:1;min-width:0;}
+.art-player-name{font-size:13px;font-weight:600;color:var(--text);}
+.art-player-team{font-size:10px;color:var(--muted);margin-top:1px;}
+.art-player-medal{font-size:14px;flex-shrink:0;}
+
 /* ── MENU LATERAL (DRAWER) ── */
 #drawer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:8000;display:none;opacity:0;transition:opacity .25s ease;}
 #drawer-backdrop.open{display:block;opacity:1;}
@@ -483,19 +515,49 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         <div id="today-list"></div>
       </div>
 
-      <!-- PALPITE DE CAMPEÃO -->
-      <div id="champ-card" onclick="openChampModal()" style="background:linear-gradient(135deg,rgba(255,214,0,.08),rgba(0,200,83,.06));border:1px solid rgba(255,214,0,.25);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;cursor:pointer;">
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:18px;">🏆</span>
-            <span style="font-size:14px;font-weight:600;color:var(--text);">Palpite de Campeão</span>
+      <!-- CARROSSEL DE PALPITES (Campeão + Artilheiros) -->
+      <div class="palpite-carousel" id="palpite-carousel">
+        <div class="palpite-track" id="palpite-track">
+
+          <!-- SLIDE 1: PALPITE DE CAMPEÃO -->
+          <div class="palpite-slide">
+            <div id="champ-card" onclick="openChampModal()" style="background:linear-gradient(135deg,rgba(255,214,0,.08),rgba(0,200,83,.06));border:1px solid rgba(255,214,0,.25);border-radius:var(--radius);padding:14px 16px;cursor:pointer;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:18px;">🏆</span>
+                  <span style="font-size:14px;font-weight:600;color:var(--text);">Palpite de Campeão</span>
+                </div>
+                <span id="champ-edit-hint" style="font-size:11px;color:var(--gold);">Tocar para palpitar →</span>
+              </div>
+              <div id="champ-podium" style="margin-top:10px;font-size:13px;color:var(--muted);">
+                Quem leva a taça? Escolha seu pódio e ganhe pontos bônus.
+              </div>
+            </div>
           </div>
-          <span id="champ-edit-hint" style="font-size:11px;color:var(--gold);">Tocar para palpitar →</span>
+
+          <!-- SLIDE 2: PALPITE DE ARTILHEIROS -->
+          <div class="palpite-slide">
+            <div id="art-card" onclick="openArtilheirosPage()" style="background:linear-gradient(135deg,rgba(255,71,87,.08),rgba(255,214,0,.06));border:1px solid rgba(255,71,87,.25);border-radius:var(--radius);padding:14px 16px;cursor:pointer;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:18px;">⚽</span>
+                  <span style="font-size:14px;font-weight:600;color:var(--text);">Palpite de Artilheiros</span>
+                </div>
+                <span id="art-edit-hint" style="font-size:11px;color:var(--gold);">Tocar para palpitar →</span>
+              </div>
+              <div id="art-podium" style="margin-top:10px;font-size:13px;color:var(--muted);">
+                Quem balança a rede? Top 3 artilheiros da Copa.
+              </div>
+            </div>
+          </div>
+
         </div>
-        <div id="champ-podium" style="margin-top:10px;font-size:13px;color:var(--muted);">
-          Quem leva a taça? Escolha seu pódio e ganhe pontos bônus.
+        <div class="palpite-dots" id="palpite-dots">
+          <div class="palpite-dot active" data-idx="0"></div>
+          <div class="palpite-dot" data-idx="1"></div>
         </div>
       </div>
+      <span id="palpite-swipe-hint" style="position:absolute;display:none;"></span>
 
 
       
@@ -675,6 +737,29 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   <div class="dr-foot">
     <button class="dr-logout" onclick="closeDrawer();logout();">Sair da conta</button>
     <span class="dr-version">Coruja v1.0</span>
+  </div>
+</div>
+
+<!-- TELA CHEIA: PALPITE DE ARTILHEIROS -->
+<div id="art-page" class="fullscreen-page" style="display:none;">
+  <div class="fs-header">
+    <button class="fs-back" onclick="closeArtilheirosPage()" aria-label="Voltar">←</button>
+    <div class="fs-title">Artilheiros da Copa</div>
+  </div>
+  <div class="fs-body">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5;">
+      Top 3 artilheiros. <b style="color:var(--gold);">+10</b> / <b style="color:var(--gold);">+7</b> / <b style="color:var(--gold);">+4</b> pts por acerto.
+    </div>
+
+    <div class="art-slots" id="art-slots">
+      <!-- slots renderizados via JS -->
+    </div>
+
+    <input class="art-search" id="art-search" placeholder="🔍 buscar jogador ou seleção..." oninput="renderArtPlayers()" autocomplete="off"/>
+
+    <div id="art-players-list"></div>
+
+    <button class="btn btn-green" id="art-save-btn" onclick="saveArtilheiros()" style="margin-top:14px;">Salvar palpite ✓</button>
   </div>
 </div>
 
@@ -992,6 +1077,7 @@ async function syncAll(manual=false) {
     renderMatches(); updateHome(); updateCountdown();
     syncMyBets();
     syncMyChamp();
+    syncMyArt();
     if(document.getElementById('screen-tabela').classList.contains('active')) renderTabela();
     if (document.getElementById('screen-ranking').classList.contains('active')) renderRanking();
     if (manual) showToast('✅ Sincronizado!');
@@ -1190,6 +1276,8 @@ async function syncMyBets() {
 
 // ── PALPITE DE CAMPEÃO ──────────────────────────────
 let myChamp = null; // {time1, time2, time3}
+let myArt = null;   // {jogador1, jogador2, jogador3}
+let jogadoresList = []; // [{nome, selecao}]
 
 // Lista de seleções disponíveis (vem dos jogos + lista padrão)
 function getTeamList(){
@@ -1310,6 +1398,230 @@ async function syncMyChamp(){
       renderChampCard();
     }
   } catch(e){}
+}
+
+// ── ARTILHEIROS ─────────────────────────────────────
+let artActiveSlot = 1;  // qual slot está sendo preenchido (1, 2, 3)
+let artLocalPick = null; // {jogador1, jogador2, jogador3} temporário antes de salvar
+
+function renderArtCard() {
+  const podium = document.getElementById('art-podium');
+  const hint = document.getElementById('art-edit-hint');
+  if (!podium) return;
+  myArt = myArt || S.get('my_art', null);
+  const locked = champLocked(); // mesma trava: oitavas começaram
+
+  if (myArt && myArt.jogador1) {
+    const medals = ['🥇','🥈','🥉'];
+    const lista = [myArt.jogador1, myArt.jogador2, myArt.jogador3];
+    podium.innerHTML = lista.map((nome, i) => {
+      // Procura a seleção do jogador para mostrar a bandeira
+      const pl = jogadoresList.find(j => j.nome === nome);
+      const flag = pl ? getFlag(pl.selecao) : '';
+      return `<div style="display:flex;align-items:center;gap:7px;margin-top:${i?6:0}px;">
+        <span style="font-size:14px;">${medals[i]}</span>
+        ${flag ? `<span>${flag}</span>` : ''}
+        <span style="font-size:13px;color:var(--text);">${nome || '—'}</span>
+        <span style="font-size:11px;color:var(--muted);margin-left:auto;">${[10,7,4][i]}pts</span>
+      </div>`;
+    }).join('');
+    if (hint) hint.textContent = locked ? '🔒 Encerrado' : 'Editar →';
+  } else {
+    podium.innerHTML = 'Quem balança a rede? Top 3 artilheiros da Copa.';
+    if (hint) hint.textContent = locked ? '🔒 Encerrado' : 'Tocar para palpitar →';
+  }
+}
+
+async function syncMyArt() {
+  if (!userEmail) return;
+  try {
+    // 1. Sincroniza lista de jogadores (uma vez)
+    if (jogadoresList.length === 0) {
+      const rJ = await api({action: 'getJogadores'});
+      if (rJ.ok && rJ.jogadores) {
+        jogadoresList = rJ.jogadores;
+        S.set('jogadores_cache', jogadoresList);
+      } else {
+        jogadoresList = S.get('jogadores_cache', []);
+      }
+    }
+    // 2. Sincroniza meu palpite
+    const r = await api({action:'getArtilheiros'});
+    if (!r.ok || !r.artilheiros) return;
+    const emailLow = (userEmail||'').toLowerCase();
+    const mine = r.artilheiros.find(x => (x.usuario||'').toLowerCase() === emailLow);
+    if (mine && mine.jogador1) {
+      myArt = {jogador1: mine.jogador1, jogador2: mine.jogador2, jogador3: mine.jogador3};
+      S.set('my_art', myArt);
+      renderArtCard();
+    }
+  } catch(e){}
+}
+
+function openArtilheirosPage() {
+  if (champLocked()) {
+    showToast('🔒 Palpite encerrado — as oitavas começaram');
+    return;
+  }
+  // Carrega lista se ainda não tem
+  if (jogadoresList.length === 0) {
+    jogadoresList = S.get('jogadores_cache', []);
+    if (jogadoresList.length === 0) {
+      showToast('⏳ Carregando jogadores...');
+      syncMyArt().then(() => {
+        if (jogadoresList.length > 0) openArtilheirosPage();
+        else showToast('⚠️ Lista de jogadores indisponível');
+      });
+      return;
+    }
+  }
+
+  // Inicializa pick local com o palpite atual
+  artLocalPick = myArt
+    ? {jogador1: myArt.jogador1, jogador2: myArt.jogador2, jogador3: myArt.jogador3}
+    : {jogador1:'', jogador2:'', jogador3:''};
+
+  // Slot ativo: primeiro vazio
+  artActiveSlot = !artLocalPick.jogador1 ? 1
+                : !artLocalPick.jogador2 ? 2
+                : !artLocalPick.jogador3 ? 3 : 1;
+
+  document.getElementById('art-search').value = '';
+  renderArtSlots();
+  renderArtPlayers();
+
+  document.body.style.overflow = 'hidden';
+  document.getElementById('art-page').style.display = 'flex';
+  const body = document.querySelector('#art-page .fs-body');
+  if (body) body.scrollTop = 0;
+}
+
+function closeArtilheirosPage() {
+  document.getElementById('art-page').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function renderArtSlots() {
+  const medals = ['🥇','🥈','🥉'];
+  const pos = ['OURO · 10pts','PRATA · 7pts','BRONZE · 4pts'];
+  const slots = [artLocalPick.jogador1, artLocalPick.jogador2, artLocalPick.jogador3];
+  const html = slots.map((j, i) => {
+    const slotNum = i + 1;
+    const isActive = slotNum === artActiveSlot;
+    const isFilled = !!j;
+    const pl = j ? jogadoresList.find(p => p.nome === j) : null;
+    const flag = pl ? getFlag(pl.selecao) : '';
+    const cls = isFilled ? 'filled' : (isActive ? 'active' : '');
+    const content = isFilled
+      ? `<div class="art-slot-flag">${flag}</div><div class="art-slot-name">${j}</div>`
+      : `<div class="art-slot-empty">${isActive ? 'tocar pra escolher' : '—'}</div>`;
+    return `<div class="art-slot ${cls}" onclick="setArtSlot(${slotNum})">
+      <div class="art-slot-medal">${medals[i]}</div>
+      <div class="art-slot-pos">${pos[i]}</div>
+      ${content}
+    </div>`;
+  }).join('');
+  document.getElementById('art-slots').innerHTML = html;
+}
+
+function setArtSlot(num) {
+  artActiveSlot = num;
+  renderArtSlots();
+}
+
+function renderArtPlayers() {
+  const term = (document.getElementById('art-search').value || '').toLowerCase().trim();
+  const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const taken = [artLocalPick.jogador1, artLocalPick.jogador2, artLocalPick.jogador3];
+  let lista = jogadoresList;
+  if (term) {
+    const t = norm(term);
+    lista = lista.filter(p => norm(p.nome).includes(t) || norm(p.selecao).includes(t));
+  }
+  // Limita a 50 itens pra não pesar
+  const limit = 50;
+  const top = lista.slice(0, limit);
+  const html = top.map(p => {
+    const flag = getFlag(p.selecao);
+    const idx = taken.indexOf(p.nome);
+    const takenCls = idx >= 0 ? 'taken' : '';
+    const medal = idx >= 0 ? ['🥇','🥈','🥉'][idx] : '';
+    return `<div class="art-player ${takenCls}" onclick="pickPlayer('${p.nome.replace(/'/g,"\\'")}')">
+      <span style="font-size:18px;flex-shrink:0;">${flag}</span>
+      <div class="art-player-info">
+        <div class="art-player-name">${p.nome}</div>
+        <div class="art-player-team">${p.selecao}</div>
+      </div>
+      ${medal ? `<span class="art-player-medal">${medal}</span>` : ''}
+    </div>`;
+  }).join('');
+  const more = lista.length > limit ? `<div style="text-align:center;font-size:11px;color:var(--muted);padding:8px;font-style:italic;">+${lista.length - limit} jogadores — digite para filtrar</div>` : '';
+  document.getElementById('art-players-list').innerHTML = html + more;
+}
+
+function pickPlayer(nome) {
+  const taken = [artLocalPick.jogador1, artLocalPick.jogador2, artLocalPick.jogador3];
+  const idx = taken.indexOf(nome);
+  if (idx >= 0) {
+    // Já escolhido — desfaz dele
+    artLocalPick['jogador'+(idx+1)] = '';
+    artActiveSlot = idx + 1;
+  } else {
+    artLocalPick['jogador'+artActiveSlot] = nome;
+    // Avança pro próximo slot vazio
+    if (artActiveSlot === 1 && !artLocalPick.jogador2) artActiveSlot = 2;
+    else if (artActiveSlot === 2 && !artLocalPick.jogador3) artActiveSlot = 3;
+    else if (artActiveSlot === 3 && !artLocalPick.jogador1) artActiveSlot = 1;
+  }
+  renderArtSlots();
+  renderArtPlayers();
+}
+
+async function saveArtilheiros() {
+  if (!artLocalPick.jogador1 || !artLocalPick.jogador2 || !artLocalPick.jogador3) {
+    showToast('⚠️ Escolha os 3 jogadores');
+    return;
+  }
+  showToast('⏳ Salvando...');
+  try {
+    const r = await api({
+      action: 'saveArtilheiros',
+      usuario: userEmail,
+      display_name: userName,
+      jogador1: artLocalPick.jogador1,
+      jogador2: artLocalPick.jogador2,
+      jogador3: artLocalPick.jogador3,
+    });
+    if (!r.ok) throw new Error(r.error || 'Erro');
+    myArt = {...artLocalPick};
+    S.set('my_art', myArt);
+    showToast('✅ Palpite salvo!');
+    renderArtCard();
+    closeArtilheirosPage();
+  } catch(e) {
+    showToast('⚠️ ' + e.message);
+  }
+}
+
+// ── CARROSSEL DE PALPITES (Campeão / Artilheiros) ──
+function setupPalpiteCarousel() {
+  const track = document.getElementById('palpite-track');
+  if (!track || track.dataset.setup) return;
+  track.dataset.setup = '1';
+  const dots = document.querySelectorAll('#palpite-dots .palpite-dot');
+  // Atualiza dot ativa conforme scroll
+  track.addEventListener('scroll', () => {
+    const w = track.clientWidth;
+    if (w <= 0) return;
+    const idx = Math.round(track.scrollLeft / w);
+    dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+  });
+  // Clica em dot pra ir pro slide
+  dots.forEach((d, i) => {
+    d.addEventListener('click', () => {
+      track.scrollTo({ left: i * track.clientWidth, behavior: 'smooth' });
+    });
+  });
 }
 
 // ── AUTH ──
@@ -1907,6 +2219,8 @@ function updateHome(){
   try {
     renderTodayGames();
     renderChampCard();
+    renderArtCard();
+    setupPalpiteCarousel();
     const{pts,hits,betCount}=myStats();
     const el=id=>document.getElementById(id);
     if(el('stat-pts'))  el('stat-pts').textContent=pts;
@@ -2461,6 +2775,7 @@ async function updateQuizRanking() {
 const FRASES = [
   { cat: 'Confiante / Top', items: [
     'Segue a líder 👑',
+    'Segue o líder 👑',
     'Hexa garantido 🏆',
     'Já tô no topo',
     'Profeta da bola 🔮',
