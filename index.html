@@ -499,8 +499,8 @@ body.theme-light .theme-opt.active{color:#fff;}
           <path d="M4,27 Q16,24 28,27" stroke="#2a3f60" stroke-width="2.5" stroke-linecap="round" fill="none"/>
         </svg>
         <div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:#f0f4ff;line-height:1;letter-spacing:.04em;">ONDE A CORUJA</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:#00c853;line-height:1;letter-spacing:.04em;">DORME</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--text);line-height:1;letter-spacing:.04em;">ONDE A CORUJA</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--green);line-height:1;letter-spacing:.04em;">DORME</div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
@@ -850,8 +850,8 @@ body.theme-light .theme-opt.active{color:#fff;}
         <polygon points="16,17 14,20 18,20" fill="#ffd600"/>
         <path d="M4,27 Q16,24 28,27" stroke="#2a3f60" stroke-width="2.5" stroke-linecap="round" fill="none"/>
       </svg>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:38px;color:#f0f4ff;line-height:1;letter-spacing:.04em;">ONDE A CORUJA</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:38px;color:#00c853;line-height:1;letter-spacing:.04em;margin-bottom:8px;">DORME</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:38px;color:var(--text);line-height:1;letter-spacing:.04em;">ONDE A CORUJA</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:38px;color:var(--green);line-height:1;letter-spacing:.04em;margin-bottom:8px;">DORME</div>
       <div style="font-size:13px;color:var(--muted);">Palpites de futebol · entre amigos</div>
     </div>
 
@@ -1866,20 +1866,45 @@ function renderTabela() {
     return;
   }
 
-  // Monta tabela de cada grupo + coleta os 3º colocados
+  // ── 1º PASSE: calcula standings de todos os grupos e identifica
+  //    quais são os 8 melhores 3ºs colocados (que se classificam) ──
+  const standingsPorGrupo = {};
   const terceiros = [];
-  const gruposHTML = nomes.map(nome => {
-    const standings = calcStandings(grupos[nome]);
-    if(standings[2]) {
-      terceiros.push(Object.assign({}, standings[2], {grupo: nome.replace(/grupo\s*/i,'').trim()}));
+  nomes.forEach(nome => {
+    const st = calcStandings(grupos[nome]);
+    standingsPorGrupo[nome] = st;
+    if (st[2]) {
+      terceiros.push(Object.assign({}, st[2], {grupo: nome.replace(/grupo\s*/i,'').trim()}));
     }
+  });
+
+  // Ordena os 3ºs pelos mesmos critérios da FIFA (geral)
+  terceiros.sort((a,b) => {
+    if(b.pts !== a.pts)   return b.pts - a.pts;
+    if(b.sg  !== a.sg)    return b.sg  - a.sg;
+    if(b.gp  !== a.gp)    return b.gp  - a.gp;
+    if(b.fair !== a.fair) return b.fair - a.fair;
+    return a.name.localeCompare(b.name);
+  });
+  const VAGAS = 8;
+  // Set de chaves (nome + grupo) dos 3ºs classificados — pra marcar verde nos grupos
+  const normKey = s => String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const terceirosClassif = new Set(terceiros.slice(0, VAGAS).map(t => normKey(t.name)+'|'+t.grupo));
+
+  // ── 2º PASSE: renderiza os grupos, marcando 1º, 2º e 3ºs classificados ──
+  const gruposHTML = nomes.map(nome => {
+    const standings = standingsPorGrupo[nome];
+    const grupoTag = nome.replace(/grupo\s*/i,'').trim();
     const rows = standings.map((t, i) => {
-      const qualColor = i < 2 ? 'var(--green)' : 'transparent';
+      const isTerceiroClassif = i === 2 && terceirosClassif.has(normKey(t.name)+'|'+grupoTag);
+      const isClassif = i < 2 || isTerceiroClassif;
+      const qualColor = isClassif ? 'var(--green)' : 'transparent';
+      const numColor = isClassif ? 'var(--green)' : 'var(--text)';
       const sgTxt = t.sg > 0 ? '+'+t.sg : t.sg;
       return `<tr>
         <td style="text-align:center;position:relative;">
           <span style="position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:70%;background:${qualColor};border-radius:2px;"></span>
-          <b style="color:${i<2?'var(--green)':'var(--text)'};">${i+1}</b>
+          <b style="color:${numColor};">${i+1}</b>
         </td>
         <td><span style="margin-right:5px;">${t.flag}</span>${t.name}</td>
         <td style="text-align:center;">${t.pj}</td>
@@ -1918,13 +1943,6 @@ function renderTabela() {
   // Tabela dos melhores terceiros (8 vagas — formato Copa 2026)
   let terceirosHTML = '';
   if(terceiros.length >= 3) {
-    terceiros.sort((a,b) => {
-      if(b.pts !== a.pts) return b.pts - a.pts;
-      if(b.sg  !== a.sg)  return b.sg - a.sg;
-      if(b.gp  !== a.gp)  return b.gp - a.gp;
-      return a.name.localeCompare(b.name);
-    });
-    const VAGAS = 8;
     const rows = terceiros.map((t, i) => {
       const classif = i < VAGAS;
       const sgTxt = t.sg > 0 ? '+'+t.sg : t.sg;
