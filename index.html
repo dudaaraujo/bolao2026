@@ -2102,9 +2102,18 @@ function renderTabela() {
   const cont = document.getElementById('tabela-content');
   if(!cont) return;
 
-  // Detecta se já tem jogos de mata-mata cadastrados
+  // Detecta se já tem jogos de mata-mata cadastrados E já em curso
   const phases = getBracketPhases();
-  const hasMatamata = Object.keys(phases).length > 0;
+  const hasMatamataJogos = Object.keys(phases).length > 0;
+  // Só mostra bracket quando:
+  //  (a) algum jogo de mata-mata já começou ou foi finalizado, OU
+  //  (b) todos os jogos da fase de grupos já terminaram
+  const algumMataMataIniciou = hasMatamataJogos && Object.values(phases).some(ph =>
+    ph.jogos.some(j => j.status === 'live' || j.status === 'done')
+  );
+  const grpJogos = matches.filter(m => /grupo/i.test(m.round||''));
+  const todosGruposEncerrados = grpJogos.length > 0 && grpJogos.every(m => m.status === 'done');
+  const hasMatamata = hasMatamataJogos && (algumMataMataIniciou || todosGruposEncerrados);
 
   if (hasMatamata) {
     cont.innerHTML = renderBracket(phases);
