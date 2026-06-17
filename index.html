@@ -290,6 +290,40 @@ body.theme-light .sync-fab{color:#fff;}
 .standings-table tbody tr:last-child td{border-bottom:none;}
 .standings-table td:nth-child(2){min-width:90px;}
 
+/* ── BRACKET (CHAVEAMENTO MATA-MATA) ── */
+.bracket-wrap{padding:4px 0;}
+.bracket-grid{display:grid;gap:3px;align-items:center;}
+.bracket-phase-title{font-size:9px;font-weight:700;letter-spacing:.07em;color:var(--gold);text-align:center;margin-bottom:6px;text-transform:uppercase;}
+.brk-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 6px;margin-bottom:5px;font-size:9px;line-height:1.25;cursor:pointer;transition:border-color .15s;}
+.brk-card:hover{border-color:var(--green);}
+.brk-card.w{border-left:2px solid var(--green);}
+.brk-card.live{border-left:2px solid var(--red);}
+.brk-row{display:flex;justify-content:space-between;gap:3px;align-items:center;color:var(--text);font-weight:600;}
+.brk-row.lost{color:var(--muted);font-weight:400;}
+.brk-row.lost span{text-decoration:line-through;}
+.brk-row .scr{font-family:'Bebas Neue',sans-serif;font-size:11px;color:var(--green);font-weight:400;text-decoration:none;}
+.brk-row.lost .scr{color:var(--muted);}
+.brk-meta{font-size:8px;color:var(--muted);margin-top:3px;border-top:1px solid var(--border);padding-top:3px;display:flex;justify-content:space-between;}
+
+/* Coluna colapsada (fase futura) */
+.brk-collapsed{background:var(--bg3);border:1px dashed var(--border);border-radius:5px;display:flex;align-items:center;justify-content:center;padding:6px 2px;cursor:pointer;min-height:160px;}
+.brk-collapsed-label{writing-mode:vertical-rl;transform:rotate(180deg);font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;}
+.brk-collapsed:hover .brk-collapsed-label{color:var(--gold);}
+
+/* Final destaque dourado */
+.brk-final-col{display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.brk-final-trophy{font-size:24px;margin-bottom:5px;}
+.brk-final-card{background:linear-gradient(135deg,rgba(255,214,0,.18),rgba(0,200,83,.1));border:1px solid var(--gold);border-radius:6px;padding:6px;font-size:10px;cursor:pointer;min-width:54px;}
+.brk-final-card .brk-row{color:var(--gold);font-weight:700;}
+.brk-final-card .brk-row.lost{color:var(--muted);}
+.brk-final-card .brk-row .scr{color:var(--gold);font-size:11px;}
+.brk-final-foot{font-size:8px;color:var(--gold);text-align:center;margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,214,0,.3);}
+
+/* Espaçamentos entre cards conforme tamanho da fase */
+.bracket-col-gap-1 .brk-card{margin-bottom:24px;}
+.bracket-col-gap-2 .brk-card{margin-bottom:62px;}
+.bracket-col-gap-3 .brk-card{margin-bottom:140px;}
+
 /* ── ADMIN ── */
 .admin-tab-row{display:flex;gap:0;margin-bottom:16px;background:var(--bg2);border-radius:10px;padding:3px;}
 .admin-tab{flex:1;text-align:center;padding:8px 0;border-radius:8px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;border:none;background:none;}
@@ -1873,10 +1907,211 @@ function calcStandings(jogosGrupo) {
   return result;
 }
 
+// ── BRACKET (CHAVEAMENTO MATA-MATA) ───────────────────
+// Normaliza nome de fase pra um dos códigos padrão (ou null se for grupo)
+function normalizePhase(s) {
+  const n = String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  if (!n || n.includes('grupo')) return null;
+  if (n.includes('r32') || n.includes('32avos') || n.includes('round of 32') || n.includes('rodada de 32')) return 'R32';
+  if (n.includes('16avos') || n.includes('round of 16') || n.includes('oitavas')) return 'Oitavas';
+  if (n.includes('quartas') || n.includes('quarter')) return 'Quartas';
+  if (n.includes('semi')) return 'Semi';
+  if (n.includes('3') && (n.includes('lugar') || n.includes('place'))) return '3lugar';
+  if (n.includes('final')) return 'Final';
+  return null;
+}
+
+// Ordem das fases mata-mata
+const PHASE_ORDER = ['R32', 'Oitavas', 'Quartas', 'Semi', 'Final'];
+
+// Agrupa jogos por fase + determina status de cada
+function getBracketPhases() {
+  const phases = {};
+  matches.forEach(m => {
+    const p = normalizePhase(m.round);
+    if (!p || p === '3lugar') return; // ignora grupos e disputa de 3º (não entra no bracket)
+    if (!phases[p]) phases[p] = [];
+    phases[p].push(m);
+  });
+  // Determina status de cada fase
+  Object.keys(phases).forEach(p => {
+    const jogos = phases[p];
+    jogos.sort((a,b) => (a.kickoff||0) - (b.kickoff||0) || a.id - b.id);
+    const allDone = jogos.length > 0 && jogos.every(j => j.status === 'done');
+    const anyLive = jogos.some(j => j.status === 'live');
+    const anyDone = jogos.some(j => j.status === 'done');
+    phases[p] = {
+      jogos,
+      status: allDone ? 'done' : (anyLive || anyDone ? 'live' : 'upcoming')
+    };
+  });
+  return phases;
+}
+
+// Decide qual fase fica EXPANDIDA: a primeira que não está 'done'
+function activePhase(phases) {
+  for (const p of PHASE_ORDER) {
+    if (phases[p] && phases[p].status !== 'done') return p;
+  }
+  return null; // tudo acabou
+}
+
+function brkCard(m, isFinal=false) {
+  const sigla = (n) => String(n||'?').slice(0,3).toUpperCase();
+  const hasScore = m.score && m.score.h !== null && m.score.h !== undefined;
+  const hWin = hasScore && m.score.h > m.score.a;
+  const aWin = hasScore && m.score.a > m.score.h;
+  const live = m.status === 'live';
+  const done = m.status === 'done';
+  let cardCls = isFinal ? 'brk-final-card' : 'brk-card';
+  if (done && hWin) cardCls += ' w'; // borda verde
+  else if (live) cardCls += ' live';
+  // Bet do user
+  const bet = myBets()[m.id];
+  const pts = bet && hasScore ? calcPoints(bet, m.score) : null;
+  const ptsBadge = pts === 3 ? '⭐+3' : pts === 2 ? '+2' : pts === 1 ? '+1' : (pts === 0 ? '0' : (bet ? bet.h+'×'+bet.a : ''));
+  const ptsColor = pts === 3 ? 'var(--gold)' : pts > 0 ? 'var(--green)' : pts === 0 ? 'var(--red)' : 'var(--muted)';
+
+  const html = `<div class="${cardCls}" onclick="event.stopPropagation();openBet(${m.id})">
+    <div class="brk-row ${done && aWin ? 'lost' : ''}"><span>${m.hFlag||''} ${sigla(m.home)}</span><span class="scr">${hasScore ? m.score.h : '—'}</span></div>
+    <div class="brk-row ${done && hWin ? 'lost' : ''}"><span>${m.aFlag||''} ${sigla(m.away)}</span><span class="scr">${hasScore ? m.score.a : '—'}</span></div>
+    ${ptsBadge ? `<div class="brk-meta"><span>${live?'● ao vivo':done?'finalizado':''}</span><span style="color:${ptsColor};font-weight:700;">${ptsBadge}</span></div>` : ''}
+  </div>`;
+  return html;
+}
+
+function brkCollapsedCol(label) {
+  return `<div class="brk-collapsed"><span class="brk-collapsed-label">${label}</span></div>`;
+}
+
+function brkFinalCol(phases) {
+  const finalPhase = phases['Final'];
+  const f = finalPhase && finalPhase.jogos[0];
+  if (!f) {
+    return `<div class="brk-final-col">
+      <div class="brk-final-trophy">🏆</div>
+      <div class="brk-final-card" style="min-width:54px;text-align:center;color:var(--muted);">
+        <div style="font-size:9px;">aguardando</div>
+      </div>
+    </div>`;
+  }
+  const sigla = (n) => String(n||'?').slice(0,3).toUpperCase();
+  const hasScore = f.score && f.score.h !== null;
+  const hWin = hasScore && f.score.h > f.score.a;
+  const aWin = hasScore && f.score.a > f.score.h;
+  return `<div class="brk-final-col">
+    <div class="brk-final-trophy">🏆</div>
+    <div class="brk-final-card" onclick="event.stopPropagation();openBet(${f.id})">
+      <div class="brk-row ${hasScore && aWin ? 'lost' : ''}"><span>${f.hFlag||''} ${sigla(f.home)}</span><span class="scr">${hasScore ? f.score.h : '—'}</span></div>
+      <div class="brk-row ${hasScore && hWin ? 'lost' : ''}"><span>${f.aFlag||''} ${sigla(f.away)}</span><span class="scr">${hasScore ? f.score.a : '—'}</span></div>
+      <div class="brk-final-foot">${f.date ? f.date.split('·')[0].trim() : 'Final'}</div>
+    </div>
+  </div>`;
+}
+
+// Renderiza o bracket espelhado completo
+function renderBracket(phases) {
+  const active = activePhase(phases);
+  // Filtra fases que existem (qualquer status que não seja 'done')
+  // Fases 'done' são ocultas; mas sempre mostramos a Final no centro
+  const visiblePhases = PHASE_ORDER.filter(p => phases[p] && phases[p].status !== 'done' && p !== 'Final');
+  // Garante que pelo menos a Final aparece, mesmo que sem jogos cadastrados
+  // (final fica no centro sempre)
+
+  // Pra cada fase visível, divide em metade esquerda e direita (ordem cronológica/ID)
+  // Cada lado tem N/2 jogos
+  const leftCols = [];
+  const rightCols = [];
+  visiblePhases.forEach(p => {
+    const jogos = phases[p].jogos;
+    const isExpanded = (p === active);
+    const half = Math.ceil(jogos.length / 2);
+    const left = jogos.slice(0, half);
+    const right = jogos.slice(half);
+    leftCols.push({ phase: p, expanded: isExpanded, jogos: left });
+    rightCols.push({ phase: p, expanded: isExpanded, jogos: right });
+  });
+  // Inverte a direita pra ficar simétrica (Final central, fases externas ficam fora)
+  rightCols.reverse();
+  leftCols.reverse(); // pra coluna externa ser a fase mais "longe" da Final
+  // Espera, na verdade: queremos que a fase mais antiga (R32) fique na EXTREMIDADE,
+  // e a mais próxima da final (Semi) fique perto do centro.
+  // Como PHASE_ORDER vai de R32 → Final, com reverse o leftCols fica [Semi, Quartas, Oitavas, R32]
+  // Mas eu quero [R32, Oitavas, Quartas, Semi] da esquerda pro centro.
+  // Vou reverter pra forma original.
+  leftCols.reverse();
+  rightCols.reverse();
+  // Agora reverte só a direita (espelha)
+  rightCols.reverse();
+
+  // Monta HTML
+  const colsHtml = [];
+  // Lado esquerdo
+  leftCols.forEach((c, idx) => {
+    if (c.expanded) {
+      const gap = c.phase === 'Oitavas' ? 1 : c.phase === 'Quartas' ? 2 : c.phase === 'Semi' ? 3 : 0;
+      const cardsHtml = c.jogos.map(j => brkCard(j)).join('');
+      colsHtml.push(`<div class="bracket-col-gap-${gap}">
+        <div class="bracket-phase-title">${c.phase}</div>
+        ${cardsHtml}
+      </div>`);
+    } else {
+      colsHtml.push(brkCollapsedCol(c.phase));
+    }
+  });
+  // Final central
+  colsHtml.push(brkFinalCol(phases));
+  // Lado direito (já invertido)
+  rightCols.forEach((c, idx) => {
+    if (c.expanded) {
+      const gap = c.phase === 'Oitavas' ? 1 : c.phase === 'Quartas' ? 2 : c.phase === 'Semi' ? 3 : 0;
+      const cardsHtml = c.jogos.map(j => brkCard(j)).join('');
+      colsHtml.push(`<div class="bracket-col-gap-${gap}">
+        <div class="bracket-phase-title">${c.phase}</div>
+        ${cardsHtml}
+      </div>`);
+    } else {
+      colsHtml.push(brkCollapsedCol(c.phase));
+    }
+  });
+
+  // grid-template-columns: cada coluna expandida = 1fr, colapsada = 18px, final = 60px
+  const colTemplate = leftCols.map(c => c.expanded ? '1fr' : '18px').join(' ')
+    + ' 60px '
+    + rightCols.map(c => c.expanded ? '1fr' : '18px').join(' ');
+
+  return `<div class="bracket-wrap">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--text);letter-spacing:.03em;margin-bottom:12px;text-align:center;">🏆 Chaveamento</div>
+    <div class="bracket-grid" style="grid-template-columns:${colTemplate};">
+      ${colsHtml.join('')}
+    </div>
+    ${(() => {
+      // Mostra disputa de 3º lugar separadamente se existir
+      const terceiroJogos = matches.filter(m => normalizePhase(m.round) === '3lugar');
+      if (!terceiroJogos.length) return '';
+      const j = terceiroJogos[0];
+      return `<div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);">
+        <div style="font-size:11px;color:var(--muted);text-align:center;margin-bottom:8px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;">Disputa de 3º lugar</div>
+        <div style="max-width:200px;margin:0 auto;">${brkCard(j)}</div>
+      </div>`;
+    })()}
+  </div>`;
+}
+
 function renderTabela() {
   const cont = document.getElementById('tabela-content');
   if(!cont) return;
 
+  // Detecta se já tem jogos de mata-mata cadastrados
+  const phases = getBracketPhases();
+  const hasMatamata = Object.keys(phases).length > 0;
+
+  if (hasMatamata) {
+    cont.innerHTML = renderBracket(phases);
+    return;
+  }
+
+  // Caso contrário, mostra a tabela de classificação dos grupos (lógica original)
   // Agrupa jogos por fase que contenha "grupo"
   const grupos = {};
   matches.forEach(m => {
