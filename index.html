@@ -290,6 +290,15 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .admin-score-val.saved{color:var(--green);}
 .admin-score-sep{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--muted);}
 .admin-btn-saved{width:100%;padding:9px;background:rgba(0,200,83,.08);color:var(--green);font-size:13px;font-weight:600;border-radius:8px;border:1px solid rgba(0,200,83,.25);cursor:pointer;font-family:'DM Sans',sans-serif;}
+.admin-cards-section{border-top:1px solid var(--border);padding-top:9px;margin-top:6px;}
+.admin-cards-label{font-size:9px;color:var(--muted);letter-spacing:.06em;font-weight:600;margin-bottom:6px;text-transform:uppercase;text-align:center;}
+.admin-cards-row{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.admin-cards-team{font-size:11px;color:var(--muted);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.card-pill{display:inline-flex;align-items:center;gap:3px;border-radius:6px;padding:3px 5px;font-size:11px;font-weight:700;}
+.card-pill.yel{background:rgba(255,214,0,.12);border:1px solid rgba(255,214,0,.3);color:var(--gold);}
+.card-pill.red{background:rgba(255,71,87,.12);border:1px solid rgba(255,71,87,.3);color:var(--red);}
+.card-mini-btn{background:none;border:none;color:inherit;cursor:pointer;font-size:12px;padding:0 3px;line-height:1;font-weight:700;}
+.card-mini-btn:hover{opacity:.7;}
 
 /* ── CARROSSEL DE PALPITES ── */
 .palpite-carousel{margin-bottom:16px;position:relative;}
@@ -1245,6 +1254,12 @@ function rowToMatch(row) {
     round:row.fase||'',date:fmtLocalDate(kickoff, data, row.hora),
     status,score:hasScore?{h:gh,a:ga}:null,
     kickoff,
+    cards: {
+      yelH: parseInt(row.cartoes_amarelo_casa)  || 0,
+      redH: parseInt(row.cartoes_vermelho_casa) || 0,
+      yelA: parseInt(row.cartoes_amarelo_visit) || 0,
+      redA: parseInt(row.cartoes_vermelho_visit)|| 0,
+    },
   };
 }
 
@@ -1726,17 +1741,17 @@ function calcStandings(jogosGrupo) {
   // jogosGrupo: array de matches de um mesmo grupo
   const teams = {};
   const normKey = s => String(s||'').trim().toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,''); // remove acentos
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const ensure = (name, flag) => {
     const key = normKey(name);
-    if(!teams[key]) teams[key] = {name:String(name||'').trim(), flag, pj:0, v:0, e:0, d:0, gp:0, gc:0, sg:0, pts:0, fair:0};
+    if(!teams[key]) teams[key] = {name:String(name||'').trim(), flag, pj:0, v:0, e:0, d:0, gp:0, gc:0, sg:0, pts:0, cy:0, cr:0, fair:0};
     return teams[key];
   };
 
   jogosGrupo.forEach(m => {
     const home = ensure(m.home, m.hFlag);
     const away = ensure(m.away, m.aFlag);
-    // Só conta jogos finalizados COM placar real (status done da planilha)
+    // Só conta jogos finalizados COM placar
     if(m.status !== 'done' || !m.score) return;
     const gh = m.score.h, ga = m.score.a;
     home.pj++; away.pj++;
@@ -1745,55 +1760,90 @@ function calcStandings(jogosGrupo) {
     if(gh > ga) { home.v++; home.pts += 3; away.d++; }
     else if(gh < ga) { away.v++; away.pts += 3; home.d++; }
     else { home.e++; away.e++; home.pts += 1; away.pts += 1; }
+    // Cartões — usados pra fair play (passo 2 FIFA)
+    if (m.cards) {
+      home.cy += m.cards.yelH || 0;
+      home.cr += m.cards.redH || 0;
+      away.cy += m.cards.yelA || 0;
+      away.cr += m.cards.redA || 0;
+    }
   });
 
-  Object.values(teams).forEach(t => { t.sg = t.gp - t.gc; });
+  // Saldo + fair play score (amarelo: -1, vermelho: -3; maior score = menos cartões = melhor)
+  Object.values(teams).forEach(t => {
+    t.sg = t.gp - t.gc;
+    t.fair = -((t.cy * 1) + (t.cr * 3));
+  });
 
-  // Critérios FIFA: 1.Pontos 2.Saldo geral 3.Gols pró 4.Confronto direto (pts) 
-  // 5.Saldo no confronto 6.Gols no confronto 7.Fair play (não temos) 8.Sorteio (nome)
+  // Calcula stats SÓ dos jogos entre um conjunto de times
+  function miniStats(timesSet) {
+    const mini = {};
+    timesSet.forEach(k => { mini[k] = {pts:0, sg:0, gp:0}; });
+    jogosGrupo.forEach(m => {
+      if (m.status !== 'done' || !m.score) return;
+      const kh = normKey(m.home), kw = normKey(m.away);
+      if (!timesSet.has(kh) || !timesSet.has(kw)) return;
+      const gh = m.score.h, ga = m.score.a;
+      mini[kh].gp += gh; mini[kh].sg += (gh - ga);
+      mini[kw].gp += ga; mini[kw].sg += (ga - gh);
+      if (gh > ga) mini[kh].pts += 3;
+      else if (ga > gh) mini[kw].pts += 3;
+      else { mini[kh].pts += 1; mini[kw].pts += 1; }
+    });
+    return mini;
+  }
+
+  // Ordenação FIFA:
+  // 1. Pontos
+  // 2. Quando há empate em pontos, aplica entre os empatados:
+  //    - pts no confronto direto, saldo no confronto, gols no confronto
+  // 3. Se persistir, critérios gerais:
+  //    - saldo geral, gols pró, fair play (cartões)
+  // 4. Sorteio (alfabético)
   const arr = Object.values(teams);
 
-  const headToHead = (a, b, metric) => {
-    let av=0, bv=0;
-    const ka=normKey(a.name), kb=normKey(b.name);
-    jogosGrupo.forEach(m => {
-      if(m.status!=='done'||!m.score) return;
-      const kh=normKey(m.home), kw=normKey(m.away);
-      const isAB = (kh===ka&&kw===kb);
-      const isBA = (kh===kb&&kw===ka);
-      if(!isAB && !isBA) return;
-      const gh=m.score.h, ga=m.score.a;
-      if(metric==='pts'){
-        if(gh>ga){ if(kh===ka)av+=3;else bv+=3; }
-        else if(ga>gh){ if(kw===ka)av+=3;else bv+=3; }
-        else { av+=1; bv+=1; }
-      } else if(metric==='sg'){
-        const aGoals = kh===ka?gh:ga;
-        const bGoals = kh===kb?gh:ga;
-        av += aGoals-bGoals; bv += bGoals-aGoals;
-      } else if(metric==='gp'){
-        av += kh===ka?gh:ga;
-        bv += kh===kb?gh:ga;
-      }
-    });
-    return bv - av;
-  };
+  // Passo 1: agrupa por pontos
+  arr.sort((a, b) => b.pts - a.pts);
+  const groups = [];
+  let cur = [];
+  let curPts = null;
+  arr.forEach(t => {
+    if (curPts === null || t.pts === curPts) {
+      cur.push(t); curPts = t.pts;
+    } else {
+      groups.push(cur); cur = [t]; curPts = t.pts;
+    }
+  });
+  if (cur.length) groups.push(cur);
 
-  arr.sort((a, b) => {
-    // 1. Pontos
-    if(b.pts !== a.pts) return b.pts - a.pts;
-    // 2. Confronto direto (pts, saldo, gols) — vale para empate entre dois times
-    let h = headToHead(a, b, 'pts'); if(h) return h;
-    h = headToHead(a, b, 'sg');      if(h) return h;
-    h = headToHead(a, b, 'gp');      if(h) return h;
-    // 3. Critérios gerais
-    if(b.sg  !== a.sg)  return b.sg - a.sg;
-    if(b.gp  !== a.gp)  return b.gp - a.gp;
-    // 4. Sorteio (nome)
-    return a.name.localeCompare(b.name);
+  // Ordena dentro de cada grupo de empatados
+  const result = [];
+  groups.forEach(grp => {
+    if (grp.length === 1) { result.push(grp[0]); return; }
+    // Passo 1 FIFA: mini-stats entre os empatados
+    const keySet = new Set(grp.map(t => normKey(t.name)));
+    const mini = miniStats(keySet);
+    grp.sort((a, b) => {
+      const ma = mini[normKey(a.name)] || {pts:0,sg:0,gp:0};
+      const mb = mini[normKey(b.name)] || {pts:0,sg:0,gp:0};
+      // 1.a. pontos no confronto direto
+      if (mb.pts !== ma.pts) return mb.pts - ma.pts;
+      // 1.b. saldo no confronto direto
+      if (mb.sg !== ma.sg)   return mb.sg - ma.sg;
+      // 1.c. gols no confronto direto
+      if (mb.gp !== ma.gp)   return mb.gp - ma.gp;
+      // Passo 2 FIFA: gerais
+      if (b.sg !== a.sg)     return b.sg - a.sg;
+      if (b.gp !== a.gp)     return b.gp - a.gp;
+      // Fair play (menos cartões = maior fair score)
+      if (b.fair !== a.fair) return b.fair - a.fair;
+      // Sorteio (alfabético)
+      return a.name.localeCompare(b.name);
+    });
+    grp.forEach(t => result.push(t));
   });
 
-  return arr;
+  return result;
 }
 
 function renderTabela() {
@@ -3230,8 +3280,16 @@ function renderAdmin() {
           : `<span class="match-status status-upcoming">Não iniciado</span>`;
       const valClass = isDone ? 'admin-score-val saved' : 'admin-score-val';
       const btnHtml = isDone
-        ? `<button class="admin-btn-saved" onclick="openAdminConfirm(${m.id})">✓ Placar salvo — editar</button>`
-        : `<button class="btn btn-green" style="font-size:13px;padding:10px;" onclick="openAdminConfirm(${m.id})">Salvar placar</button>`;
+        ? `<button class="admin-btn-saved" onclick="openAdminConfirm(${m.id})">✓ Salvo — editar</button>`
+        : `<button class="btn btn-green" style="font-size:13px;padding:10px;" onclick="openAdminConfirm(${m.id})">Salvar placar e cartões</button>`;
+
+      // Cartões: pega edição local ou os da planilha
+      const cards = adminCards[m.id] || {
+        yelH: (m.cards && m.cards.yelH) || 0,
+        redH: (m.cards && m.cards.redH) || 0,
+        yelA: (m.cards && m.cards.yelA) || 0,
+        redA: (m.cards && m.cards.redA) || 0,
+      };
 
       return `<div class="admin-match-card ${isDone ? 'done' : ''}" id="admin-card-${m.id}">
         <div class="admin-match-top">
@@ -3255,6 +3313,19 @@ function renderAdmin() {
           <div class="admin-sc-team right">
             <span>${m.aFlag}</span>
             <span class="admin-sc-name">${m.away}</span>
+          </div>
+        </div>
+        <div class="admin-cards-section">
+          <div class="admin-cards-label">CARTÕES</div>
+          <div class="admin-cards-row">
+            <span class="admin-cards-team">${m.home}</span>
+            <span class="card-pill yel"><button class="card-mini-btn" onclick="adminAdjCard(${m.id},'yelH',-1)">−</button>🟨 <span id="admin-yelH-${m.id}">${cards.yelH}</span><button class="card-mini-btn" onclick="adminAdjCard(${m.id},'yelH',1)">+</button></span>
+            <span class="card-pill red"><button class="card-mini-btn" onclick="adminAdjCard(${m.id},'redH',-1)">−</button>🟥 <span id="admin-redH-${m.id}">${cards.redH}</span><button class="card-mini-btn" onclick="adminAdjCard(${m.id},'redH',1)">+</button></span>
+          </div>
+          <div class="admin-cards-row" style="margin-top:5px;">
+            <span class="admin-cards-team">${m.away}</span>
+            <span class="card-pill yel"><button class="card-mini-btn" onclick="adminAdjCard(${m.id},'yelA',-1)">−</button>🟨 <span id="admin-yelA-${m.id}">${cards.yelA}</span><button class="card-mini-btn" onclick="adminAdjCard(${m.id},'yelA',1)">+</button></span>
+            <span class="card-pill red"><button class="card-mini-btn" onclick="adminAdjCard(${m.id},'redA',-1)">−</button>🟥 <span id="admin-redA-${m.id}">${cards.redA}</span><button class="card-mini-btn" onclick="adminAdjCard(${m.id},'redA',1)">+</button></span>
           </div>
         </div>
         ${btnHtml}
@@ -3282,6 +3353,8 @@ function renderAdmin() {
 
 // Estado temporário dos scores editados no admin
 const adminScores = {};
+// Estado temporário dos cartões editados no admin
+const adminCards = {};
 
 function adminAdj(matchId, side, delta) {
   if (!adminScores[matchId]) {
@@ -3294,6 +3367,21 @@ function adminAdj(matchId, side, delta) {
   adminScores[matchId][side] = Math.max(0, adminScores[matchId][side] + delta);
   const el = document.getElementById('admin-' + side + '-' + matchId);
   if (el) el.textContent = adminScores[matchId][side];
+}
+
+function adminAdjCard(matchId, key, delta) {
+  if (!adminCards[matchId]) {
+    const m = matches.find(x => x.id === matchId);
+    adminCards[matchId] = {
+      yelH: (m && m.cards && m.cards.yelH) || 0,
+      redH: (m && m.cards && m.cards.redH) || 0,
+      yelA: (m && m.cards && m.cards.yelA) || 0,
+      redA: (m && m.cards && m.cards.redA) || 0,
+    };
+  }
+  adminCards[matchId][key] = Math.max(0, (adminCards[matchId][key]||0) + delta);
+  const el = document.getElementById('admin-' + key + '-' + matchId);
+  if (el) el.textContent = adminCards[matchId][key];
 }
 
 function openAdminConfirm(matchId) {
@@ -3320,16 +3408,27 @@ async function doAdminSave() {
   closeAdminConfirm();
   showToast('⏳ Salvando...');
   try {
+    // Pega cartões: estado local se editado, senão valor atual do match
+    const cards = adminCards[match.id] || {
+      yelH: (match.cards && match.cards.yelH) || 0,
+      redH: (match.cards && match.cards.redH) || 0,
+      yelA: (match.cards && match.cards.yelA) || 0,
+      redA: (match.cards && match.cards.redA) || 0,
+    };
     const r = await api({
       action:     'updatePlacar',
       admin:      userEmail,
       jogo_id:    match.id,
       gol_casa:   h,
       gol_visit:  a,
-      kickoff_ms: match.kickoff || 0
+      kickoff_ms: match.kickoff || 0,
+      cartoes_amarelo_casa:  cards.yelH,
+      cartoes_vermelho_casa: cards.redH,
+      cartoes_amarelo_visit: cards.yelA,
+      cartoes_vermelho_visit:cards.redA,
     });
     if (!r.ok) throw new Error(r.error || 'Erro desconhecido');
-    showToast('✅ Placar salvo!');
+    showToast('✅ Salvo!');
     // Decide status local com a mesma lógica do Apps Script
     let newStatus = match.status;
     const TWO_HOURS = 2 * 60 * 60 * 1000;
@@ -3337,15 +3436,15 @@ async function doAdminSave() {
       const diff = Date.now() - match.kickoff;
       if (diff >= TWO_HOURS) newStatus = 'done';
       else if (diff >= 0)    newStatus = 'live';
-      // diff < 0 → mantém status atual (jogo ainda não começou)
     }
-    // Sem kickoff → mantém status atual (não pula pra done)
     const idx = matches.findIndex(x => x.id === match.id);
     if (idx >= 0) {
       matches[idx].score  = { h, a };
       matches[idx].status = newStatus;
+      matches[idx].cards  = cards;
     }
     delete adminScores[match.id];
+    delete adminCards[match.id];
     renderAdmin();
     renderMatches();
     if (document.getElementById('screen-tabela').classList.contains('active')) renderTabela();
