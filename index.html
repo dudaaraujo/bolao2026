@@ -72,6 +72,31 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .nav-btn.active{color:var(--green);}
 .nav-btn.active svg{filter:drop-shadow(0 0 6px var(--green));}
 
+/* ── FAB SINCRONIZAR ── */
+.sync-fab{
+  position:fixed;
+  right:14px;
+  bottom:calc(70px + env(safe-area-inset-bottom));
+  width:48px;height:48px;
+  border-radius:50%;
+  background:var(--green);
+  color:#000;
+  border:none;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;
+  font-weight:700;
+  box-shadow:0 4px 16px rgba(0,200,83,.35);
+  cursor:pointer;
+  z-index:90;
+  font-family:'DM Sans',sans-serif;
+  transition:transform .15s ease;
+}
+.sync-fab:hover{transform:scale(1.05);}
+.sync-fab:active{transform:scale(.95);}
+.sync-fab.spinning{animation:syncSpin .9s linear infinite;}
+@keyframes syncSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+body.theme-light .sync-fab{color:#fff;}
+
 /* CARDS */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;}
 .card-title{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;}
@@ -597,9 +622,6 @@ body.theme-light .theme-opt.active{color:#fff;}
 
     <!-- JOGOS -->
     <div id="screen-jogos" class="screen">
-      <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:12px;">
-        <button onclick="syncAll(true)" style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 12px;color:var(--text);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">↻ Sincronizar</button>
-      </div>
       <div class="filter-row">
         <button class="filter-btn active" onclick="filterMatches(this,'todos')">Todos</button>
         <button class="filter-btn" onclick="filterMatches(this,'ao-vivo')">Ao vivo</button>
@@ -617,9 +639,6 @@ body.theme-light .theme-opt.active{color:#fff;}
 
     <!-- RANKING -->
     <div id="screen-ranking" class="screen">
-      <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:10px;">
-        <button onclick="syncAll(true)" style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 12px;color:var(--text);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">↻ Sincronizar</button>
-      </div>
       <!-- Resumo do usuário -->
       <div id="rank-my-summary" style="background:var(--bg3);border:1px solid var(--green-glow);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;">
         <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--green);margin-bottom:8px;font-weight:600;">Seu desempenho</div>
@@ -748,6 +767,9 @@ body.theme-light .theme-opt.active{color:#fff;}
       </div>Quiz
     </button>
 </div>
+
+<!-- BOTÃO FLUTUANTE: SINCRONIZAR -->
+<button id="sync-fab" class="sync-fab" style="display:none;" onclick="syncAll(true)" aria-label="Sincronizar" title="Sincronizar">↻</button>
 
 <!-- MODAL VER PALPITES DO JOGO -->
 <div id="bets-game-backdrop" class="modal-backdrop" style="display:none;" onclick="if(event.target===this)closeBetsModal()">
@@ -1087,6 +1109,9 @@ function setSyncStatus(state,label){
 
 async function syncAll(manual=false) {
   setSyncStatus('loading','Sincronizando...');
+  // Anima o FAB girando
+  const fab = document.getElementById('sync-fab');
+  if (fab) fab.classList.add('spinning');
   // Mostra cache imediatamente
   if (!matches.length) {
     matches = S.get('matches_cache', []);
@@ -1126,6 +1151,8 @@ async function syncAll(manual=false) {
     setSyncStatus('err','Sem conexão');
     renderMatches(); updateHome();
     if (manual) showToast('⚠️ Sem conexão com a planilha');
+  } finally {
+    if (fab) fab.classList.remove('spinning');
   }
 }
 
@@ -2172,6 +2199,9 @@ function goScreen(name){
   if (screen) screen.classList.add('active');
   const navBtn = document.getElementById('nav-'+name);
   if (navBtn) navBtn.classList.add('active');
+  // FAB sincronizar — só em Jogos e Ranking
+  const fab = document.getElementById('sync-fab');
+  if (fab) fab.style.display = (name === 'jogos' || name === 'ranking') ? 'flex' : 'none';
   if(name==='home') updateHome();
   if(name==='jogos') renderMatches();
   if(name==='ranking') renderRanking();
