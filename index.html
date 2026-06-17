@@ -59,7 +59,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .screen.active{display:block;}
 #bottomnav{background:var(--bg2);border-top:1px solid var(--border);display:flex;padding:6px 0 calc(6px + env(safe-area-inset-bottom));position:fixed;bottom:0;left:0;right:0;z-index:100;max-width:430px;margin:0 auto;}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:10px;font-family:'DM Sans',sans-serif;transition:color .2s;}
-.nav-btn svg{width:22px;height:22px;}
+.nav-btn svg{width:24px;height:24px;}
+.nav-btn .icon-fill{display:none;}
+.nav-btn.active .icon-line{display:none;}
+.nav-btn.active .icon-fill{display:block;}
 .nav-btn.active{color:var(--green);}
 .nav-btn.active svg{filter:drop-shadow(0 0 6px var(--green));}
 
@@ -691,20 +694,29 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 
   <div id="bottomnav">
     <button class="nav-btn active" id="nav-home" onclick="goScreen('home')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Início
+      <svg class="icon-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-7h-6v7H4a1 1 0 01-1-1V9.5z"/></svg>
+      <svg class="icon-fill" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L2.5 10.2c-.3.2-.5.6-.5.9V20a1 1 0 001 1h5v-6a1 1 0 011-1h6a1 1 0 011 1v6h5a1 1 0 001-1v-8.9c0-.4-.2-.7-.5-.9L12 3z"/></svg>
+      Início
     </button>
     <button class="nav-btn" id="nav-jogos" onclick="goScreen('jogos')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 010 20M2 12h20M12 2c-2.76 4-4 8-4 10s1.24 6 4 10M12 2c2.76 4 4 8 4 10s-1.24 6-4 10"/></svg>Jogos
+      <svg class="icon-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><polygon points="12,7.2 8.6,9.7 9.9,13.7 14.1,13.7 15.4,9.7"/><line x1="12" y1="2.5" x2="12" y2="7.2" stroke-linecap="round"/><line x1="3.5" y1="9.5" x2="8.6" y2="9.7" stroke-linecap="round"/><line x1="20.5" y1="9.5" x2="15.4" y2="9.7" stroke-linecap="round"/><line x1="6.5" y1="19.5" x2="9.9" y2="13.7" stroke-linecap="round"/><line x1="17.5" y1="19.5" x2="14.1" y2="13.7" stroke-linecap="round"/></svg>
+      <svg class="icon-fill" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9.5"/><polygon points="12,7.2 8.6,9.7 9.9,13.7 14.1,13.7 15.4,9.7" fill="#0a1628"/></svg>
+      Jogos
     </button>
     <button class="nav-btn" id="nav-ranking" onclick="goScreen('ranking')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Ranking
+      <svg class="icon-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v4a5 5 0 01-10 0V4z"/><path d="M7 5H4a1 1 0 001 2h2"/><path d="M17 5h3a1 1 0 01-1 2h-2"/><path d="M10 13h4l-.4 4h-3.2z"/><path d="M9 21h6"/><path d="M12 17v4"/></svg>
+      <svg class="icon-fill" viewBox="0 0 24 24" fill="currentColor"><path d="M19 4h-2V3H7v1H5a1 1 0 00-1 1v1a3 3 0 002.6 3 6 6 0 004.4 4v3h-1a1 1 0 100 2h4a1 1 0 100-2h-1v-3a6 6 0 004.4-4A3 3 0 0020 6V5a1 1 0 00-1-1zM6 7a1 1 0 01-.7-1H6v1zm12 0V6h.7a1 1 0 01-.7 1zM8 19a1 1 0 011-1h6a1 1 0 110 2H9a1 1 0 01-1-1z"/></svg>
+      Ranking
     </button>
     <button class="nav-btn" id="nav-tabela" onclick="goScreen('tabela')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>Tabela
+      <svg class="icon-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="9" x2="9" y2="20"/><line x1="3" y1="14.5" x2="21" y2="14.5"/></svg>
+      <svg class="icon-fill" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="currentColor"/><rect x="3" y="4" width="18" height="5" fill="#0a1628" opacity=".25"/><line x1="9" y1="9" x2="9" y2="20" stroke="#0a1628" stroke-width="1.5"/><line x1="3" y1="14.5" x2="21" y2="14.5" stroke="#0a1628" stroke-width="1.5"/></svg>
+      Tabela
     </button>
     <button class="nav-btn" id="nav-quiz" onclick="goScreen('quiz')">
       <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <svg class="icon-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 00-4 10.5c1 1 1.5 1.5 1.5 3v1.5h5V16.5c0-1.5.5-2 1.5-3A6 6 0 0012 3z"/></svg>
+        <svg class="icon-fill" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a6 6 0 00-4 10.5c1 1 1.5 1.5 1.5 3v.5h5v-.5c0-1.5.5-2 1.5-3A6 6 0 0012 3z"/><rect x="9" y="17.5" width="6" height="1.6" rx=".8"/><rect x="10" y="20" width="4" height="1.6" rx=".8"/></svg>
         <span id="quiz-badge" style="display:none;position:absolute;top:-3px;right:-5px;width:8px;height:8px;background:#ff4757;border-radius:50%;border:1.5px solid var(--bg2);"></span>
       </div>Quiz
     </button>
