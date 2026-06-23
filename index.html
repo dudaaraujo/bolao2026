@@ -1333,13 +1333,17 @@ function rowToMatch(row) {
 
 // ── SINCRONIZAR APOSTAS DO SERVIDOR ──
 async function syncMyBets() {
-  if(!userEmail) return;
   try {
     const r = await api({action:'getApostas', grupo:'GERAL'});
     if(!r.ok || !r.apostas) return;
 
-    // Guarda TODAS as apostas do grupo (para mostrar palpites de outros)
+    // Guarda TODAS as apostas do grupo (pra mostrar palpites dos outros).
+    // Importante carregar isso mesmo se o usuário ainda não estiver logado,
+    // pois o ranking exibe palpites públicos.
     allBets = r.apostas;
+
+    // Daqui pra baixo é o merge das minhas apostas — precisa estar logado
+    if (!userEmail) return;
 
     const emailLow = userEmail.toLowerCase();
     const local = myBets();
@@ -3376,6 +3380,13 @@ function openBetsGame(matchId) {
 
 function openBetsPerson(usuario) {
   if (!usuario) return;
+
+  // Se allBets ainda não foi carregado, tenta carregar agora
+  if (!allBets || allBets.length === 0) {
+    showToast('⏳ Carregando palpites...');
+    syncMyBets().then(() => openBetsPerson(usuario));
+    return;
+  }
 
   // Identifica a pessoa
   const usuarioLow = usuario.toLowerCase();
