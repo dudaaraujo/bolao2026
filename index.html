@@ -25,6 +25,37 @@ body.theme-light{
   --surface:#ffffff;--surface2:#f0f3f8;--border:rgba(0,0,0,.08);
   --text:#1a2b48;--muted:#6b7c93;--red:#d32f3f;
 }
+
+/* ── MODO LETRAS GRANDES (+3px nas fontes pequenas/médias) ── */
+body.large-text .match-meta{font-size:13px;}
+body.large-text .team-name{font-size:17px;}
+body.large-text .match-time{font-size:14px;}
+body.large-text .bet-label{font-size:14px;}
+body.large-text .pts-badge{font-size:13px;}
+body.large-text .filter-btn{font-size:15px;padding:7px 13px;}
+body.large-text .btn-see-bets{font-size:14px;}
+body.large-text .empty-state{font-size:15px;}
+body.large-text .sync-badge{font-size:13px;}
+body.large-text .rank-name{font-size:17px;}
+body.large-text .rank-detail{font-size:13px;}
+body.large-text .rk-phrase{font-size:15px;}
+body.large-text .rank-badge{font-size:11px;}
+body.large-text .pbet-match{font-size:14px;}
+body.large-text .pbet-round{font-size:12px;}
+body.large-text .person-modal-name,
+body.large-text .person-n{font-size:18px;}
+body.large-text .person-modal-sub,
+body.large-text .person-s{font-size:14px;}
+body.large-text .standings-table{font-size:15px;}
+body.large-text .standings-table th{font-size:12px;}
+body.large-text .frase-opt{font-size:15px;}
+body.large-text .frase-cat{font-size:12px;}
+body.large-text .dr-item{font-size:16px;}
+body.large-text .dr-name{font-size:16px;}
+body.large-text .dr-email{font-size:12px;}
+body.large-text .art-player-name{font-size:15px;}
+body.large-text .art-player-team{font-size:12px;}
+body.large-text .nav-btn{font-size:12px;}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
 #app{max-width:430px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
@@ -2388,8 +2419,27 @@ function setTheme(theme) {
   });
 }
 
+// ── TAMANHO DAS LETRAS ──────────────────────────────
+function getTextSize() {
+  return S.get('text_size', 'normal'); // 'normal' | 'large'
+}
+
+function applyTextSize(size) {
+  document.body.classList.toggle('large-text', size === 'large');
+}
+
+function setTextSize(size) {
+  S.set('text_size', size);
+  applyTextSize(size);
+  // Atualiza os botões do switcher se o drawer estiver aberto
+  document.querySelectorAll('.text-opt').forEach(b => {
+    b.classList.toggle('active', b.dataset.size === size);
+  });
+}
+
 // Aplica tema imediatamente (antes do auth) pra evitar flash
 applyTheme(getTheme());
+applyTextSize(getTextSize());
 
 function showUserMenu() {
   openDrawer();
@@ -2431,6 +2481,16 @@ function openDrawer() {
     <div class="theme-switcher">
       <button class="theme-opt ${curTheme==='light'?'active':''}" onclick="setTheme('light')">☀</button>
       <button class="theme-opt ${curTheme==='dark'?'active':''}" onclick="setTheme('dark')">🌙</button>
+    </div>
+  </div>`;
+  // Toggle de tamanho do texto
+  const curSize = getTextSize();
+  items += `<div class="dr-theme-row">
+    <span class="dr-item-ico">🔍</span>
+    <span class="dr-theme-label">Letras grandes</span>
+    <div class="theme-switcher">
+      <button class="theme-opt text-opt ${curSize==='normal'?'active':''}" data-size="normal" onclick="setTextSize('normal')" style="font-family:'DM Sans',sans-serif;">A</button>
+      <button class="theme-opt text-opt ${curSize==='large'?'active':''}" data-size="large" onclick="setTextSize('large')" style="font-family:'DM Sans',sans-serif;font-size:15px;">A+</button>
     </div>
   </div>`;
   document.getElementById('drawer-list').innerHTML = items;
