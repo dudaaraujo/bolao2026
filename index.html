@@ -421,14 +421,23 @@ body.theme-light .sync-fab{color:#fff;}
 body.theme-light .theme-opt.active{color:#fff;}
 
 /* ── TELA CHEIA (FULLSCREEN PAGE) ── */
-.fullscreen-page{position:fixed;inset:0;z-index:9000;background:var(--bg);display:flex;flex-direction:column;animation:fsSlideIn .25s ease;}
+.fullscreen-page{position:fixed;top:0;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;z-index:9000;background:var(--bg);display:flex;flex-direction:column;animation:fsSlideIn .25s ease;box-shadow:0 0 0 1px var(--border);}
 .fs-header{background:var(--bg2);padding:11px 14px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border);flex-shrink:0;}
 .fs-back{background:none;border:none;color:var(--text);font-size:24px;cursor:pointer;line-height:1;padding:4px 6px;font-family:'DM Sans',sans-serif;}
 .fs-back:hover{color:var(--green);}
 .fs-title{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--text);letter-spacing:.06em;flex:1;}
 .fs-body{flex:1;overflow-y:auto;padding:14px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
 .fs-footer{flex-shrink:0;padding:12px 14px 16px;background:var(--bg2);border-top:1px solid var(--border);}
-@keyframes fsSlideIn{from{transform:translateX(20px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@keyframes fsSlideIn{from{opacity:0;}to{opacity:1;}}
+
+/* Backdrop por trás da fullscreen-page (cobre área fora dos 430px no PC) */
+.fullscreen-page::before{
+  content:'';
+  position:fixed;
+  top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,.5);
+  z-index:-1;
+}
 
 /* ── FRASE DE STATUS NO RANKING ── */
 .rk-phrase{font-size:12px;color:var(--gold);margin-top:3px;line-height:1.3;display:flex;align-items:center;gap:5px;}
@@ -669,6 +678,7 @@ body.theme-light .theme-opt.active{color:#fff;}
         <button id="team-search-clear" onclick="clearTeamFilter()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;">✕</button>
       </div>
       <div id="matches-list"><div class="empty-state">Carregando jogos...</div></div>
+      <button class="sync-fab" onclick="syncAll(true)" aria-label="Sincronizar" title="Sincronizar">↻</button>
     </div>
 
     <!-- RANKING -->
@@ -709,6 +719,7 @@ body.theme-light .theme-opt.active{color:#fff;}
           <div class="badge-rule">Acertou 70% ou mais dos jogos</div>
         </div>
       </div>
+      <button class="sync-fab" onclick="syncAll(true)" aria-label="Sincronizar" title="Sincronizar">↻</button>
     </div>
 
     <!-- GRUPO -->
@@ -801,9 +812,6 @@ body.theme-light .theme-opt.active{color:#fff;}
       </div>Quiz
     </button>
 </div>
-
-<!-- BOTÃO FLUTUANTE: SINCRONIZAR -->
-<button id="sync-fab" class="sync-fab" style="display:none;" onclick="syncAll(true)" aria-label="Sincronizar" title="Sincronizar">↻</button>
 
 <!-- MODAL VER PALPITES DO JOGO -->
 <div id="bets-game-backdrop" class="modal-backdrop" style="display:none;" onclick="if(event.target===this)closeBetsModal()">
@@ -1143,9 +1151,8 @@ function setSyncStatus(state,label){
 
 async function syncAll(manual=false) {
   setSyncStatus('loading','Sincronizando...');
-  // Anima o FAB girando
-  const fab = document.getElementById('sync-fab');
-  if (fab) fab.classList.add('spinning');
+  // Anima todos os FABs (Jogos e Ranking) girando
+  document.querySelectorAll('.sync-fab').forEach(f => f.classList.add('spinning'));
   // Mostra cache imediatamente
   if (!matches.length) {
     matches = S.get('matches_cache', []);
@@ -1186,7 +1193,7 @@ async function syncAll(manual=false) {
     renderMatches(); updateHome();
     if (manual) showToast('⚠️ Sem conexão com a planilha');
   } finally {
-    if (fab) fab.classList.remove('spinning');
+    document.querySelectorAll('.sync-fab').forEach(f => f.classList.remove('spinning'));
   }
 }
 
@@ -2443,9 +2450,6 @@ function goScreen(name){
   if (screen) screen.classList.add('active');
   const navBtn = document.getElementById('nav-'+name);
   if (navBtn) navBtn.classList.add('active');
-  // FAB sincronizar — só em Jogos e Ranking
-  const fab = document.getElementById('sync-fab');
-  if (fab) fab.style.display = (name === 'jogos' || name === 'ranking') ? 'flex' : 'none';
   if(name==='home') updateHome();
   if(name==='jogos') renderMatches();
   if(name==='ranking') renderRanking();
