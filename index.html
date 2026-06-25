@@ -2627,12 +2627,9 @@ function updateCountdown(){
 // ── PONTUAÇÃO ──
 // Verifica se uma fase é mata-mata (precisa de vencedor obrigatório)
 function isMatamataPhase(fase) {
-  const n = String(fase||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-  if (!n || n.includes('grupo')) return false;
-  return n.includes('r32') || n.includes('32avos') || n.includes('16avos') ||
-         n.includes('oitavas') || n.includes('quartas') || n.includes('quarter') ||
-         n.includes('semi') || n.includes('final') ||
-         (n.includes('3') && n.includes('lugar'));
+  // Usa a normalizePhase que já reconhece todas as variações (R32, rodada de 32,
+  // 16avos, oitavas, quartas, semi, final, 3º lugar)
+  return normalizePhase(fase) !== null;
 }
 
 function calcPoints(bet,result,match){
