@@ -1005,6 +1005,22 @@ body.theme-light .theme-opt.active{color:#fff;}
       <div class="points-row"><span>Placar exato</span><b style="color:var(--gold);">+3 pts</b></div>
       <div class="points-row"><span>Saldo de gols</span><b style="color:var(--green);">+2 pts</b></div>
       <div class="points-row"><span>Vencedor certo</span><b>+1 pt</b></div>
+      <div class="points-row" id="bonus-pen-row" style="display:none;"><span>Acertar nos pênaltis</span><b style="color:var(--gold);">+1 bônus</b></div>
+    </div>
+    <!-- Seção pênaltis (aparece só em mata-mata com empate) -->
+    <div id="pen-section" style="display:none;background:linear-gradient(135deg,rgba(255,71,87,.08),rgba(255,214,0,.04));border:1px dashed rgba(255,71,87,.3);border-radius:11px;padding:12px;margin-top:14px;">
+      <div style="font-size:11px;color:var(--red);font-weight:700;text-align:center;margin-bottom:6px;letter-spacing:.04em;">⚽ EMPATE! Quem ganha nos pênaltis?</div>
+      <div style="font-size:10px;color:var(--muted);text-align:center;margin-bottom:10px;font-style:italic;">+1 ponto bônus se acertar</div>
+      <div style="display:flex;gap:8px;">
+        <button class="pen-team-opt" id="pen-opt-h" onclick="setPenWinner('h')" style="flex:1;padding:11px 8px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:var(--text);font-family:'DM Sans',sans-serif;">
+          <span style="font-size:24px;" id="pen-flag-h">⚽</span>
+          <span style="font-size:11px;font-weight:600;" id="pen-name-h">—</span>
+        </button>
+        <button class="pen-team-opt" id="pen-opt-a" onclick="setPenWinner('a')" style="flex:1;padding:11px 8px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:var(--text);font-family:'DM Sans',sans-serif;">
+          <span style="font-size:24px;" id="pen-flag-a">⚽</span>
+          <span style="font-size:11px;font-weight:600;" id="pen-name-a">—</span>
+        </button>
+      </div>
     </div>
     <button class="btn btn-green" id="confirm-btn" onclick="confirmBet()" style="margin-top:16px;">Confirmar aposta ✓</button>
     <button class="btn btn-outline" id="remove-btn" onclick="removeBet()" style="margin-top:8px;display:none;">Remover aposta</button>
@@ -1359,6 +1375,15 @@ function rowToMatch(row) {
       yelA: parseInt(row.cartoes_amarelo_visit) || 0,
       redA: parseInt(row.cartoes_vermelho_visit)|| 0,
     },
+    penaltis: (() => {
+      const pc = parseInt(row.penaltis_casa);
+      const pv = parseInt(row.penaltis_visit);
+      if (isNaN(pc) || isNaN(pv)) return null;
+      return {
+        h: pc, a: pv,
+        vencedor: pc > pv ? (row.time_casa||'') : (pv > pc ? (row.time_visit||'') : null)
+      };
+    })(),
   };
 }
 
@@ -1386,7 +1411,7 @@ async function syncMyBets() {
       const jid = parseInt(a.jogo_id);
       const gh = parseInt(a.gol_casa), ga = parseInt(a.gol_visit);
       if(isNaN(jid) || isNaN(gh) || isNaN(ga)) return;
-      server[jid] = {h:gh, a:ga, ts:(a.atualizado_em || a.criado_em || '')};
+      server[jid] = {h:gh, a:ga, pen_vencedor: (a.pen_vencedor||''), ts:(a.atualizado_em || a.criado_em || '')};
     });
 
     // Janela de proteção: apostas locais feitas nos últimos 2 min podem ainda
@@ -2001,22 +2026,32 @@ function activePhase(phases) {
 function brkCard(m, isFinal=false) {
   const sigla = (n) => String(n||'?').slice(0,3).toUpperCase();
   const hasScore = m.score && m.score.h !== null && m.score.h !== undefined;
-  const hWin = hasScore && m.score.h > m.score.a;
-  const aWin = hasScore && m.score.a > m.score.h;
+  // Determina vencedor considerando pênaltis em caso de empate
+  let hWin = hasScore && m.score.h > m.score.a;
+  let aWin = hasScore && m.score.a > m.score.h;
+  if (hasScore && m.score.h === m.score.a && m.penaltis && m.penaltis.vencedor) {
+    if (m.penaltis.vencedor === m.home) hWin = true;
+    else if (m.penaltis.vencedor === m.away) aWin = true;
+  }
   const live = m.status === 'live';
   const done = m.status === 'done';
   let cardCls = isFinal ? 'brk-final-card' : 'brk-card';
-  if (done && hWin) cardCls += ' w'; // borda verde
+  if (done && (hWin || aWin)) cardCls += ' w'; // borda verde no vencedor
   else if (live) cardCls += ' live';
   // Bet do user
   const bet = myBets()[m.id];
-  const pts = bet && hasScore ? calcPoints(bet, m.score) : null;
-  const ptsBadge = pts === 3 ? '⭐+3' : pts === 2 ? '+2' : pts === 1 ? '+1' : (pts === 0 ? '0' : (bet ? bet.h+'×'+bet.a : ''));
-  const ptsColor = pts === 3 ? 'var(--gold)' : pts > 0 ? 'var(--green)' : pts === 0 ? 'var(--red)' : 'var(--muted)';
+  const pts = bet && hasScore ? calcPoints(bet, m.score, m) : null;
+  const ptsBadge = pts === 4 ? '⭐+4' : pts === 3 ? '⭐+3' : pts === 2 ? '+2' : pts === 1 ? '+1' : (pts === 0 ? '0' : (bet ? bet.h+'×'+bet.a : ''));
+  const ptsColor = pts >= 3 ? 'var(--gold)' : pts > 0 ? 'var(--green)' : pts === 0 ? 'var(--red)' : 'var(--muted)';
+
+  const penInfo = m.penaltis
+    ? `<div style="font-size:8px;color:var(--red);text-align:center;font-weight:600;margin-top:2px;">🥅 ${m.penaltis.h}-${m.penaltis.a}</div>`
+    : '';
 
   const html = `<div class="${cardCls}" onclick="event.stopPropagation();openBet(${m.id})">
     <div class="brk-row ${done && aWin ? 'lost' : ''}"><span>${m.hFlag||''} ${sigla(m.home)}</span><span class="scr">${hasScore ? m.score.h : '—'}</span></div>
     <div class="brk-row ${done && hWin ? 'lost' : ''}"><span>${m.aFlag||''} ${sigla(m.away)}</span><span class="scr">${hasScore ? m.score.a : '—'}</span></div>
+    ${penInfo}
     ${ptsBadge ? `<div class="brk-meta"><span>${live?'● ao vivo':done?'finalizado':''}</span><span style="color:${ptsColor};font-weight:700;">${ptsBadge}</span></div>` : ''}
   </div>`;
   return html;
@@ -2590,9 +2625,26 @@ function updateCountdown(){
 }
 
 // ── PONTUAÇÃO ──
-function calcPoints(bet,result){
+// Verifica se uma fase é mata-mata (precisa de vencedor obrigatório)
+function isMatamataPhase(fase) {
+  const n = String(fase||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  if (!n || n.includes('grupo')) return false;
+  return n.includes('r32') || n.includes('32avos') || n.includes('16avos') ||
+         n.includes('oitavas') || n.includes('quartas') || n.includes('quarter') ||
+         n.includes('semi') || n.includes('final') ||
+         (n.includes('3') && n.includes('lugar'));
+}
+
+function calcPoints(bet,result,match){
   if(!result||!bet) return null;
-  if(bet.h===result.h&&bet.a===result.a) return 3;
+  if(bet.h===result.h&&bet.a===result.a) {
+    // Bônus de pênaltis: empate exato + tem palpite de pênaltis + acertou quem ganhou
+    if (bet.h === bet.a && bet.pen_vencedor && match && match.penaltis && match.penaltis.vencedor) {
+      const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+      if (norm(bet.pen_vencedor) === norm(match.penaltis.vencedor)) return 4;
+    }
+    return 3;
+  }
   if((bet.h-bet.a)===(result.h-result.a)) return 2;
   const w=r=>r.h>r.a?1:r.h<r.a?-1:0;
   if(w(bet)===w(result)) return 1;
@@ -2601,7 +2653,7 @@ function calcPoints(bet,result){
 
 function myStats(){
   const bets=myBets();let pts=0,hits=0,exact=0,betCount=Object.keys(bets).length;
-  matches.forEach(m=>{const p=calcPoints(bets[m.id],m.score);if(p!==null){pts+=p;if(p>0)hits++;if(p===3)exact++;}});
+  matches.forEach(m=>{const p=calcPoints(bets[m.id],m.score,m);if(p!==null){pts+=p;if(p>0)hits++;if(p===3)exact++;}});
   pts += champBonus(myChamp || S.get('my_champ', null));
   return{pts,hits,exact,betCount};
 }
@@ -2783,7 +2835,7 @@ function renderMatches(){
   list.innerHTML=diasOrdenados.map(diaKey=>{
     const {label, jogos:arr} = byDia[diaKey];
     const cards=arr.map(m=>{
-      const bet=bets[m.id],pts=bet&&m.score?calcPoints(bet,m.score):null;
+      const bet=bets[m.id],pts=bet&&m.score?calcPoints(bet,m.score,m):null;
       const closed=isBettingClosed(m);
       // Status compacto
       let statusCls, statusTxt;
@@ -2823,6 +2875,7 @@ function renderMatches(){
           <div class="match-score ${m.score?'':'pending'}">${m.score?m.score.h+' – '+m.score.a:'–'}</div>
           <div class="match-team right"><span class="team-name">${m.away}</span><span class="team-flag">${m.aFlag}</span></div>
         </div>
+        ${m.penaltis ? `<div style="font-size:11px;color:var(--red);text-align:center;font-weight:600;margin-top:4px;">🥅 Pênaltis: ${m.penaltis.h} – ${m.penaltis.a}</div>` : ''}
         <div class="match-info-row">
           ${ptsBadge}
           ${betLine}
@@ -2928,37 +2981,80 @@ function openBet(id){
   currentMatch=m;
   const bets=myBets(),saved=bets[id];
   scoreH=saved?saved.h:0;scoreA=saved?saved.a:0;
+  penWinner = saved && saved.pen_vencedor ? (saved.pen_vencedor === m.home ? 'h' : saved.pen_vencedor === m.away ? 'a' : null) : null;
   document.getElementById('modal-flag1').innerHTML=m.hFlag;
   document.getElementById('modal-team1').textContent=m.home;
   document.getElementById('modal-flag2').innerHTML=m.aFlag;
   document.getElementById('modal-team2').textContent=m.away;
   document.getElementById('score-h').textContent=scoreH;
   document.getElementById('score-a').textContent=scoreA;
+  // Preenche os botões de pênaltis com info do match
+  document.getElementById('pen-flag-h').innerHTML=m.hFlag;
+  document.getElementById('pen-name-h').textContent=m.home;
+  document.getElementById('pen-flag-a').innerHTML=m.aFlag;
+  document.getElementById('pen-name-a').textContent=m.away;
   document.getElementById('modal-title').textContent='Sua Aposta';
   document.getElementById('confirm-btn').style.display='block';
   document.getElementById('remove-btn').style.display=saved?'block':'none';
   document.getElementById('bet-modal').style.display='flex';
+  updatePenSection();
 }
 function closeBetModal(){document.getElementById('bet-modal').style.display='none';}
 function chgScore(side,d){
   if(side==='h'){scoreH=Math.max(0,scoreH+d);document.getElementById('score-h').textContent=scoreH;}
   else{scoreA=Math.max(0,scoreA+d);document.getElementById('score-a').textContent=scoreA;}
+  updatePenSection();
+}
+
+// Mostra/esconde a seção de pênaltis baseado em: jogo de mata-mata + placar empatado
+let penWinner = null;
+function updatePenSection() {
+  if (!currentMatch) return;
+  const isMatamata = isMatamataPhase(currentMatch.round);
+  const isEmpate = scoreH === scoreA;
+  const show = isMatamata && isEmpate;
+  document.getElementById('pen-section').style.display = show ? 'block' : 'none';
+  document.getElementById('bonus-pen-row').style.display = show ? 'flex' : 'none';
+  // Visual dos inputs (borda dourada quando empate mata-mata)
+  const inputs = document.querySelectorAll('#bet-modal .score-val');
+  inputs.forEach(el => el.style.color = (show && isEmpate) ? 'var(--gold)' : '');
+  // Atualiza highlight dos botões de pênaltis
+  document.getElementById('pen-opt-h').style.borderColor = penWinner === 'h' ? 'var(--green)' : 'var(--border)';
+  document.getElementById('pen-opt-h').style.background = penWinner === 'h' ? 'rgba(0,200,83,.08)' : 'var(--surface)';
+  document.getElementById('pen-opt-a').style.borderColor = penWinner === 'a' ? 'var(--green)' : 'var(--border)';
+  document.getElementById('pen-opt-a').style.background = penWinner === 'a' ? 'rgba(0,200,83,.08)' : 'var(--surface)';
+}
+
+function setPenWinner(side) {
+  penWinner = side;
+  updatePenSection();
 }
 
 async function confirmBet(){
   if(!currentMatch)return;
+  // Em mata-mata com empate, exige escolha de pênaltis
+  const isMatamata = isMatamataPhase(currentMatch.round);
+  if (isMatamata && scoreH === scoreA && !penWinner) {
+    showToast('⚠️ Escolha quem ganha nos pênaltis');
+    return;
+  }
   const btn=document.getElementById('confirm-btn');
   btn.textContent='Salvando...';btn.disabled=true;
   // Salva local imediatamente
   const bets=myBets();
-  bets[currentMatch.id]={h:scoreH,a:scoreA,ts:new Date().toISOString()};
+  const penVencedor = (isMatamata && scoreH === scoreA && penWinner)
+    ? (penWinner === 'h' ? currentMatch.home : currentMatch.away)
+    : '';
+  bets[currentMatch.id]={h:scoreH,a:scoreA,pen_vencedor:penVencedor,ts:new Date().toISOString()};
   saveBets(bets);
   closeBetModal();
-  showToast(`✅ ${currentMatch.home} ${scoreH}×${scoreA} ${currentMatch.away}`);
+  let msg = `✅ ${currentMatch.home} ${scoreH}×${scoreA} ${currentMatch.away}`;
+  if (penVencedor) msg += ` (pênaltis: ${penVencedor})`;
+  showToast(msg);
   renderMatches();updateHome();
   btn.textContent='Confirmar aposta ✓';btn.disabled=false;
   // Envia para todos os grupos no servidor em background
-  api({action:'saveAposta',usuario:userEmail||userName,display_name:userName,grupo:'GERAL',jogo_id:currentMatch.id,gol_casa:scoreH,gol_visit:scoreA})
+  api({action:'saveAposta',usuario:userEmail||userName,display_name:userName,grupo:'GERAL',jogo_id:currentMatch.id,gol_casa:scoreH,gol_visit:scoreA,pen_vencedor:penVencedor})
     .catch(()=>{});
 }
 
@@ -3042,7 +3138,7 @@ function renderRanking(){
   const doneMatches=matches.filter(m=>m.status==='done'&&m.score);
   let streak=0,maxStreak=0;
   doneMatches.forEach(m=>{
-    const p=calcPoints(bets[m.id],m.score);
+    const p=calcPoints(bets[m.id],m.score,m);
     if(p!==null&&p>0){streak++;maxStreak=Math.max(maxStreak,streak);}
     else streak=0;
   });
@@ -3498,7 +3594,7 @@ function openBetsPerson(usuario) {
   personBets.forEach(b => {
     const jid = parseInt(b.jogo_id);
     const gh = parseInt(b.gol_casa), ga = parseInt(b.gol_visit);
-    if (!isNaN(jid) && !isNaN(gh) && !isNaN(ga)) betsMap[jid] = {h:gh, a:ga};
+    if (!isNaN(jid) && !isNaN(gh) && !isNaN(ga)) betsMap[jid] = {h:gh, a:ga, pen_vencedor: b.pen_vencedor||''};
   });
 
   // Lista APENAS jogos onde a pessoa apostou, em ordem cronológica
@@ -3520,15 +3616,19 @@ function openBetsPerson(usuario) {
       valHtml = `<span class="pbet-bet hidden">🙈 oculto</span>`;
     } else {
       totalVisiveis++;
-      const pts = m.score ? calcPoints(bet, m.score) : null;
-      const isExact = pts === 3;
+      const pts = m.score ? calcPoints(bet, m.score, m) : null;
+      const isExact = pts === 3 || pts === 4;
       let ptsHtml = '';
       if (pts !== null) {
-        const cls = pts === 3 ? 'gold' : pts > 0 ? 'green' : 'zero';
-        const label = pts === 3 ? '+3' : pts === 2 ? '+2' : pts === 1 ? '+1' : '0';
+        const cls = pts >= 3 ? 'gold' : pts > 0 ? 'green' : 'zero';
+        const label = pts === 4 ? '+4' : pts === 3 ? '+3' : pts === 2 ? '+2' : pts === 1 ? '+1' : '0';
         ptsHtml = `<span class="bet-row-pts ${cls}" style="margin-left:6px;">${label}</span>`;
       }
-      valHtml = `<span class="pbet-bet ${isExact?'exact':''}">${bet.h} × ${bet.a}</span>${ptsHtml}`;
+      // Indicação do palpite de pênaltis (se houver)
+      const penHtml = bet.pen_vencedor
+        ? `<div style="font-size:9px;color:var(--red);margin-top:2px;font-weight:600;">🥅 ${bet.pen_vencedor}</div>`
+        : '';
+      valHtml = `<div style="text-align:right;"><span class="pbet-bet ${isExact?'exact':''}">${bet.h} × ${bet.a}</span>${ptsHtml}${penHtml}</div>`;
     }
 
     return `<div class="pbet">
@@ -3706,6 +3806,37 @@ function renderAdmin() {
             <span class="card-pill red"><button class="card-mini-btn" onclick="adminAdjCard(${m.id},'redA',-1)">−</button>🟥 <span id="admin-redA-${m.id}">${cards.redA}</span><button class="card-mini-btn" onclick="adminAdjCard(${m.id},'redA',1)">+</button></span>
           </div>
         </div>
+        ${(() => {
+          // Seção de pênaltis: aparece SÓ se for mata-mata E placar empatado
+          if (!isMatamataPhase(m.round)) return '';
+          if (sc.h !== sc.a) return '';
+          const pen = adminPenaltis[m.id] || {
+            h: (m.penaltis && m.penaltis.h) || 0,
+            a: (m.penaltis && m.penaltis.a) || 0,
+          };
+          return `<div class="admin-cards-section" style="background:rgba(255,71,87,.04);border-radius:8px;padding:10px 8px;border:1px dashed rgba(255,71,87,.3);margin-top:8px;">
+            <div class="admin-cards-label" style="color:var(--red);">🥅 PÊNALTIS (empate)</div>
+            <div class="admin-cards-row" style="justify-content:center;gap:14px;">
+              <div style="text-align:center;">
+                <div style="font-size:10px;color:var(--muted);margin-bottom:3px;">${m.home}</div>
+                <div style="display:flex;align-items:center;gap:5px;justify-content:center;">
+                  <button class="admin-score-btn" onclick="adminAdjPen(${m.id},'h',-1)">−</button>
+                  <span class="admin-score-val" id="admin-penH-${m.id}" style="color:var(--red);">${pen.h}</span>
+                  <button class="admin-score-btn" onclick="adminAdjPen(${m.id},'h',1)">+</button>
+                </div>
+              </div>
+              <span class="admin-score-sep">×</span>
+              <div style="text-align:center;">
+                <div style="font-size:10px;color:var(--muted);margin-bottom:3px;">${m.away}</div>
+                <div style="display:flex;align-items:center;gap:5px;justify-content:center;">
+                  <button class="admin-score-btn" onclick="adminAdjPen(${m.id},'a',-1)">−</button>
+                  <span class="admin-score-val" id="admin-penA-${m.id}" style="color:var(--red);">${pen.a}</span>
+                  <button class="admin-score-btn" onclick="adminAdjPen(${m.id},'a',1)">+</button>
+                </div>
+              </div>
+            </div>
+          </div>`;
+        })()}
         ${btnHtml}
       </div>`;
     }).join('');
@@ -3736,6 +3867,8 @@ function renderAdmin() {
 const adminScores = {};
 // Estado temporário dos cartões editados no admin
 const adminCards = {};
+// Estado temporário dos pênaltis editados no admin
+const adminPenaltis = {};
 
 function adminAdj(matchId, side, delta) {
   if (!adminScores[matchId]) {
@@ -3748,6 +3881,9 @@ function adminAdj(matchId, side, delta) {
   adminScores[matchId][side] = Math.max(0, adminScores[matchId][side] + delta);
   const el = document.getElementById('admin-' + side + '-' + matchId);
   if (el) el.textContent = adminScores[matchId][side];
+  // Se o placar mudou, talvez precise mostrar/esconder a seção de pênaltis
+  // Re-renderiza pra atualizar
+  renderAdmin();
 }
 
 function adminAdjCard(matchId, key, delta) {
@@ -3763,6 +3899,19 @@ function adminAdjCard(matchId, key, delta) {
   adminCards[matchId][key] = Math.max(0, (adminCards[matchId][key]||0) + delta);
   const el = document.getElementById('admin-' + key + '-' + matchId);
   if (el) el.textContent = adminCards[matchId][key];
+}
+
+function adminAdjPen(matchId, side, delta) {
+  if (!adminPenaltis[matchId]) {
+    const m = matches.find(x => x.id === matchId);
+    adminPenaltis[matchId] = {
+      h: (m && m.penaltis && m.penaltis.h) || 0,
+      a: (m && m.penaltis && m.penaltis.a) || 0,
+    };
+  }
+  adminPenaltis[matchId][side] = Math.max(0, adminPenaltis[matchId][side] + delta);
+  const el = document.getElementById('admin-pen' + (side==='h'?'H':'A') + '-' + matchId);
+  if (el) el.textContent = adminPenaltis[matchId][side];
 }
 
 function openAdminConfirm(matchId) {
@@ -3796,7 +3945,13 @@ async function doAdminSave() {
       yelA: (match.cards && match.cards.yelA) || 0,
       redA: (match.cards && match.cards.redA) || 0,
     };
-    const r = await api({
+    // Pênaltis: só faz sentido em mata-mata com placar empatado
+    const enviaPen = isMatamataPhase(match.round) && h === a;
+    const pen = adminPenaltis[match.id] || {
+      h: (match.penaltis && match.penaltis.h) || 0,
+      a: (match.penaltis && match.penaltis.a) || 0,
+    };
+    const params = {
       action:     'updatePlacar',
       admin:      userEmail,
       jogo_id:    match.id,
@@ -3807,7 +3962,16 @@ async function doAdminSave() {
       cartoes_vermelho_casa: cards.redH,
       cartoes_amarelo_visit: cards.yelA,
       cartoes_vermelho_visit:cards.redA,
-    });
+    };
+    if (enviaPen) {
+      params.penaltis_casa  = pen.h;
+      params.penaltis_visit = pen.a;
+    } else {
+      // Se não é empate, limpa pênaltis na planilha (caso tenha sido editado antes)
+      params.penaltis_casa  = '';
+      params.penaltis_visit = '';
+    }
+    const r = await api(params);
     if (!r.ok) throw new Error(r.error || 'Erro desconhecido');
     showToast('✅ Salvo!');
     // Decide status local com a mesma lógica do Apps Script
@@ -3823,9 +3987,19 @@ async function doAdminSave() {
       matches[idx].score  = { h, a };
       matches[idx].status = newStatus;
       matches[idx].cards  = cards;
+      if (enviaPen) {
+        matches[idx].penaltis = {
+          h: pen.h,
+          a: pen.a,
+          vencedor: pen.h > pen.a ? match.home : pen.a > pen.h ? match.away : null
+        };
+      } else {
+        matches[idx].penaltis = null;
+      }
     }
     delete adminScores[match.id];
     delete adminCards[match.id];
+    delete adminPenaltis[match.id];
     renderAdmin();
     renderMatches();
     if (document.getElementById('screen-tabela').classList.contains('active')) renderTabela();
