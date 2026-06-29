@@ -2634,17 +2634,28 @@ function isMatamataPhase(fase) {
 
 function calcPoints(bet,result,match){
   if(!result||!bet) return null;
+  // 1. Placar exato
   if(bet.h===result.h&&bet.a===result.a) {
-    // Bônus de pênaltis: empate exato + tem palpite de pênaltis + acertou quem ganhou
+    // Bônus +1: empate exato + acertou pênaltis (total +4)
     if (bet.h === bet.a && bet.pen_vencedor && match && match.penaltis && match.penaltis.vencedor) {
       const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
       if (norm(bet.pen_vencedor) === norm(match.penaltis.vencedor)) return 4;
     }
     return 3;
   }
+  // 2. Saldo correto
   if((bet.h-bet.a)===(result.h-result.a)) return 2;
+  // 3. Vencedor correto no tempo normal
   const w=r=>r.h>r.a?1:r.h<r.a?-1:0;
   if(w(bet)===w(result)) return 1;
+  // 4. (NOVO) Jogo decidido nos pênaltis — apostou vitória do time que passou de fase?
+  if (match && match.penaltis && match.penaltis.vencedor) {
+    const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+    const vencReal = norm(match.penaltis.vencedor);
+    const aposta = w(bet);
+    if (aposta === 1  && norm(match.home) === vencReal) return 1;
+    if (aposta === -1 && norm(match.away) === vencReal) return 1;
+  }
   return 0;
 }
 
