@@ -3465,13 +3465,14 @@ function openBetsGame(matchId) {
     displayName: b.display_name || (b.usuario && b.usuario.includes('@') ? b.usuario.split('@')[0] : (b.usuario || '?')),
     h: parseInt(b.gol_casa),
     a: parseInt(b.gol_visit),
+    pen_vencedor: b.pen_vencedor || '',
     ts: b.atualizado_em || b.criado_em || ''
   })).filter(b => !isNaN(b.h) && !isNaN(b.a));
 
   // Calcula pontos se o jogo já tem placar
   const hasResult = !!m.score;
   bets.forEach(b => {
-    b.pts = hasResult ? calcPoints({h:b.h, a:b.a}, m.score) : null;
+    b.pts = hasResult ? calcPoints({h:b.h, a:b.a, pen_vencedor:b.pen_vencedor}, m.score, m) : null;
   });
 
   // Ordena: se tem resultado → por pontos desc, exato primeiro. Senão alfabético.
@@ -3514,11 +3515,11 @@ function openBetsGame(matchId) {
         const color = COLORS[hashStr(b.usuario || '?') % COLORS.length];
         const ini = b.displayName.slice(0,2).toUpperCase();
         const dispName = isMe ? 'Você' : b.displayName;
-        const isExact = b.pts === 3;
+        const isExact = b.pts === 3 || b.pts === 4;
         let ptsHtml = '';
         if (b.pts !== null) {
-          const cls = b.pts === 3 ? 'gold' : b.pts > 0 ? 'green' : 'zero';
-          const label = b.pts === 3 ? '+3' : b.pts === 2 ? '+2' : b.pts === 1 ? '+1' : '0';
+          const cls = b.pts >= 3 ? 'gold' : b.pts > 0 ? 'green' : 'zero';
+          const label = b.pts === 4 ? '+4' : b.pts === 3 ? '+3' : b.pts === 2 ? '+2' : b.pts === 1 ? '+1' : '0';
           ptsHtml = `<span class="bet-row-pts ${cls}">${label}</span>`;
         }
         return `<div class="bet-row ${isMe?'me':''}">
