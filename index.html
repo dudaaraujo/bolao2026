@@ -3466,13 +3466,19 @@ function openBetsGame(matchId) {
     h: parseInt(b.gol_casa),
     a: parseInt(b.gol_visit),
     pen_vencedor: b.pen_vencedor || '',
+    ptsServer: (b.pts !== null && b.pts !== undefined && b.pts !== '') ? parseInt(b.pts) : null,
     ts: b.atualizado_em || b.criado_em || ''
   })).filter(b => !isNaN(b.h) && !isNaN(b.a));
 
-  // Calcula pontos se o jogo já tem placar
+  // Calcula pontos: usa o que veio do servidor (fonte da verdade do ranking).
+  // Se não veio, calcula localmente como fallback.
   const hasResult = !!m.score;
   bets.forEach(b => {
-    b.pts = hasResult ? calcPoints({h:b.h, a:b.a, pen_vencedor:b.pen_vencedor}, m.score, m) : null;
+    if (b.ptsServer !== null && !isNaN(b.ptsServer)) {
+      b.pts = b.ptsServer;
+    } else {
+      b.pts = hasResult ? calcPoints({h:b.h, a:b.a, pen_vencedor:b.pen_vencedor}, m.score, m) : null;
+    }
   });
 
   // Ordena: se tem resultado → por pontos desc, exato primeiro. Senão alfabético.
@@ -3603,7 +3609,14 @@ function openBetsPerson(usuario) {
   personBets.forEach(b => {
     const jid = parseInt(b.jogo_id);
     const gh = parseInt(b.gol_casa), ga = parseInt(b.gol_visit);
-    if (!isNaN(jid) && !isNaN(gh) && !isNaN(ga)) betsMap[jid] = {h:gh, a:ga, pen_vencedor: b.pen_vencedor||''};
+    if (!isNaN(jid) && !isNaN(gh) && !isNaN(ga)) {
+      const ptsSrv = (b.pts !== null && b.pts !== undefined && b.pts !== '') ? parseInt(b.pts) : null;
+      betsMap[jid] = {
+        h: gh, a: ga,
+        pen_vencedor: b.pen_vencedor || '',
+        ptsServer: !isNaN(ptsSrv) ? ptsSrv : null
+      };
+    }
   });
 
   // Lista APENAS jogos onde a pessoa apostou, em ordem cronológica
@@ -3625,7 +3638,10 @@ function openBetsPerson(usuario) {
       valHtml = `<span class="pbet-bet hidden">🙈 oculto</span>`;
     } else {
       totalVisiveis++;
-      const pts = m.score ? calcPoints(bet, m.score, m) : null;
+      // Usa pontos do servidor (fonte de verdade do ranking) se disponíveis
+      const pts = (bet.ptsServer !== null && !isNaN(bet.ptsServer))
+        ? bet.ptsServer
+        : (m.score ? calcPoints(bet, m.score, m) : null);
       const isExact = pts === 3 || pts === 4;
       let ptsHtml = '';
       if (pts !== null) {
