@@ -363,37 +363,39 @@ body.theme-light .sync-fab{color:#fff;}
 
 /* ── BRACKET (CHAVEAMENTO MATA-MATA) ── */
 .bracket-wrap{padding:4px 0;}
-.bracket-grid{display:grid;gap:3px;align-items:center;}
-.bracket-phase-title{font-size:9px;font-weight:700;letter-spacing:.07em;color:var(--gold);text-align:center;margin-bottom:6px;text-transform:uppercase;}
-.brk-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 6px;margin-bottom:5px;font-size:9px;line-height:1.25;cursor:pointer;transition:border-color .15s;}
+.bracket-grid{display:grid;gap:4px;align-items:center;}
+.bracket-phase-title{font-size:11px;font-weight:700;letter-spacing:.07em;color:var(--gold);text-align:center;margin-bottom:7px;text-transform:uppercase;}
+.brk-card{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:6px 7px;margin-bottom:6px;font-size:11px;line-height:1.3;cursor:pointer;transition:border-color .15s;}
 .brk-card:hover{border-color:var(--green);}
 .brk-card.w{border-left:2px solid var(--green);}
 .brk-card.live{border-left:2px solid var(--red);}
-.brk-row{display:flex;justify-content:space-between;gap:3px;align-items:center;color:var(--text);font-weight:600;}
+.brk-row{display:flex;justify-content:space-between;gap:4px;align-items:center;color:var(--text);font-weight:600;}
 .brk-row.lost{color:var(--muted);font-weight:400;}
 .brk-row.lost span{text-decoration:line-through;}
-.brk-row .scr{font-family:'Bebas Neue',sans-serif;font-size:11px;color:var(--green);font-weight:400;text-decoration:none;}
+.brk-row .scr{font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--green);font-weight:400;text-decoration:none;}
 .brk-row.lost .scr{color:var(--muted);}
-.brk-meta{font-size:8px;color:var(--muted);margin-top:3px;border-top:1px solid var(--border);padding-top:3px;display:flex;justify-content:space-between;}
+.brk-row.tbd{color:#5e6f8c;font-style:italic;font-weight:400;}
+.brk-meta{font-size:10px;color:var(--muted);margin-top:4px;border-top:1px solid var(--border);padding-top:4px;display:flex;justify-content:space-between;}
 
-/* Coluna colapsada (fase futura) */
-.brk-collapsed{background:var(--bg3);border:1px dashed var(--border);border-radius:5px;display:flex;align-items:center;justify-content:center;padding:6px 2px;cursor:pointer;min-height:160px;}
-.brk-collapsed-label{writing-mode:vertical-rl;transform:rotate(180deg);font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;}
-.brk-collapsed:hover .brk-collapsed-label{color:var(--gold);}
+/* Coluna colapsada (fase futura) — agora clicável! */
+.brk-collapsed{background:rgba(255,214,0,.04);border:1px dashed rgba(255,214,0,.3);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 2px;cursor:pointer;min-height:180px;gap:6px;transition:all .15s;}
+.brk-collapsed:hover{background:rgba(255,214,0,.1);border-color:var(--gold);}
+.brk-collapsed-ico{font-size:13px;color:var(--gold);}
+.brk-collapsed-label{writing-mode:vertical-rl;transform:rotate(180deg);font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;}
 
 /* Final destaque dourado */
 .brk-final-col{display:flex;flex-direction:column;align-items:center;justify-content:center;}
-.brk-final-trophy{font-size:24px;margin-bottom:5px;}
-.brk-final-card{background:linear-gradient(135deg,rgba(255,214,0,.18),rgba(0,200,83,.1));border:1px solid var(--gold);border-radius:6px;padding:6px;font-size:10px;cursor:pointer;min-width:54px;}
+.brk-final-trophy{font-size:28px;margin-bottom:5px;}
+.brk-final-card{background:linear-gradient(135deg,rgba(255,214,0,.18),rgba(0,200,83,.1));border:1px solid var(--gold);border-radius:7px;padding:7px;font-size:11px;cursor:pointer;min-width:60px;}
 .brk-final-card .brk-row{color:var(--gold);font-weight:700;}
 .brk-final-card .brk-row.lost{color:var(--muted);}
-.brk-final-card .brk-row .scr{color:var(--gold);font-size:11px;}
-.brk-final-foot{font-size:8px;color:var(--gold);text-align:center;margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,214,0,.3);}
+.brk-final-card .brk-row .scr{color:var(--gold);font-size:12px;}
+.brk-final-foot{font-size:9px;color:var(--gold);text-align:center;margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,214,0,.3);}
 
 /* Espaçamentos entre cards conforme tamanho da fase */
-.bracket-col-gap-1 .brk-card{margin-bottom:24px;}
-.bracket-col-gap-2 .brk-card{margin-bottom:62px;}
-.bracket-col-gap-3 .brk-card{margin-bottom:140px;}
+.bracket-col-gap-1 .brk-card{margin-bottom:28px;}
+.bracket-col-gap-2 .brk-card{margin-bottom:68px;}
+.bracket-col-gap-3 .brk-card{margin-bottom:150px;}
 
 /* ── ADMIN ── */
 .admin-tab-row{display:flex;gap:0;margin-bottom:16px;background:var(--bg2);border-radius:10px;padding:3px;}
@@ -2091,20 +2093,48 @@ function brkCard(m, isFinal=false) {
   const ptsColor = pts >= 3 ? 'var(--gold)' : pts > 0 ? 'var(--green)' : pts === 0 ? 'var(--red)' : 'var(--muted)';
 
   const penInfo = m.penaltis
-    ? `<div style="font-size:8px;color:var(--red);text-align:center;font-weight:600;margin-top:2px;">🥅 ${m.penaltis.h}-${m.penaltis.a}</div>`
+    ? `<div style="font-size:9px;color:var(--red);text-align:center;font-weight:600;margin-top:3px;">🥅 ${m.penaltis.h}-${m.penaltis.a}</div>`
     : '';
 
+  // Time não definido (sem nome ou nome vazio)?
+  const homeTbd = !m.home || m.home === '—' || String(m.home).trim() === '';
+  const awayTbd = !m.away || m.away === '—' || String(m.away).trim() === '';
+  const homeContent = homeTbd
+    ? `<span>⌛ AGU</span>`
+    : `<span>${m.hFlag||''} ${sigla(m.home)}</span>`;
+  const awayContent = awayTbd
+    ? `<span>⌛ AGU</span>`
+    : `<span>${m.aFlag||''} ${sigla(m.away)}</span>`;
+  const homeRowCls = homeTbd ? 'tbd' : (done && aWin ? 'lost' : '');
+  const awayRowCls = awayTbd ? 'tbd' : (done && hWin ? 'lost' : '');
+
   const html = `<div class="${cardCls}" onclick="event.stopPropagation();openBet(${m.id})">
-    <div class="brk-row ${done && aWin ? 'lost' : ''}"><span>${m.hFlag||''} ${sigla(m.home)}</span><span class="scr">${hasScore ? m.score.h : '—'}</span></div>
-    <div class="brk-row ${done && hWin ? 'lost' : ''}"><span>${m.aFlag||''} ${sigla(m.away)}</span><span class="scr">${hasScore ? m.score.a : '—'}</span></div>
+    <div class="brk-row ${homeRowCls}">${homeContent}<span class="scr">${hasScore ? m.score.h : '—'}</span></div>
+    <div class="brk-row ${awayRowCls}">${awayContent}<span class="scr">${hasScore ? m.score.a : '—'}</span></div>
     ${penInfo}
     ${ptsBadge ? `<div class="brk-meta"><span>${live?'● ao vivo':done?'finalizado':''}</span><span style="color:${ptsColor};font-weight:700;">${ptsBadge}</span></div>` : ''}
   </div>`;
   return html;
 }
 
-function brkCollapsedCol(label) {
-  return `<div class="brk-collapsed"><span class="brk-collapsed-label">${label}</span></div>`;
+function brkCollapsedCol(phaseKey, label) {
+  return `<div class="brk-collapsed" onclick="brkToggleExpand('${phaseKey}')" title="Toque para expandir">
+    <i class="ti ti-chevron-right brk-collapsed-ico" aria-hidden="true"></i>
+    <span class="brk-collapsed-label">${label}</span>
+  </div>`;
+}
+
+// Estado: fases que o usuário forçou abrir manualmente no bracket
+const brkExpandedManual = new Set(S.get('brk_expanded', []));
+
+function brkToggleExpand(phaseKey) {
+  if (brkExpandedManual.has(phaseKey)) {
+    brkExpandedManual.delete(phaseKey);
+  } else {
+    brkExpandedManual.add(phaseKey);
+  }
+  S.set('brk_expanded', Array.from(brkExpandedManual));
+  renderTabela();
 }
 
 function brkFinalCol(phases) {
@@ -2147,7 +2177,8 @@ function renderBracket(phases) {
   const rightCols = [];
   visiblePhases.forEach(p => {
     const jogos = phases[p].jogos;
-    const isExpanded = (p === active);
+    // Expandida se: é a fase ativa OU o usuário expandiu manualmente
+    const isExpanded = (p === active) || brkExpandedManual.has(p);
     const half = Math.ceil(jogos.length / 2);
     const left = jogos.slice(0, half);
     const right = jogos.slice(half);
@@ -2179,7 +2210,7 @@ function renderBracket(phases) {
         ${cardsHtml}
       </div>`);
     } else {
-      colsHtml.push(brkCollapsedCol(c.phase));
+      colsHtml.push(brkCollapsedCol(c.phase, c.phase));
     }
   });
   // Final central
@@ -2194,14 +2225,14 @@ function renderBracket(phases) {
         ${cardsHtml}
       </div>`);
     } else {
-      colsHtml.push(brkCollapsedCol(c.phase));
+      colsHtml.push(brkCollapsedCol(c.phase, c.phase));
     }
   });
 
-  // grid-template-columns: cada coluna expandida = 1fr, colapsada = 18px, final = 60px
-  const colTemplate = leftCols.map(c => c.expanded ? '1fr' : '18px').join(' ')
-    + ' 60px '
-    + rightCols.map(c => c.expanded ? '1fr' : '18px').join(' ');
+  // grid-template-columns: cada coluna expandida = 1fr, colapsada = 24px, final = 70px
+  const colTemplate = leftCols.map(c => c.expanded ? '1fr' : '24px').join(' ')
+    + ' 70px '
+    + rightCols.map(c => c.expanded ? '1fr' : '24px').join(' ');
 
   return `<div class="bracket-wrap">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--text);letter-spacing:.03em;margin-bottom:12px;text-align:center;">🏆 Chaveamento</div>
