@@ -2661,7 +2661,7 @@ function calcPoints(bet,result,match){
 
 function myStats(){
   const bets=myBets();let pts=0,hits=0,exact=0,betCount=Object.keys(bets).length;
-  matches.forEach(m=>{const p=calcPoints(bets[m.id],m.score,m);if(p!==null){pts+=p;if(p>0)hits++;if(p===3)exact++;}});
+  matches.forEach(m=>{const p=calcPoints(bets[m.id],m.score,m);if(p!==null){pts+=p;if(p>0)hits++;if(p===3||p===4)exact++;}});
   pts += champBonus(myChamp || S.get('my_champ', null));
   return{pts,hits,exact,betCount};
 }
@@ -2858,8 +2858,8 @@ function renderMatches(){
             ? '<span class="bet-label" style="color:#58a6ff;">Toque para apostar</span>'
             : (m.status==='upcoming' && closed ? '<span class="bet-label" style="color:var(--muted);">Sem aposta</span>' : '<span></span>'));
 
-      const ptsColor=pts===3?'var(--gold)':pts>0?'var(--green)':'var(--red)';
-      const ptsLabel=pts===3?'⭐ +3 pts':pts===2?'+2 pts':pts===1?'+1 pt':'✗ 0 pts';
+      const ptsColor=pts>=3?'var(--gold)':pts>0?'var(--green)':'var(--red)';
+      const ptsLabel=pts===4?'⭐ +4 pts':pts===3?'⭐ +3 pts':pts===2?'+2 pts':pts===1?'+1 pt':'✗ 0 pts';
       const ptsBadge=pts!==null?`<span class="pts-badge" style="color:${ptsColor};background:${ptsColor}18;border:1px solid ${ptsColor}44;">${ptsLabel}</span>`:'<span></span>';
 
       // Botão "ver palpites" — só quando as apostas estão fechadas
