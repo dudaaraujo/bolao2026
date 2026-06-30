@@ -1418,7 +1418,13 @@ function rowToMatch(row) {
     penaltis: (() => {
       const pc = parseInt(row.penaltis_casa);
       const pv = parseInt(row.penaltis_visit);
+      // Só considera pênaltis válidos se:
+      //  1. Os dois valores são números
+      //  2. O placar normal foi EMPATE (pênaltis só em empates)
+      //  3. Pelo menos um dos pênaltis é > 0 (não é célula vazia/zerada)
       if (isNaN(pc) || isNaN(pv)) return null;
+      if (!hasScore || gh !== ga) return null;
+      if (pc === 0 && pv === 0) return null;
       return {
         h: pc, a: pv,
         vencedor: pc > pv ? (row.time_casa||'') : (pv > pc ? (row.time_visit||'') : null)
