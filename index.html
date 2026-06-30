@@ -4198,6 +4198,14 @@ async function doAdminSave() {
     const r = await api(params);
     if (!r.ok) throw new Error(r.error || 'Erro desconhecido');
     showToast('✅ Salvo!');
+    // Se houve propagação automática, mostra um toast extra
+    if (r.propagacao && r.propagacao.propagado > 0 && r.propagacao.detalhes) {
+      const linhas = r.propagacao.detalhes
+        .filter(d => d.vencedor)
+        .map(d => `${d.vencedor} → jogo #${d.destino}`)
+        .join(', ');
+      if (linhas) setTimeout(() => showToast('🎯 Propagado: ' + linhas), 1200);
+    }
     // Decide status local com a mesma lógica do Apps Script
     let newStatus = match.status;
     const TWO_HOURS = 2 * 60 * 60 * 1000;
