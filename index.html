@@ -2118,22 +2118,28 @@ function brkCard(m, isFinal=false) {
 }
 
 function brkCollapsedCol(phaseKey, label) {
-  return `<div class="brk-collapsed" onclick="brkToggleExpand('${phaseKey}')" title="Toque para expandir">
+  return `<div class="brk-collapsed" onclick="brkToggleExpand('${phaseKey}', false)" title="Toque para expandir">
     <i class="ti ti-chevron-right brk-collapsed-ico" aria-hidden="true"></i>
     <span class="brk-collapsed-label">${label}</span>
   </div>`;
 }
 
-// Estado: fases que o usuário forçou abrir manualmente no bracket
+// Estado: fases que o usuário forçou abrir/fechar manualmente no bracket
 const brkExpandedManual = new Set(S.get('brk_expanded', []));
+const brkCollapsedManual = new Set(S.get('brk_collapsed', []));
 
-function brkToggleExpand(phaseKey) {
-  if (brkExpandedManual.has(phaseKey)) {
+function brkToggleExpand(phaseKey, currentlyOpen) {
+  if (currentlyOpen) {
+    // Estava aberta → forçar fechar
+    brkCollapsedManual.add(phaseKey);
     brkExpandedManual.delete(phaseKey);
   } else {
+    // Estava fechada → forçar abrir
     brkExpandedManual.add(phaseKey);
+    brkCollapsedManual.delete(phaseKey);
   }
-  S.set('brk_expanded', Array.from(brkExpandedManual));
+  S.set('brk_expanded',  Array.from(brkExpandedManual));
+  S.set('brk_collapsed', Array.from(brkCollapsedManual));
   renderTabela();
 }
 
@@ -2177,8 +2183,13 @@ function renderBracket(phases) {
   const rightCols = [];
   visiblePhases.forEach(p => {
     const jogos = phases[p].jogos;
-    // Expandida se: é a fase ativa OU o usuário expandiu manualmente
-    const isExpanded = (p === active) || brkExpandedManual.has(p);
+    // Estado expandido respeita override do usuário em cascata:
+    //  1. forçou colapsar → fechada
+    //  2. forçou expandir → aberta
+    //  3. senão → padrão (ativa = expandida, futura = colapsada)
+    const isExpanded = brkCollapsedManual.has(p) ? false
+                     : brkExpandedManual.has(p)  ? true
+                     : (p === active);
     const half = Math.ceil(jogos.length / 2);
     const left = jogos.slice(0, half);
     const right = jogos.slice(half);
@@ -2206,7 +2217,10 @@ function renderBracket(phases) {
       const gap = c.phase === 'Oitavas' ? 1 : c.phase === 'Quartas' ? 2 : c.phase === 'Semi' ? 3 : 0;
       const cardsHtml = c.jogos.map(j => brkCard(j)).join('');
       colsHtml.push(`<div class="bracket-col-gap-${gap}">
-        <div class="bracket-phase-title">${c.phase}</div>
+        <div class="bracket-phase-title" onclick="brkToggleExpand('${c.phase}', true)" style="cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;" title="Fechar fase">
+          <span>${c.phase}</span>
+          <i class="ti ti-chevron-up" style="font-size:11px;" aria-hidden="true"></i>
+        </div>
         ${cardsHtml}
       </div>`);
     } else {
@@ -2221,7 +2235,10 @@ function renderBracket(phases) {
       const gap = c.phase === 'Oitavas' ? 1 : c.phase === 'Quartas' ? 2 : c.phase === 'Semi' ? 3 : 0;
       const cardsHtml = c.jogos.map(j => brkCard(j)).join('');
       colsHtml.push(`<div class="bracket-col-gap-${gap}">
-        <div class="bracket-phase-title">${c.phase}</div>
+        <div class="bracket-phase-title" onclick="brkToggleExpand('${c.phase}', true)" style="cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;" title="Fechar fase">
+          <span>${c.phase}</span>
+          <i class="ti ti-chevron-up" style="font-size:11px;" aria-hidden="true"></i>
+        </div>
         ${cardsHtml}
       </div>`);
     } else {
