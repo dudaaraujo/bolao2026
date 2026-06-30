@@ -168,6 +168,46 @@ body.theme-light .sync-fab{color:#fff;}
 .fase-header .fase-arrow{font-size:10px;transition:transform .2s;color:var(--muted);}
 .fase-header.collapsed .fase-arrow{transform:rotate(-90deg);}
 .fase-body{overflow:hidden;transition:max-height .25s ease;}
+
+/* ── AGRUPAMENTO POR FASE DA COPA ── */
+.phase-section{margin-bottom:12px;}
+.phase-hdr{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;border-radius:11px;cursor:pointer;user-select:none;transition:border-color .15s;}
+.phase-hdr-info{display:flex;align-items:center;gap:9px;}
+.phase-hdr-ico{font-size:18px;line-height:1;}
+.phase-hdr-nome{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.05em;line-height:1.1;}
+.phase-hdr-meta{font-size:11px;margin-top:2px;}
+.phase-hdr-arrow{font-size:12px;transition:transform .2s;}
+.phase-hdr.expanded .phase-hdr-arrow{transform:rotate(90deg);}
+
+/* Estado: fase finalizada (cinza tracejado) */
+.phase-hdr.phase-done{background:rgba(122,144,184,.05);border:1px dashed rgba(122,144,184,.25);color:var(--muted);}
+.phase-hdr.phase-done .phase-hdr-ico{color:var(--muted);}
+.phase-hdr.phase-done .phase-hdr-nome{color:var(--muted);}
+.phase-hdr.phase-done .phase-hdr-meta{color:var(--muted);}
+.phase-hdr.phase-done:hover{border-color:rgba(255,214,0,.3);}
+
+/* Estado: fase ativa (vermelha) */
+.phase-hdr.phase-active{background:rgba(255,71,87,.05);border:1px solid rgba(255,71,87,.3);color:var(--text);}
+.phase-hdr.phase-active .phase-hdr-ico{color:var(--red);}
+.phase-hdr.phase-active .phase-hdr-nome{color:var(--text);}
+.phase-hdr.phase-active .phase-hdr-meta{color:var(--red);}
+
+/* Estado: fase futura (neutra) */
+.phase-hdr.phase-future{background:var(--surface);border:1px solid var(--border);color:var(--muted);}
+.phase-hdr.phase-future .phase-hdr-ico{color:var(--muted);}
+.phase-hdr.phase-future .phase-hdr-nome{color:var(--muted);}
+.phase-hdr.phase-future .phase-hdr-meta{color:var(--muted);}
+.phase-hdr.phase-future:hover{border-color:var(--gold);}
+
+/* Estado: Final (dourado especial) */
+.phase-hdr.phase-final{background:linear-gradient(135deg,rgba(255,214,0,.1),rgba(0,200,83,.04));border:1px solid rgba(255,214,0,.4);}
+.phase-hdr.phase-final .phase-hdr-ico{color:var(--gold);}
+.phase-hdr.phase-final .phase-hdr-nome{color:var(--gold);}
+.phase-hdr.phase-final .phase-hdr-meta{color:var(--gold);opacity:.8;}
+
+.phase-body{overflow:hidden;transition:max-height .3s ease;padding:0;}
+.phase-body.collapsed{max-height:0 !important;}
+.phase-body-inner{padding:8px 0 4px;}
 .fase-body.collapsed{max-height:0 !important;}
 .match-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:8px;cursor:pointer;transition:border-color .2s;position:relative;}
 .match-card:hover{border-color:var(--green);}
@@ -1989,7 +2029,7 @@ function normalizePhase(s) {
 }
 
 // Ordem das fases mata-mata
-const PHASE_ORDER = ['R32', 'Oitavas', 'Quartas', 'Semi', 'Final'];
+const BRACKET_PHASE_ORDER = ['R32', 'Oitavas', 'Quartas', 'Semi', 'Final'];
 
 // Agrupa jogos por fase + determina status de cada
 function getBracketPhases() {
@@ -2017,7 +2057,7 @@ function getBracketPhases() {
 
 // Decide qual fase fica EXPANDIDA: a primeira que não está 'done'
 function activePhase(phases) {
-  for (const p of PHASE_ORDER) {
+  for (const p of BRACKET_PHASE_ORDER) {
     if (phases[p] && phases[p].status !== 'done') return p;
   }
   return null; // tudo acabou
@@ -2091,7 +2131,7 @@ function renderBracket(phases) {
   const active = activePhase(phases);
   // Filtra fases que existem (qualquer status que não seja 'done')
   // Fases 'done' são ocultas; mas sempre mostramos a Final no centro
-  const visiblePhases = PHASE_ORDER.filter(p => phases[p] && phases[p].status !== 'done' && p !== 'Final');
+  const visiblePhases = BRACKET_PHASE_ORDER.filter(p => phases[p] && phases[p].status !== 'done' && p !== 'Final');
   // Garante que pelo menos a Final aparece, mesmo que sem jogos cadastrados
   // (final fica no centro sempre)
 
@@ -2113,7 +2153,7 @@ function renderBracket(phases) {
   leftCols.reverse(); // pra coluna externa ser a fase mais "longe" da Final
   // Espera, na verdade: queremos que a fase mais antiga (R32) fique na EXTREMIDADE,
   // e a mais próxima da final (Semi) fique perto do centro.
-  // Como PHASE_ORDER vai de R32 → Final, com reverse o leftCols fica [Semi, Quartas, Oitavas, R32]
+  // Como BRACKET_PHASE_ORDER vai de R32 → Final, com reverse o leftCols fica [Semi, Quartas, Oitavas, R32]
   // Mas eu quero [R32, Oitavas, Quartas, Semi] da esquerda pro centro.
   // Vou reverter pra forma original.
   leftCols.reverse();
@@ -2796,6 +2836,64 @@ function updateHome(){
 }
 
 // ── JOGOS ──
+// ── AGRUPAMENTO POR FASE (USADO EM renderMatches) ──────
+// Normaliza o nome da fase em uma chave canônica
+function getPhaseKey(round) {
+  const n = String(round||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  if (!n) return 'outros';
+  if (n.includes('grupo')) return 'Grupos';
+  if (n.includes('r32') || n.includes('32avos') || n.includes('rodada de 32') || n.includes('round of 32')) return 'R32';
+  if (n.includes('16avos') || n.includes('round of 16') || n.includes('oitavas')) return 'Oitavas';
+  if (n.includes('quartas') || n.includes('quarter')) return 'Quartas';
+  if (n.includes('semi')) return 'Semi';
+  if ((n.includes('3') && (n.includes('lugar') || n.includes('place'))) || n.includes('terceiro')) return '3lugar';
+  if (n.includes('final')) return 'Final';
+  return 'outros';
+}
+
+// Ordem das fases (de cima pra baixo na tela)
+const PHASES_LIST_ORDER = ['Grupos', 'R32', 'Oitavas', 'Quartas', 'Semi', '3lugar', 'Final', 'outros'];
+
+// Label visível e ícone Tabler (via emoji por simplicidade)
+const PHASES_LABEL = {
+  'Grupos':  'Fase de grupos',
+  'R32':     'Rodada de 32',
+  'Oitavas': 'Oitavas de final',
+  'Quartas': 'Quartas de final',
+  'Semi':    'Semifinais',
+  '3lugar':  'Disputa de 3º lugar',
+  'Final':   'Final',
+  'outros':  'Outros jogos',
+};
+
+// Determina status da fase
+function getPhaseStatus(jogos) {
+  if (!jogos.length) return 'future';
+  const allDone   = jogos.every(j => j.status === 'done');
+  const anyLive   = jogos.some(j => j.status === 'live');
+  const someDone  = jogos.some(j => j.status === 'done');
+  if (allDone) return 'done';
+  if (anyLive || someDone) return 'active';
+  return 'future';
+}
+
+// Estado: fases que o usuário forçou abrir/fechar manualmente
+const expandedPhases = new Set(S.get('expanded_phases', []));
+const collapsedPhases = new Set(S.get('collapsed_phases', []));
+
+function togglePhase(phaseKey, currentlyOpen) {
+  if (currentlyOpen) {
+    collapsedPhases.add(phaseKey);
+    expandedPhases.delete(phaseKey);
+  } else {
+    expandedPhases.add(phaseKey);
+    collapsedPhases.delete(phaseKey);
+  }
+  S.set('expanded_phases',  Array.from(expandedPhases));
+  S.set('collapsed_phases', Array.from(collapsedPhases));
+  renderMatches();
+}
+
 function renderMatches(){
   const bets=myBets();
   const statusOrd={live:0,upcoming:1,done:2};
@@ -2813,13 +2911,109 @@ function renderMatches(){
     return true;
   }).filter(m=>{
     if(!teamFilter) return true;
-    const q=teamFilter.toLowerCase();
-    return m.home.toLowerCase().includes(q) || m.away.toLowerCase().includes(q);
+    // Normaliza pra busca: lowercase + sem acentos.
+    // Assim "Bosnia" acha "Bósnia", "Sao Tome" acha "São Tomé", etc.
+    const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const q = norm(teamFilter);
+    return norm(m.home).includes(q) || norm(m.away).includes(q);
   });
 
   if(!pool.length){list.innerHTML='<div class="empty-state">Nenhum jogo nesta categoria</div>';return;}
 
-  // Agrupa por DIA (chave = data ISO yyyy-mm-dd do kickoff, no fuso local)
+  // Decide se agrupa por fase: apenas no filtro "Todos" sem filtro de time
+  const agruparPorFase = currentFilter === 'todos' && !teamFilter;
+
+  if (!agruparPorFase) {
+    // Renderiza direto: só por dia (igual antes)
+    list.innerHTML = renderJogosPorDia(pool, bets);
+    return;
+  }
+
+  // Agrupa por FASE
+  const porFase = {};
+  pool.forEach(m => {
+    const k = getPhaseKey(m.round);
+    if (!porFase[k]) porFase[k] = [];
+    porFase[k].push(m);
+  });
+
+  // Renderiza cada fase na ordem certa
+  const html = PHASES_LIST_ORDER
+    .filter(k => porFase[k] && porFase[k].length)
+    .map(phaseKey => {
+      const jogos  = porFase[phaseKey];
+      const status = getPhaseStatus(jogos);
+      const total  = jogos.length;
+      const done   = jogos.filter(j => j.status === 'done').length;
+      const live   = jogos.filter(j => j.status === 'live').length;
+      const isFinal = phaseKey === 'Final';
+
+      // Default de expansão por status (e override do usuário)
+      const defaultOpen = isFinal ? false : (status === 'active');
+      const isOpen = expandedPhases.has(phaseKey) ? true
+                   : collapsedPhases.has(phaseKey) ? false
+                   : defaultOpen;
+
+      // Classe visual
+      let hdrCls = 'phase-hdr ';
+      let ico    = 'ti-circle';
+      if (isFinal)              { hdrCls += 'phase-final';  ico = 'ti-trophy'; }
+      else if (status === 'done')   { hdrCls += 'phase-done';   ico = 'ti-check'; }
+      else if (status === 'active') { hdrCls += 'phase-active'; ico = 'ti-flame'; }
+      else                          { hdrCls += 'phase-future'; ico = 'ti-circle'; }
+      if (isOpen) hdrCls += ' expanded';
+
+      // Texto descritivo da fase
+      let metaTxt;
+      if (status === 'done')   metaTxt = `${total} jogos · finalizada`;
+      else if (status === 'active') {
+        if (live > 0)        metaTxt = `${done}/${total} jogos · <b>ao vivo agora</b>`;
+        else                 metaTxt = `${done}/${total} jogos · em andamento`;
+      }
+      else {
+        // futura: descobre a próxima data
+        const proxKickoff = Math.min(...jogos.map(j => j.kickoff||Infinity));
+        if (isFinite(proxKickoff)) {
+          const d = new Date(proxKickoff);
+          const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+          metaTxt = `${total} jogos · a partir de ${d.getDate()} ${meses[d.getMonth()]}`;
+        } else {
+          metaTxt = `${total} jogos`;
+        }
+      }
+
+      const bodyHtml = isOpen ? renderJogosPorDia(jogos, bets) : '';
+
+      return `<div class="phase-section">
+        <div class="${hdrCls}" data-phase="${phaseKey}" data-open="${isOpen ? '1' : '0'}">
+          <div class="phase-hdr-info">
+            <i class="ti ${ico} phase-hdr-ico" aria-hidden="true"></i>
+            <div>
+              <div class="phase-hdr-nome">${PHASES_LABEL[phaseKey] || phaseKey}</div>
+              <div class="phase-hdr-meta">${metaTxt}</div>
+            </div>
+          </div>
+          <i class="ti ti-chevron-right phase-hdr-arrow" aria-hidden="true"></i>
+        </div>
+        <div class="phase-body ${isOpen ? '' : 'collapsed'}" style="max-height:${isOpen ? 'none' : '0'};">
+          <div class="phase-body-inner">${bodyHtml}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+  list.innerHTML = html;
+
+  // Liga clique nos headers de fase
+  list.querySelectorAll('.phase-hdr').forEach(h => {
+    h.addEventListener('click', () => {
+      const currentlyOpen = h.dataset.open === '1';
+      togglePhase(h.dataset.phase, currentlyOpen);
+    });
+  });
+}
+
+// Renderiza apenas o agrupamento por dia (compartilhado com e sem agrupamento por fase)
+function renderJogosPorDia(pool, bets) {
   const meses=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const diasSem=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
   const byDia={};
@@ -2836,11 +3030,10 @@ function renderMatches(){
     byDia[key].jogos.push(m);
   });
 
-  // Ordena dias cronologicamente e jogos por horário dentro do dia
   const diasOrdenados = Object.keys(byDia).sort();
   diasOrdenados.forEach(k => byDia[k].jogos.sort((a,b)=>(a.kickoff||0)-(b.kickoff||0)));
 
-  list.innerHTML=diasOrdenados.map(diaKey=>{
+  return diasOrdenados.map(diaKey=>{
     const {label, jogos:arr} = byDia[diaKey];
     const cards=arr.map(m=>{
       const bet=bets[m.id],pts=bet&&m.score?calcPoints(bet,m.score,m):null;
