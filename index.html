@@ -170,13 +170,14 @@ body.theme-light .sync-fab{color:#fff;}
 .fase-body{overflow:hidden;transition:max-height .25s ease;}
 
 /* ── AGRUPAMENTO POR FASE DA COPA ── */
-.phase-section{margin-bottom:12px;}
-.phase-hdr{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;border-radius:11px;cursor:pointer;user-select:none;transition:border-color .15s;}
-.phase-hdr-info{display:flex;align-items:center;gap:9px;}
-.phase-hdr-ico{font-size:18px;line-height:1;}
-.phase-hdr-nome{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.05em;line-height:1.1;}
-.phase-hdr-meta{font-size:11px;margin-top:2px;}
-.phase-hdr-arrow{font-size:12px;transition:transform .2s;}
+.phase-section{margin-bottom:24px;position:relative;}
+.phase-section + .phase-section{margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,214,0,.15);}
+.phase-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 15px;border-radius:12px;cursor:pointer;user-select:none;transition:border-color .15s;}
+.phase-hdr-info{display:flex;align-items:center;gap:11px;}
+.phase-hdr-ico{font-size:20px;line-height:1;}
+.phase-hdr-nome{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:.05em;line-height:1.1;}
+.phase-hdr-meta{font-size:12px;margin-top:3px;font-weight:500;}
+.phase-hdr-arrow{font-size:14px;transition:transform .2s;}
 .phase-hdr.expanded .phase-hdr-arrow{transform:rotate(90deg);}
 
 /* Estado: fase finalizada (cinza tracejado) */
@@ -186,8 +187,8 @@ body.theme-light .sync-fab{color:#fff;}
 .phase-hdr.phase-done .phase-hdr-meta{color:var(--muted);}
 .phase-hdr.phase-done:hover{border-color:rgba(255,214,0,.3);}
 
-/* Estado: fase ativa (vermelha) */
-.phase-hdr.phase-active{background:rgba(255,71,87,.05);border:1px solid rgba(255,71,87,.3);color:var(--text);}
+/* Estado: fase ativa (vermelha, mais destaque) */
+.phase-hdr.phase-active{background:linear-gradient(135deg,rgba(255,71,87,.12),rgba(255,71,87,.04));border:1.5px solid rgba(255,71,87,.45);color:var(--text);}
 .phase-hdr.phase-active .phase-hdr-ico{color:var(--red);}
 .phase-hdr.phase-active .phase-hdr-nome{color:var(--text);}
 .phase-hdr.phase-active .phase-hdr-meta{color:var(--red);}
@@ -200,14 +201,14 @@ body.theme-light .sync-fab{color:#fff;}
 .phase-hdr.phase-future:hover{border-color:var(--gold);}
 
 /* Estado: Final (dourado especial) */
-.phase-hdr.phase-final{background:linear-gradient(135deg,rgba(255,214,0,.1),rgba(0,200,83,.04));border:1px solid rgba(255,214,0,.4);}
+.phase-hdr.phase-final{background:linear-gradient(135deg,rgba(255,214,0,.15),rgba(0,200,83,.05));border:1.5px solid rgba(255,214,0,.5);}
 .phase-hdr.phase-final .phase-hdr-ico{color:var(--gold);}
 .phase-hdr.phase-final .phase-hdr-nome{color:var(--gold);}
-.phase-hdr.phase-final .phase-hdr-meta{color:var(--gold);opacity:.8;}
+.phase-hdr.phase-final .phase-hdr-meta{color:var(--gold);opacity:.85;}
 
 .phase-body{overflow:hidden;transition:max-height .3s ease;padding:0;}
 .phase-body.collapsed{max-height:0 !important;}
-.phase-body-inner{padding:8px 0 4px;}
+.phase-body-inner{padding:12px 0 4px;}
 .fase-body.collapsed{max-height:0 !important;}
 .match-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:8px;cursor:pointer;transition:border-color .2s;position:relative;}
 .match-card:hover{border-color:var(--green);}
@@ -434,9 +435,10 @@ body.theme-light .sync-fab{color:#fff;}
 
 /* ── CARROSSEL DE PALPITES ── */
 .palpite-carousel{margin-bottom:16px;position:relative;}
-.palpite-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;gap:0;}
+.palpite-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;gap:10px;padding-right:32px;}
 .palpite-track::-webkit-scrollbar{display:none;}
-.palpite-slide{flex:0 0 100%;scroll-snap-align:start;scroll-snap-stop:always;}
+/* Deixa ~32px do próximo card visíveis (peek) pra sinalizar que há mais conteúdo */
+.palpite-slide{flex:0 0 calc(100% - 32px);scroll-snap-align:start;scroll-snap-stop:always;}
 .palpite-dots{display:flex;justify-content:center;gap:6px;margin-top:10px;}
 .palpite-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.2);cursor:pointer;transition:all .2s;}
 .palpite-dot.active{background:var(--gold);width:20px;border-radius:4px;}
@@ -1526,6 +1528,17 @@ function champLocked(){
   return Date.now() >= firstMata.kickoff;
 }
 
+// Trava dos artilheiros: fica aberto MAIS TEMPO que o palpite de campeão.
+// Só trava quando começam efetivamente as OITAVAS DE FINAL (não a Rodada de 32).
+function artLocked(){
+  const oitavasMatches = matches.filter(m => {
+    return getPhaseKey(m.round) === 'Oitavas' && m.kickoff;
+  });
+  if(!oitavasMatches.length) return false;
+  const firstOit = oitavasMatches.reduce((min, m) => m.kickoff < min.kickoff ? m : min);
+  return Date.now() >= firstOit.kickoff;
+}
+
 function openChampModal(){
   if(champLocked()){
     showToast('🔒 Palpite encerrado — as oitavas começaram');
@@ -1632,7 +1645,7 @@ function renderArtCard() {
   const hint = document.getElementById('art-edit-hint');
   if (!podium) return;
   myArt = myArt || S.get('my_art', null);
-  const locked = champLocked(); // mesma trava: oitavas começaram
+  const locked = artLocked(); // Trava quando começam as oitavas (não R32)
 
   if (myArt && myArt.jogador1) {
     const medals = ['🥇','🥈','🥉'];
@@ -1682,7 +1695,7 @@ async function syncMyArt() {
 }
 
 function openArtilheirosPage() {
-  if (champLocked()) {
+  if (artLocked()) {
     showToast('🔒 Palpite encerrado — as oitavas começaram');
     return;
   }
@@ -1801,6 +1814,10 @@ function pickPlayer(nome) {
 }
 
 async function saveArtilheiros() {
+  if (artLocked()) {
+    showToast('🔒 Palpite encerrado — as oitavas começaram');
+    return;
+  }
   if (!artLocalPick.jogador1 || !artLocalPick.jogador2 || !artLocalPick.jogador3) {
     showToast('⚠️ Escolha os 3 jogadores');
     return;
@@ -2742,13 +2759,28 @@ function calcPoints(bet,result,match){
   // 3. Vencedor correto no tempo normal
   const w=r=>r.h>r.a?1:r.h<r.a?-1:0;
   if(w(bet)===w(result)) return 1;
-  // 4. (NOVO) Jogo decidido nos pênaltis — apostou vitória do time que passou de fase?
-  if (match && match.penaltis && match.penaltis.vencedor) {
+  // 4. Acertou quem passou de fase (mata-mata)
+  //    Cobre 2 casos:
+  //     a) Jogo decidido nos pênaltis, apostou vitória do time que passou
+  //     b) Apostou empate + pen_vencedor no time que realmente passou
+  //        (mesmo se o jogo tiver sido decidido no tempo normal)
+  if (match) {
     const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-    const vencReal = norm(match.penaltis.vencedor);
-    const aposta = w(bet);
-    if (aposta === 1  && norm(match.home) === vencReal) return 1;
-    if (aposta === -1 && norm(match.away) === vencReal) return 1;
+    // Quem realmente passou de fase
+    let vencReal = null;
+    if (result.h > result.a) vencReal = match.home;
+    else if (result.a > result.h) vencReal = match.away;
+    else if (match.penaltis && match.penaltis.vencedor) vencReal = match.penaltis.vencedor;
+    if (vencReal) {
+      const vencNorm = norm(vencReal);
+      const aposta = w(bet);
+      // Quem a pessoa apostou que passaria
+      let vencApostado = null;
+      if (aposta === 1)       vencApostado = match.home;
+      else if (aposta === -1) vencApostado = match.away;
+      else if (bet.pen_vencedor) vencApostado = bet.pen_vencedor;
+      if (vencApostado && norm(vencApostado) === vencNorm) return 1;
+    }
   }
   return 0;
 }
