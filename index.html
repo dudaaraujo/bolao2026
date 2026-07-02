@@ -3068,7 +3068,7 @@ function renderMatches(){
         }
       }
 
-      const bodyHtml = isOpen ? renderJogosPorDia(jogos, bets) : '';
+      const bodyHtml = isOpen ? renderJogosPorDia(jogos, bets, phaseKey) : '';
 
       return `<div class="phase-section">
         <div class="${hdrCls}" data-phase="${phaseKey}" data-open="${isOpen ? '1' : '0'}">
@@ -3098,8 +3098,11 @@ function renderMatches(){
   });
 }
 
-// Renderiza apenas o agrupamento por dia (compartilhado com e sem agrupamento por fase)
-function renderJogosPorDia(pool, bets) {
+// Renderiza apenas o agrupamento por dia (compartilhado com e sem agrupamento por fase).
+// O parâmetro `scope` (opcional) evita colisões de ID quando o mesmo dia aparece em
+// fases diferentes — ex: "SÁB 04/07" existe em R32 e em Oitavas ao mesmo tempo.
+function renderJogosPorDia(pool, bets, scope) {
+  const scopePrefix = scope ? String(scope).replace(/[^a-zA-Z0-9]/g,'_') + '-' : '';
   const meses=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const diasSem=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
   const byDia={};
@@ -3171,7 +3174,7 @@ function renderJogosPorDia(pool, bets) {
       </div>`;
     }).join('');
 
-    const diaId = 'dia-'+diaKey.replace(/[^a-zA-Z0-9]/g,'_');
+    const diaId = 'dia-'+scopePrefix+diaKey.replace(/[^a-zA-Z0-9]/g,'_');
     const betCount = arr.filter(m=>bets[m.id]).length;
     const liveCount = arr.filter(m=>m.status==='live').length;
     const podeApostarCount = arr.filter(m=>m.status==='upcoming'&&!isBettingClosed(m)).length;
