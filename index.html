@@ -178,8 +178,7 @@ body.theme-light .sync-fab{color:#fff;}
 .phase-hdr-meta{font-size:11px;margin-top:3px;display:flex;align-items:center;gap:6px;}
 .phase-hdr-bar{height:3px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:6px;overflow:hidden;}
 .phase-hdr-bar-fill{height:100%;border-radius:2px;transition:width .3s;}
-.phase-hdr-arrow{font-size:14px;transition:transform .2s;flex-shrink:0;}
-.phase-hdr.expanded .phase-hdr-arrow{transform:rotate(90deg);}
+.phase-hdr-arrow{font-size:11px;transition:transform .2s;flex-shrink:0;line-height:1;}
 
 /* Fase finalizada */
 .phase-hdr.phase-done{background:rgba(122,144,184,.04);border:1px solid rgba(122,144,184,.15);}
@@ -3046,26 +3045,26 @@ function renderMatches(){
                    : collapsedPhases.has(phaseKey) ? false
                    : defaultOpen;
 
-      // Classe visual + ícone característico de cada fase
+      // Classe visual + emoji característico de cada fase
       let hdrCls = 'phase-hdr ';
       let ico;
-      if (isFinal)                  { hdrCls += 'phase-final';  ico = 'ti-trophy'; }
-      else if (status === 'done')   { hdrCls += 'phase-done';   ico = 'ti-check'; }
-      else if (status === 'active') { hdrCls += 'phase-active'; ico = 'ti-flame'; }
+      if (isFinal)                  { hdrCls += 'phase-final';  ico = '🏆'; }
+      else if (status === 'done')   { hdrCls += 'phase-done';   ico = '✓'; }
+      else if (status === 'active') { hdrCls += 'phase-active'; ico = '🔥'; }
       else                          {
         hdrCls += 'phase-future';
-        // ícone característico de cada fase futura
-        ico = phaseKey === 'Grupos'  ? 'ti-users'
-            : phaseKey === 'R32'     ? 'ti-tournament'
-            : phaseKey === '3lugar'  ? 'ti-medal'
-            :                          'ti-calendar';
+        // emoji característico de cada fase futura
+        ico = phaseKey === 'Grupos'  ? '👥'
+            : phaseKey === 'R32'     ? '🎯'
+            : phaseKey === '3lugar'  ? '🥉'
+            :                          '📅';
       }
       if (isOpen) hdrCls += ' expanded';
 
       // Texto descritivo da fase — meta principal
       let metaTxt;
       if (status === 'done') {
-        metaTxt = `${total} jogos <span style="color:var(--green);margin-left:2px;"><i class="ti ti-check" style="font-size:10px;vertical-align:-1px;"></i> finalizada</span>`;
+        metaTxt = `${total} jogos <span style="color:var(--green);margin-left:2px;font-weight:600;">✓ finalizada</span>`;
       }
       else if (status === 'active') {
         if (live > 0) metaTxt = `${done} de ${total} jogos · <b>ao vivo agora</b>`;
@@ -3089,9 +3088,9 @@ function renderMatches(){
           else if (diffDias === 1) countdown = `amanhã`;
           else if (diffDias < 30)  countdown = `em ${diffDias} dias`;
           else                     countdown = `em ${diaMes}`;
-          metaTxt = `${total} jogos · ${countdown} (${diaMes})`;
+          metaTxt = `${total} jogo${total>1?'s':''} · ${countdown} (${diaMes})`;
         } else {
-          metaTxt = `${total} jogos`;
+          metaTxt = `${total} jogo${total>1?'s':''}`;
         }
       }
 
@@ -3104,13 +3103,13 @@ function renderMatches(){
 
       return `<div class="phase-section">
         <div class="${hdrCls}" data-phase="${phaseKey}" data-open="${isOpen ? '1' : '0'}">
-          <div class="phase-hdr-ico-wrap"><i class="ti ${ico}" aria-hidden="true"></i></div>
+          <div class="phase-hdr-ico-wrap">${ico}</div>
           <div class="phase-hdr-info">
             <div class="phase-hdr-nome">${PHASES_LABEL[phaseKey] || phaseKey}</div>
             <div class="phase-hdr-meta">${metaTxt}</div>
             ${barHtml}
           </div>
-          <i class="ti ti-chevron-right phase-hdr-arrow" aria-hidden="true"></i>
+          <span class="phase-hdr-arrow">${isOpen ? '▼' : '▶'}</span>
         </div>
         <div class="phase-body ${isOpen ? '' : 'collapsed'}" style="max-height:${isOpen ? 'none' : '0'};">
           <div class="phase-body-inner">${bodyHtml}</div>
@@ -3862,6 +3861,24 @@ function openBetsGame(matchId) {
   document.getElementById('bets-game-backdrop').style.display = 'flex';
 }
 
+// Estado: fases da página "palpites da pessoa" que o usuário forçou abrir/fechar
+const expandedPersonPhases = new Set(S.get('expanded_person_phases', []));
+const collapsedPersonPhases = new Set(S.get('collapsed_person_phases', []));
+let openBetsPersonCurrentUser = null; // guardado pra re-render em toggle
+
+function togglePersonPhase(phaseKey, currentlyOpen) {
+  if (currentlyOpen) {
+    collapsedPersonPhases.add(phaseKey);
+    expandedPersonPhases.delete(phaseKey);
+  } else {
+    expandedPersonPhases.add(phaseKey);
+    collapsedPersonPhases.delete(phaseKey);
+  }
+  S.set('expanded_person_phases',  Array.from(expandedPersonPhases));
+  S.set('collapsed_person_phases', Array.from(collapsedPersonPhases));
+  if (openBetsPersonCurrentUser) openBetsPerson(openBetsPersonCurrentUser);
+}
+
 function openBetsPerson(usuario) {
   if (!usuario) return;
 
@@ -3940,7 +3957,11 @@ function openBetsPerson(usuario) {
   const totalSemAposta = matches.length - jogosOrdenados.length;
   let totalVisiveis = 0, totalOcultos = 0;
 
-  const listHtml = jogosOrdenados.map(m => {
+  // Guarda o usuário atual pra togglePersonPhase poder re-renderizar
+  openBetsPersonCurrentUser = usuario;
+
+  // Renderiza uma linha de palpite (extraído pra reutilizar dentro das fases)
+  function renderPalpiteRow(m) {
     const closed = isBettingClosed(m);
     const bet = betsMap[m.id];
     const podeVer = closed || isMe;
@@ -3951,7 +3972,6 @@ function openBetsPerson(usuario) {
       valHtml = `<span class="pbet-bet hidden">🙈 oculto</span>`;
     } else {
       totalVisiveis++;
-      // Usa pontos do servidor (fonte de verdade do ranking) se disponíveis
       const pts = (bet.ptsServer !== null && !isNaN(bet.ptsServer))
         ? bet.ptsServer
         : (m.score ? calcPoints(bet, m.score, m) : null);
@@ -3962,7 +3982,6 @@ function openBetsPerson(usuario) {
         const label = pts === 4 ? '+4' : pts === 3 ? '+3' : pts === 2 ? '+2' : pts === 1 ? '+1' : '0';
         ptsHtml = `<span class="bet-row-pts ${cls}" style="margin-left:6px;">${label}</span>`;
       }
-      // Indicação do palpite de pênaltis (se houver)
       const penHtml = bet.pen_vencedor
         ? `<div style="font-size:9px;color:var(--red);margin-top:2px;font-weight:600;">🥅 ${bet.pen_vencedor}</div>`
         : '';
@@ -3976,7 +3995,89 @@ function openBetsPerson(usuario) {
       </div>
       ${valHtml}
     </div>`;
-  }).join('');
+  }
+
+  // Agrupa por fase (usa mesmos helpers da página Jogos: getPhaseKey, PHASES_LIST_ORDER, etc)
+  const porFase = {};
+  jogosOrdenados.forEach(m => {
+    const k = getPhaseKey(m.round);
+    if (!porFase[k]) porFase[k] = [];
+    porFase[k].push(m);
+  });
+
+  // Calcula stats por fase (pontos totais, exatos)
+  function statsFase(jogos) {
+    let pts = 0, exatos = 0;
+    jogos.forEach(m => {
+      const bet = betsMap[m.id];
+      if (!bet) return;
+      const p = (bet.ptsServer !== null && !isNaN(bet.ptsServer))
+        ? bet.ptsServer
+        : (m.score ? calcPoints(bet, m.score, m) : null);
+      if (p === null) return;
+      pts += p;
+      if (p >= 3) exatos++;
+    });
+    return { pts, exatos };
+  }
+
+  const listHtml = PHASES_LIST_ORDER
+    .filter(k => porFase[k] && porFase[k].length)
+    .map(phaseKey => {
+      const jogos = porFase[phaseKey];
+      const status = getPhaseStatus(jogos);
+      const isFinal = phaseKey === 'Final';
+      const stats = statsFase(jogos);
+
+      // Default de expansão (com override do usuário)
+      const defaultOpen = isFinal ? false : (status === 'active');
+      const isOpen = expandedPersonPhases.has(phaseKey) ? true
+                   : collapsedPersonPhases.has(phaseKey) ? false
+                   : defaultOpen;
+
+      // Classe visual + emoji da fase
+      let hdrCls = 'phase-hdr ';
+      let ico;
+      if (isFinal)                  { hdrCls += 'phase-final';  ico = '🏆'; }
+      else if (status === 'done')   { hdrCls += 'phase-done';   ico = '✓'; }
+      else if (status === 'active') { hdrCls += 'phase-active'; ico = '🔥'; }
+      else {
+        hdrCls += 'phase-future';
+        ico = phaseKey === 'Grupos'  ? '👥'
+            : phaseKey === 'R32'     ? '🎯'
+            : phaseKey === '3lugar'  ? '🥉'
+            :                          '📅';
+      }
+      if (isOpen) hdrCls += ' expanded';
+
+      const nPalp = jogos.length;
+      const metaTxt = `${nPalp} palpite${nPalp>1?'s':''}` +
+        (status === 'done'   ? ` <span style="color:var(--green);font-weight:600;">✓ finalizada</span>` :
+         status === 'active' ? ` · em andamento` : '');
+
+      // Card de stats à direita: pontos + exatos
+      const statsHtml = `<div style="text-align:right;margin-right:8px;flex-shrink:0;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--green);line-height:1;">${stats.pts}</div>
+        ${stats.exatos > 0 ? `<div style="font-size:9px;color:var(--gold);margin-top:2px;font-weight:600;">${stats.exatos}★</div>` : ''}
+      </div>`;
+
+      const bodyHtml = isOpen ? jogos.map(renderPalpiteRow).join('') : '';
+
+      return `<div class="phase-section">
+        <div class="${hdrCls}" data-pfphase="${phaseKey}" data-open="${isOpen ? '1' : '0'}">
+          <div class="phase-hdr-ico-wrap">${ico}</div>
+          <div class="phase-hdr-info">
+            <div class="phase-hdr-nome">${PHASES_LABEL[phaseKey] || phaseKey}</div>
+            <div class="phase-hdr-meta">${metaTxt}</div>
+          </div>
+          ${statsHtml}
+          <span class="phase-hdr-arrow">${isOpen ? '▼' : '▶'}</span>
+        </div>
+        <div class="phase-body ${isOpen ? '' : 'collapsed'}" style="max-height:${isOpen ? 'none' : '0'};">
+          <div class="phase-body-inner">${bodyHtml}</div>
+        </div>
+      </div>`;
+    }).join('');
 
   const totalApostas = jogosOrdenados.length;
   const headerInfo = `<div class="bets-list-header"><span>${totalApostas} ${totalApostas===1?'palpite':'palpites'}</span>${totalOcultos>0?`<span>🙈 ${totalOcultos} oculto${totalOcultos>1?'s':''}</span>`:''}</div>`;
@@ -3994,8 +4095,14 @@ function openBetsPerson(usuario) {
     }
   }
 
-  document.getElementById('bets-person-list').innerHTML =
-    (totalApostas > 0 ? headerInfo : '') + listHtml + footerHtml;
+  const listEl = document.getElementById('bets-person-list');
+  listEl.innerHTML = (totalApostas > 0 ? headerInfo : '') + listHtml + footerHtml;
+  // Liga clique nos cabeçalhos de fase
+  listEl.querySelectorAll('.phase-hdr[data-pfphase]').forEach(h => {
+    h.addEventListener('click', () => {
+      togglePersonPhase(h.dataset.pfphase, h.dataset.open === '1');
+    });
+  });
 
   // Trava scroll do body atrás (segurança extra) e abre tela cheia
   document.body.style.overflow = 'hidden';
