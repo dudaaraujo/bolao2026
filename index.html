@@ -169,46 +169,52 @@ body.theme-light .sync-fab{color:#fff;}
 .fase-header.collapsed .fase-arrow{transform:rotate(-90deg);}
 .fase-body{overflow:hidden;transition:max-height .25s ease;}
 
-/* ── AGRUPAMENTO POR FASE DA COPA ── */
-.phase-section{margin-bottom:24px;position:relative;}
-.phase-section + .phase-section{margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,214,0,.15);}
-.phase-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 15px;border-radius:12px;cursor:pointer;user-select:none;transition:border-color .15s;}
-.phase-hdr-info{display:flex;align-items:center;gap:11px;}
-.phase-hdr-ico{font-size:20px;line-height:1;}
-.phase-hdr-nome{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:.05em;line-height:1.1;}
-.phase-hdr-meta{font-size:12px;margin-top:3px;font-weight:500;}
-.phase-hdr-arrow{font-size:14px;transition:transform .2s;}
+/* ── AGRUPAMENTO POR FASE DA COPA — layout compacto ── */
+.phase-section{margin-bottom:6px;position:relative;}
+.phase-hdr{padding:10px 12px;border-radius:10px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:11px;transition:border-color .15s,background .15s;}
+.phase-hdr-ico-wrap{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.phase-hdr-info{flex:1;min-width:0;}
+.phase-hdr-nome{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.04em;line-height:1.1;}
+.phase-hdr-meta{font-size:11px;margin-top:3px;display:flex;align-items:center;gap:6px;}
+.phase-hdr-bar{height:3px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:6px;overflow:hidden;}
+.phase-hdr-bar-fill{height:100%;border-radius:2px;transition:width .3s;}
+.phase-hdr-arrow{font-size:14px;transition:transform .2s;flex-shrink:0;}
 .phase-hdr.expanded .phase-hdr-arrow{transform:rotate(90deg);}
 
-/* Estado: fase finalizada (cinza tracejado) */
-.phase-hdr.phase-done{background:rgba(122,144,184,.05);border:1px dashed rgba(122,144,184,.25);color:var(--muted);}
-.phase-hdr.phase-done .phase-hdr-ico{color:var(--muted);}
+/* Fase finalizada */
+.phase-hdr.phase-done{background:rgba(122,144,184,.04);border:1px solid rgba(122,144,184,.15);}
+.phase-hdr.phase-done .phase-hdr-ico-wrap{background:rgba(122,144,184,.1);color:var(--muted);}
 .phase-hdr.phase-done .phase-hdr-nome{color:var(--muted);}
 .phase-hdr.phase-done .phase-hdr-meta{color:var(--muted);}
+.phase-hdr.phase-done .phase-hdr-arrow{color:var(--muted);}
 .phase-hdr.phase-done:hover{border-color:rgba(255,214,0,.3);}
 
-/* Estado: fase ativa (vermelha, mais destaque) */
-.phase-hdr.phase-active{background:linear-gradient(135deg,rgba(255,71,87,.12),rgba(255,71,87,.04));border:1.5px solid rgba(255,71,87,.45);color:var(--text);}
-.phase-hdr.phase-active .phase-hdr-ico{color:var(--red);}
+/* Fase ativa */
+.phase-hdr.phase-active{background:linear-gradient(135deg,rgba(255,71,87,.12),rgba(255,71,87,.03));border:1.5px solid var(--red);}
+.phase-hdr.phase-active .phase-hdr-ico-wrap{background:rgba(255,71,87,.15);color:var(--red);}
 .phase-hdr.phase-active .phase-hdr-nome{color:var(--text);}
-.phase-hdr.phase-active .phase-hdr-meta{color:var(--red);}
+.phase-hdr.phase-active .phase-hdr-meta{color:var(--red);font-weight:500;}
+.phase-hdr.phase-active .phase-hdr-arrow{color:var(--red);}
+.phase-hdr.phase-active .phase-hdr-bar-fill{background:var(--red);}
 
-/* Estado: fase futura (neutra) */
-.phase-hdr.phase-future{background:var(--surface);border:1px solid var(--border);color:var(--muted);}
-.phase-hdr.phase-future .phase-hdr-ico{color:var(--muted);}
-.phase-hdr.phase-future .phase-hdr-nome{color:var(--muted);}
+/* Fase futura */
+.phase-hdr.phase-future{background:var(--surface);border:1px solid rgba(255,255,255,.05);}
+.phase-hdr.phase-future .phase-hdr-ico-wrap{background:rgba(255,255,255,.03);color:var(--muted);}
+.phase-hdr.phase-future .phase-hdr-nome{color:#a8b5ce;}
 .phase-hdr.phase-future .phase-hdr-meta{color:var(--muted);}
+.phase-hdr.phase-future .phase-hdr-arrow{color:var(--muted);}
 .phase-hdr.phase-future:hover{border-color:var(--gold);}
 
-/* Estado: Final (dourado especial) */
-.phase-hdr.phase-final{background:linear-gradient(135deg,rgba(255,214,0,.15),rgba(0,200,83,.05));border:1.5px solid rgba(255,214,0,.5);}
-.phase-hdr.phase-final .phase-hdr-ico{color:var(--gold);}
+/* Fase Final (dourado especial) */
+.phase-hdr.phase-final{background:linear-gradient(135deg,rgba(255,214,0,.12),rgba(0,200,83,.03));border:1.5px solid var(--gold);}
+.phase-hdr.phase-final .phase-hdr-ico-wrap{background:rgba(255,214,0,.15);color:var(--gold);}
 .phase-hdr.phase-final .phase-hdr-nome{color:var(--gold);}
 .phase-hdr.phase-final .phase-hdr-meta{color:var(--gold);opacity:.85;}
+.phase-hdr.phase-final .phase-hdr-arrow{color:var(--gold);}
 
 .phase-body{overflow:hidden;transition:max-height .3s ease;padding:0;}
 .phase-body.collapsed{max-height:0 !important;}
-.phase-body-inner{padding:12px 0 4px;}
+.phase-body-inner{padding:10px 0 4px;}
 .fase-body.collapsed{max-height:0 !important;}
 .match-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:8px;cursor:pointer;transition:border-color .2s;position:relative;}
 .match-card:hover{border-color:var(--green);}
@@ -3040,44 +3046,69 @@ function renderMatches(){
                    : collapsedPhases.has(phaseKey) ? false
                    : defaultOpen;
 
-      // Classe visual
+      // Classe visual + ícone característico de cada fase
       let hdrCls = 'phase-hdr ';
-      let ico    = 'ti-circle';
-      if (isFinal)              { hdrCls += 'phase-final';  ico = 'ti-trophy'; }
+      let ico;
+      if (isFinal)                  { hdrCls += 'phase-final';  ico = 'ti-trophy'; }
       else if (status === 'done')   { hdrCls += 'phase-done';   ico = 'ti-check'; }
       else if (status === 'active') { hdrCls += 'phase-active'; ico = 'ti-flame'; }
-      else                          { hdrCls += 'phase-future'; ico = 'ti-circle'; }
+      else                          {
+        hdrCls += 'phase-future';
+        // ícone característico de cada fase futura
+        ico = phaseKey === 'Grupos'  ? 'ti-users'
+            : phaseKey === 'R32'     ? 'ti-tournament'
+            : phaseKey === '3lugar'  ? 'ti-medal'
+            :                          'ti-calendar';
+      }
       if (isOpen) hdrCls += ' expanded';
 
-      // Texto descritivo da fase
+      // Texto descritivo da fase — meta principal
       let metaTxt;
-      if (status === 'done')   metaTxt = `${total} jogos · finalizada`;
+      if (status === 'done') {
+        metaTxt = `${total} jogos <span style="color:var(--green);margin-left:2px;"><i class="ti ti-check" style="font-size:10px;vertical-align:-1px;"></i> finalizada</span>`;
+      }
       else if (status === 'active') {
-        if (live > 0)        metaTxt = `${done}/${total} jogos · <b>ao vivo agora</b>`;
-        else                 metaTxt = `${done}/${total} jogos · em andamento`;
+        if (live > 0) metaTxt = `${done} de ${total} jogos · <b>ao vivo agora</b>`;
+        else          metaTxt = `${done} de ${total} jogos · em andamento`;
       }
       else {
-        // futura: descobre a próxima data
+        // Fase futura: descobre a próxima data e calcula countdown ("em X dias")
         const proxKickoff = Math.min(...jogos.map(j => j.kickoff||Infinity));
         if (isFinite(proxKickoff)) {
           const d = new Date(proxKickoff);
           const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-          metaTxt = `${total} jogos · a partir de ${d.getDate()} ${meses[d.getMonth()]}`;
+          const diaMes = `${d.getDate()} ${meses[d.getMonth()]}`;
+          // Calcula diferença em dias (a partir do início do dia de hoje)
+          const hoje = new Date();
+          hoje.setHours(0,0,0,0);
+          const alvo = new Date(d);
+          alvo.setHours(0,0,0,0);
+          const diffDias = Math.round((alvo - hoje) / (1000*60*60*24));
+          let countdown;
+          if (diffDias <= 0)       countdown = `hoje`;
+          else if (diffDias === 1) countdown = `amanhã`;
+          else if (diffDias < 30)  countdown = `em ${diffDias} dias`;
+          else                     countdown = `em ${diaMes}`;
+          metaTxt = `${total} jogos · ${countdown} (${diaMes})`;
         } else {
           metaTxt = `${total} jogos`;
         }
       }
 
+      // Barra de progresso — só aparece na fase ativa
+      const barHtml = (status === 'active' && total > 0)
+        ? `<div class="phase-hdr-bar"><div class="phase-hdr-bar-fill" style="width:${Math.round(done/total*100)}%;"></div></div>`
+        : '';
+
       const bodyHtml = isOpen ? renderJogosPorDia(jogos, bets, phaseKey) : '';
 
       return `<div class="phase-section">
         <div class="${hdrCls}" data-phase="${phaseKey}" data-open="${isOpen ? '1' : '0'}">
+          <div class="phase-hdr-ico-wrap"><i class="ti ${ico}" aria-hidden="true"></i></div>
           <div class="phase-hdr-info">
-            <i class="ti ${ico} phase-hdr-ico" aria-hidden="true"></i>
-            <div>
-              <div class="phase-hdr-nome">${PHASES_LABEL[phaseKey] || phaseKey}</div>
-              <div class="phase-hdr-meta">${metaTxt}</div>
-            </div>
+            <div class="phase-hdr-nome">${PHASES_LABEL[phaseKey] || phaseKey}</div>
+            <div class="phase-hdr-meta">${metaTxt}</div>
+            ${barHtml}
           </div>
           <i class="ti ti-chevron-right phase-hdr-arrow" aria-hidden="true"></i>
         </div>
