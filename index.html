@@ -1285,11 +1285,12 @@ async function syncAll(manual=false) {
     S.set('all_bets_cache', allBets);
 
     // Palpite de campeão do usuário
+    // A aba Campeoes tem colunas time1/time2/time3 (não campeao/vice/terceiro)
     if (r.champion) {
       myChamp = {
-        campeao: r.champion.campeao || '',
-        vice:    r.champion.vice    || '',
-        terceiro:r.champion.terceiro|| ''
+        time1: r.champion.time1 || '',
+        time2: r.champion.time2 || '',
+        time3: r.champion.time3 || ''
       };
       S.set('my_champ', myChamp);
     }
@@ -1325,9 +1326,9 @@ async function syncAll(manual=false) {
     const now = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     setSyncStatus('ok','Atualizado '+now);
     renderMatches(); updateHome(); updateCountdown();
-    // Re-renderiza artilheiros e campeão se estiverem visíveis (usando dados do getAll)
-    if(typeof renderArtCard === 'function') renderArtCard();
-    if(typeof renderChampionCard === 'function') renderChampionCard();
+    // Re-renderiza artilheiros e campeão (função correta é renderChampCard, sem "ion")
+    if(typeof renderArtCard === 'function')   renderArtCard();
+    if(typeof renderChampCard === 'function') renderChampCard();
     if(document.getElementById('screen-tabela').classList.contains('active')) renderTabela();
     if (document.getElementById('screen-ranking').classList.contains('active')) renderRanking();
     if (manual) showToast('✅ Sincronizado!');
