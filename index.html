@@ -2252,15 +2252,23 @@ function renderBracket(phases) {
   // Cada lado tem N/2 jogos
   const leftCols = [];
   const rightCols = [];
+  // Identifica a fase logo APÓS a ativa (a próxima que ainda não começou),
+  // pra ela abrir por padrão também — usuário já vê os confrontos futuros.
+  const activeIdx = active ? BRACKET_PHASE_ORDER.indexOf(active) : -1;
+  const nextPhase = (activeIdx >= 0 && activeIdx < BRACKET_PHASE_ORDER.length - 1)
+    ? BRACKET_PHASE_ORDER[activeIdx + 1]
+    : null;
+
   visiblePhases.forEach(p => {
     const jogos = phases[p].jogos;
     // Estado expandido respeita override do usuário em cascata:
     //  1. forçou colapsar → fechada
     //  2. forçou expandir → aberta
-    //  3. senão → padrão (ativa = expandida, futura = colapsada)
+    //  3. senão → padrão (ativa = expandida; próxima após ativa = expandida)
+    const isDefaultOpen = (p === active) || (p === nextPhase && p !== 'Final');
     const isExpanded = brkCollapsedManual.has(p) ? false
                      : brkExpandedManual.has(p)  ? true
-                     : (p === active);
+                     : isDefaultOpen;
     const half = Math.ceil(jogos.length / 2);
     const left = jogos.slice(0, half);
     const right = jogos.slice(half);
@@ -2944,13 +2952,19 @@ function updateHome(){
     if(el('stat-pts'))  el('stat-pts').textContent=pts;
     if(el('stat-bets')) el('stat-bets').textContent=betCount;
     if(el('stat-hits')) el('stat-hits').textContent=hits;
-    // Posição: usa o ranking do servidor. Procura o próprio usuário primeiro;
-    // se não achar, estima pela pontuação local.
+    // Posição: usa a ORDEM REAL do ranking (que já vem desempatada por
+    // exatos > acertos > nome). Buscar pela posição correta em vez de
+    // simplesmente contar "quantos têm mais pontos" (que ignoraria
+    // desempate quando outras pessoas têm a mesma pontuação).
     const rk = (rankingGeral && rankingGeral.length) ? rankingGeral : ranking;
     const emailLow = (userEmail||'').toLowerCase();
-    const meRow = rk.find(r => (r.usuario||'').toLowerCase() === emailLow);
+    const meIdx = rk.findIndex(r => (r.usuario||'').toLowerCase() === emailLow);
+    const meRow = meIdx >= 0 ? rk[meIdx] : null;
     const myPts = meRow ? (meRow.pts||0) : pts;
-    const pos = rk.length ? (rk.filter(r=>(r.pts||0) > myPts).length + 1) : 1;
+    // Se estou no ranking, uso minha posição real. Senão, estimo por pontos.
+    const pos = meIdx >= 0
+      ? (meIdx + 1)
+      : (rk.length ? (rk.filter(r=>(r.pts||0) > myPts).length + 1) : 1);
     const posTxt = pos + 'º';
     if(el('stat-pos'))  el('stat-pos').textContent=posTxt;
     // Banner
