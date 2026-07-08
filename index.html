@@ -1256,6 +1256,7 @@ async function syncAll(manual=false) {
     rankingGeral = S.get('rank_cache_geral', []);
   }
   renderMatches(); updateHome();
+  // Quiz é opcional (não bloqueia)
   if(userEmail) {
     api({action:'getQuiz', email:userEmail}).then(r => {
       const qb = document.getElementById('quiz-badge');
@@ -1263,24 +1264,70 @@ async function syncAll(manual=false) {
     }).catch(()=>{});
   }
   try {
-    const [rJ, rR, rG] = await Promise.all([
-      api({action:'getJogos'}),
-      api({action:'getRanking', grupo:'GERAL'}),
-      api({action:'getRanking', grupo:'GERAL'}),
-    ]);
-    if (!rJ.ok) throw new Error(rJ.error||'Erro jogos');
-    matchesRaw = rJ.jogos||[];
+    // 🚀 UMA ÚNICA CHAMADA — retorna tudo (jogos, ranking, apostas, champion, arty)
+    const r = await api({
+      action: 'getAll',
+      grupo: 'GERAL',
+      usuario: userEmail || ''
+    });
+    if (!r.ok) throw new Error(r.error || 'Erro no getAll');
+
+    // Atualiza jogos
+    matchesRaw = r.jogos || [];
     matches = matchesRaw.map(rowToMatch).filter(m=>m.id>0);
-    ranking = rR.ranking||[];
-    rankingGeral = rG.ranking||[];
+
+    // Atualiza ranking
+    ranking = r.ranking || [];
+    rankingGeral = r.ranking || [];
+
+    // Atualiza apostas globais (usadas em "ver palpites de outra pessoa")
+    allBets = r.apostas || [];
+    S.set('all_bets_cache', allBets);
+
+    // Palpite de campeão do usuário
+    if (r.champion) {
+      myChamp = {
+        campeao: r.champion.campeao || '',
+        vice:    r.champion.vice    || '',
+        terceiro:r.champion.terceiro|| ''
+      };
+      S.set('my_champ', myChamp);
+    }
+
+    // Palpite de artilheiros do usuário
+    if (r.artilheiros) {
+      myArt = {
+        jogador1: r.artilheiros.jogador1 || '',
+        jogador2: r.artilheiros.jogador2 || '',
+        jogador3: r.artilheiros.jogador3 || ''
+      };
+      S.set('my_art', myArt);
+    }
+
+    // Persiste caches
     S.set('matches_cache', matches);
     S.set('rank_cache_geral', rankingGeral);
+
+    // Extrai minhas apostas (myBets) da lista global
+    if (userEmail) {
+      const emailLow = userEmail.toLowerCase();
+      const my = {};
+      allBets.forEach(a => {
+        if ((a.usuario||'').toLowerCase() !== emailLow) return;
+        const jid = parseInt(a.jogo_id);
+        const gh = parseInt(a.gol_casa), ga = parseInt(a.gol_visit);
+        if (isNaN(jid) || isNaN(gh) || isNaN(ga)) return;
+        my[jid] = {h:gh, a:ga, pen_vencedor:(a.pen_vencedor||''), ts:(a.atualizado_em || a.criado_em || '')};
+      });
+      S.set('bets_global', my);
+    }
+
     const now = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     setSyncStatus('ok','Atualizado '+now);
     renderMatches(); updateHome(); updateCountdown();
-    syncMyBets();
-    syncMyChamp();
-    syncMyArt();
+    // Re-renderiza artilheiros e campeão se estiverem visíveis (usando dados do getAll)
+    if(typeof renderArtCard === 'function') renderArtCard();
+    if(typeof renderChampionCard === 'function') renderChampionCard();
     if(document.getElementById('screen-tabela').classList.contains('active')) renderTabela();
     if (document.getElementById('screen-ranking').classList.contains('active')) renderRanking();
     if (manual) showToast('✅ Sincronizado!');
@@ -1293,7 +1340,8 @@ async function syncAll(manual=false) {
   }
 }
 
-function startAutoSync(){syncAll(false);clearInterval(syncTimer);syncTimer=setInterval(()=>syncAll(false),60000);clearInterval(window._cdTimer);window._cdTimer=setInterval(updateCountdown,60000);}
+// Auto-sync a cada 3 minutos (antes: 60s)
+function startAutoSync(){syncAll(false);clearInterval(syncTimer);syncTimer=setInterval(()=>syncAll(false),180000);clearInterval(window._cdTimer);window._cdTimer=setInterval(updateCountdown,60000);}
 
 // ── FUSO DE LISBOA ──────────────────────────────────
 // Converte um horário "de parede" de Lisboa para timestamp UTC (ms),
