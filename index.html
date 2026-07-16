@@ -1307,10 +1307,12 @@ async function syncAll(manual=false) {
   }
   try {
     // 🚀 UMA ÚNICA CHAMADA — retorna tudo (jogos, ranking, apostas, champion, arty)
+    // Se for sync MANUAL (usuário tocou no ↻), pula o cache pra garantir dados frescos
     const r = await api({
       action: 'getAll',
       grupo: 'GERAL',
-      usuario: userEmail || ''
+      usuario: userEmail || '',
+      nocache: manual ? '1' : '0'
     });
     if (!r.ok) throw new Error(r.error || 'Erro no getAll');
 
