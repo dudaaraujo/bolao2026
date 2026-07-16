@@ -931,6 +931,9 @@ body.theme-light .theme-opt.active{color:#fff;}
     <div class="fs-title">Artilheiros da Copa</div>
   </div>
   <div class="fs-body">
+    <div id="art-locked-banner" style="display:none;background:rgba(255,214,0,.08);border:1px solid rgba(255,214,0,.3);border-radius:9px;padding:9px 12px;margin-bottom:14px;font-size:12px;color:var(--gold);text-align:center;">
+      🔒 <b>Palpite encerrado</b> — as oitavas começaram
+    </div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5;">
       Escolha os 3 jogadores por ordem de gols na copa.
     </div>
@@ -1099,6 +1102,9 @@ body.theme-light .theme-opt.active{color:#fff;}
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">🏆 Palpite de Campeão</div>
+    <div id="champ-locked-banner" style="display:none;background:rgba(255,214,0,.08);border:1px solid rgba(255,214,0,.3);border-radius:9px;padding:9px 12px;margin-bottom:14px;font-size:12px;color:var(--gold);text-align:center;">
+      🔒 <b>Palpite encerrado</b> — as oitavas começaram
+    </div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Escolha 3 seleções por ordem de aposta. Pontue conforme quem for campeã:</div>
 
     <div id="champ-slots">
@@ -1630,17 +1636,25 @@ function artLocked(){
 }
 
 function openChampModal(){
-  if(champLocked()){
-    showToast('🔒 Palpite encerrado — as oitavas começaram');
-    return;
-  }
+  const locked = champLocked();
   // Preenche com palpite atual
   for(let i=1;i<=3;i++){
     const inp = document.getElementById('champ-in-'+i);
-    if(inp) inp.value = myChamp ? (myChamp['time'+i]||'') : '';
+    if(inp){
+      inp.value = myChamp ? (myChamp['time'+i]||'') : '';
+      inp.disabled = locked;
+      inp.readOnly = locked;
+      if (locked) inp.style.opacity = '0.9';
+      else inp.style.opacity = '';
+    }
     const sug = document.getElementById('champ-sug-'+i);
     if(sug){ sug.classList.remove('show'); sug.innerHTML=''; }
   }
+  // Esconde botão salvar quando encerrado + mostra banner "encerrado"
+  const btnSalvar = document.querySelector('#champ-modal .btn-green');
+  if (btnSalvar) btnSalvar.style.display = locked ? 'none' : '';
+  const banner = document.getElementById('champ-locked-banner');
+  if (banner) banner.style.display = locked ? 'block' : 'none';
   document.getElementById('champ-modal').style.display='flex';
 }
 
@@ -1785,10 +1799,7 @@ async function syncMyArt() {
 }
 
 function openArtilheirosPage() {
-  if (artLocked()) {
-    showToast('🔒 Palpite encerrado — as oitavas começaram');
-    return;
-  }
+  const locked = artLocked();
   // Carrega lista se ainda não tem
   if (jogadoresList.length === 0) {
     jogadoresList = S.get('jogadores_cache', []);
@@ -1815,6 +1826,16 @@ function openArtilheirosPage() {
   document.getElementById('art-search').value = '';
   renderArtSlots();
   renderArtPlayers();
+
+  // Se encerrado, esconde busca + botão salvar e mostra banner
+  const searchEl = document.getElementById('art-search');
+  if (searchEl) searchEl.style.display = locked ? 'none' : '';
+  const listEl = document.getElementById('art-players-list');
+  if (listEl) listEl.style.display = locked ? 'none' : '';
+  const saveBtn = document.getElementById('art-save-btn');
+  if (saveBtn) saveBtn.style.display = locked ? 'none' : '';
+  const banner = document.getElementById('art-locked-banner');
+  if (banner) banner.style.display = locked ? 'block' : 'none';
 
   document.body.style.overflow = 'hidden';
   document.getElementById('art-page').style.display = 'flex';
