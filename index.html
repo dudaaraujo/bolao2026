@@ -3521,15 +3521,28 @@ function renderRanking(){
   const source=rankingGeral;
   let all=[...source];
 
-  // Sempre inclui o usuário atual com dados locais atualizados
+  // Se o usuário atual não está no ranking do servidor ainda (primeiro palpite,
+  // ainda não sincronizado), adiciona com dados locais. Se ESTÁ no ranking,
+  // NÃO sobrescreve os pts do servidor — ele já tem bônus de campeão/artilheiro
+  // que o cálculo local não conhece.
   const meIdx=all.findIndex(r=>
     (r.usuario||'').toLowerCase()===(userEmail||'').toLowerCase() ||
     (r.usuario||'').toLowerCase()===(userName||'').toLowerCase()
   );
-  const meObj={usuario:userEmail||userName||'Você', displayName:userName||'Você', pts,exatos:exact,acertos:hits};
-  if(meIdx>=0) all[meIdx]={...all[meIdx],...meObj};
-  else all.push(meObj);
-  all=all.sort((a,b)=>(b.pts||0)-(a.pts||0));
+  if(meIdx < 0){
+    // Não estou no ranking do servidor — insere com dados locais
+    const meObj={usuario:userEmail||userName||'Você', displayName:userName||'Você', pts, exatos:exact, acertos:hits};
+    all.push(meObj);
+  }
+  // Se meIdx >= 0, deixa como veio do servidor (com bônus incluídos)
+
+  // Re-ordena com desempate: pts > exatos > acertos > nome
+  all=all.sort((a,b)=>{
+    if((b.pts||0)     !== (a.pts||0))     return (b.pts||0)     - (a.pts||0);
+    if((b.exatos||0)  !== (a.exatos||0))  return (b.exatos||0)  - (a.exatos||0);
+    if((b.acertos||0) !== (a.acertos||0)) return (b.acertos||0) - (a.acertos||0);
+    return String(a.displayName||'').localeCompare(String(b.displayName||''));
+  });
 
   if(!all.length){
     document.getElementById('rank-list').innerHTML='<div class="empty-state">Nenhuma aposta registrada ainda</div>';
