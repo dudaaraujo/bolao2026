@@ -450,6 +450,26 @@ body.theme-light .sync-fab{color:#fff;}
 
 /* ── ARTILHEIROS — TELA CHEIA E SELEÇÃO ── */
 .art-slots{display:flex;gap:8px;margin-bottom:16px;}
+
+/* ── BREAKDOWN DE PONTOS GANHOS (Campeão + Artilheiros) ── */
+.pb-slot{display:flex;align-items:center;gap:9px;padding:11px 12px;border-radius:9px;margin-bottom:7px;background:var(--surface);}
+.pb-slot.exato{background:linear-gradient(135deg,rgba(0,200,83,.15),rgba(0,200,83,.05));border:1px solid var(--green);}
+.pb-slot.parcial{background:linear-gradient(135deg,rgba(79,195,247,.12),rgba(79,195,247,.04));border:1px solid rgba(79,195,247,.4);}
+.pb-slot.fora{background:rgba(255,71,87,.05);border:1px solid rgba(255,71,87,.2);opacity:.85;}
+.pb-slot-badge{padding:3px 8px;border-radius:7px;font-size:10px;font-weight:600;flex-shrink:0;}
+.pb-slot-team{flex:1;font-size:13px;color:var(--text);font-weight:500;line-height:1.3;min-width:0;}
+.pb-slot-real{font-size:10px;color:var(--muted);margin-top:3px;font-weight:400;}
+.pb-slot-pts{font-family:'Bebas Neue',sans-serif;font-size:20px;flex-shrink:0;line-height:1;}
+.pb-slot.exato .pb-slot-pts{color:var(--green);}
+.pb-slot.parcial .pb-slot-pts{color:#4fc3f7;}
+.pb-slot.fora .pb-slot-pts{color:var(--red);}
+.pb-total{text-align:center;padding:14px;background:linear-gradient(135deg,rgba(0,200,83,.1),rgba(255,214,0,.03));border:1px solid rgba(0,200,83,.3);border-radius:10px;margin-top:11px;}
+.pb-total.perfect{background:linear-gradient(135deg,rgba(255,214,0,.15),rgba(0,200,83,.06));border-color:var(--gold);}
+.pb-total-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+.pb-total.perfect .pb-total-lbl{color:var(--gold);}
+.pb-total-num{font-family:'Bebas Neue',sans-serif;font-size:38px;color:var(--green);line-height:1;margin-top:4px;}
+.pb-total.perfect .pb-total-num{color:var(--gold);}
+.pb-total-bonus{font-size:10px;color:var(--gold);margin-top:6px;font-weight:600;}
 .art-slot{flex:1;background:var(--surface);border:2px dashed rgba(255,255,255,.1);border-radius:11px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .15s;}
 .art-slot.filled{border-style:solid;border-color:rgba(255,214,0,.35);background:rgba(255,214,0,.05);}
 .art-slot.active{border-color:var(--green);background:rgba(0,200,83,.08);}
@@ -701,7 +721,7 @@ body.theme-light .theme-opt.active{color:#fff;}
 
           <!-- SLIDE 1: PALPITE DE CAMPEÃO -->
           <div class="palpite-slide">
-            <div id="champ-card" onclick="openChampModal()" style="background:linear-gradient(135deg,rgba(255,214,0,.08),rgba(0,200,83,.06));border:1px solid rgba(255,214,0,.25);border-radius:var(--radius);padding:14px 16px;cursor:pointer;">
+            <div id="champ-card" onclick="openChampPage()" style="background:linear-gradient(135deg,rgba(255,214,0,.08),rgba(0,200,83,.06));border:1px solid rgba(255,214,0,.25);border-radius:var(--radius);padding:14px 16px;cursor:pointer;">
               <div style="display:flex;align-items:center;justify-content:space-between;">
                 <div style="display:flex;align-items:center;gap:8px;">
                   <span style="font-size:18px;">🏆</span>
@@ -942,6 +962,9 @@ body.theme-light .theme-opt.active{color:#fff;}
       <!-- slots renderizados via JS -->
     </div>
 
+    <!-- Card de pontos ganhos (só aparece se Resultado_Final estiver cadastrado) -->
+    <div id="art-pontos" style="display:none;"></div>
+
     <!-- Regras de pontuação -->
     <div style="background:linear-gradient(135deg,rgba(255,214,0,.08),rgba(0,200,83,.04));border:1px solid rgba(255,214,0,.25);border-radius:11px;padding:12px;margin-top:14px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--gold);letter-spacing:.06em;margin-bottom:9px;">🎯 Como você ganha pontos</div>
@@ -1098,32 +1121,24 @@ body.theme-light .theme-opt.active{color:#fff;}
   </div>
 </div>
 
-<div class="modal-backdrop" id="champ-modal" style="display:none;" onclick="if(event.target===this)closeChampModal()">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">🏆 Palpite de Campeão</div>
+<div id="champ-page" class="fullscreen-page" style="display:none;">
+  <div class="fs-header">
+    <button class="fs-back" onclick="closeChampPage()" aria-label="Voltar">←</button>
+    <div class="fs-title">Palpite de Campeão</div>
+  </div>
+  <div class="fs-body">
     <div id="champ-locked-banner" style="display:none;background:rgba(255,214,0,.08);border:1px solid rgba(255,214,0,.3);border-radius:9px;padding:9px 12px;margin-bottom:14px;font-size:12px;color:var(--gold);text-align:center;">
       🔒 <b>Palpite encerrado</b> — as oitavas começaram
     </div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Escolha 3 seleções por ordem de aposta. Pontue conforme quem for campeã:</div>
-
-    <div id="champ-slots">
-      <div class="champ-slot" data-slot="1">
-        <div class="champ-rank" style="background:rgba(255,214,0,.15);color:var(--gold);">1º · 10pts</div>
-        <input type="text" class="champ-input" id="champ-in-1" placeholder="Digite a seleção..." oninput="champSuggest(1)" autocomplete="off">
-        <div class="champ-suggest" id="champ-sug-1"></div>
-      </div>
-      <div class="champ-slot" data-slot="2">
-        <div class="champ-rank" style="background:rgba(122,144,184,.15);color:#b8c4d8;">2º · 7pts</div>
-        <input type="text" class="champ-input" id="champ-in-2" placeholder="Digite a seleção..." oninput="champSuggest(2)" autocomplete="off">
-        <div class="champ-suggest" id="champ-sug-2"></div>
-      </div>
-      <div class="champ-slot" data-slot="3">
-        <div class="champ-rank" style="background:rgba(205,127,50,.15);color:#cd7f32;">3º · 4pts</div>
-        <input type="text" class="champ-input" id="champ-in-3" placeholder="Digite a seleção..." oninput="champSuggest(3)" autocomplete="off">
-        <div class="champ-suggest" id="champ-sug-3"></div>
-      </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5;">
+      Escolha 3 seleções por ordem que pense chegarem ao pódio.
     </div>
+
+    <!-- Slots (renderizados via JS) — mesmo estilo dos artilheiros -->
+    <div class="art-slots" id="champ-slots"></div>
+
+    <!-- Card de pontos ganhos (só aparece se Resultado_Final estiver cadastrado) -->
+    <div id="champ-pontos" style="display:none;"></div>
 
     <!-- Regras de pontuação -->
     <div style="background:linear-gradient(135deg,rgba(255,214,0,.08),rgba(0,200,83,.04));border:1px solid rgba(255,214,0,.25);border-radius:11px;padding:12px;margin-top:14px;">
@@ -1143,8 +1158,12 @@ body.theme-light .theme-opt.active{color:#fff;}
       <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:8px;font-style:italic;">Máximo possível: 26 pts</div>
     </div>
 
-    <button class="btn btn-green" onclick="saveChamp()" style="margin-top:16px;">Salvar palpite ✓</button>
-    <button class="btn btn-outline" onclick="closeChampModal()" style="margin-top:8px;border:none;color:var(--muted);">Cancelar</button>
+    <input class="art-search" id="champ-search" placeholder="🔍 buscar seleção..." oninput="renderChampTeams()" autocomplete="off"/>
+
+    <div id="champ-teams-list"></div>
+  </div>
+  <div class="fs-footer">
+    <button class="btn btn-green" id="champ-save-btn" onclick="saveChamp()" style="margin:0;">Salvar palpite ✓</button>
   </div>
 </div>
 
@@ -1348,6 +1367,10 @@ async function syncAll(manual=false) {
       };
       S.set('my_art', myArt);
     }
+
+    // Resultado final da copa (pra calcular bônus localmente)
+    resultadoFinal = r.resultadoFinal || null;
+    S.set('resultado_final', resultadoFinal);
 
     // Persiste caches
     S.set('matches_cache', matches);
@@ -1599,7 +1622,42 @@ async function syncMyBets() {
 
 // ── PALPITE DE CAMPEÃO ──────────────────────────────
 let myChamp = null; // {time1, time2, time3}
-let myArt = null;   // {jogador1, jogador2, jogador3}
+let myArt = null; // {jogador1, jogador2, jogador3}
+let resultadoFinal = null; // {campeao, vice, terceiro, artilheiro1, artilheiro2, artilheiro3}
+
+// Estado do palpite Campeão em edição (padrão artilheiro)
+let champLocalPick = {time1:'', time2:'', time3:''};
+let champActiveSlot = 1;
+
+// Calcula pontos de um palpite de pódio (usado pra Campeão e Artilheiros).
+// Retorna: { pts, exatos, breakdown: [{tipo, pts, realPos}] }
+// tipo pode ser: 'exato', 'parcial', 'fora', 'vazio'
+// realPos: se for parcial, indica em qual posição real ficou (0-based)
+function calcBonusPodio(palpite, real) {
+  const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  const p = palpite.map(norm);
+  const r = real.map(norm);
+  if (r.every(x => !x)) return { pts: 0, exatos: 0, breakdown: [], hasResult: false };
+  const pontosPorPos = [10, 7, 4];
+  let pts = 0, exatos = 0;
+  const breakdown = [];
+  for (let i = 0; i < 3; i++) {
+    if (!p[i]) { breakdown.push({ tipo: 'vazio', pts: 0, realPos: -1 }); continue; }
+    const posReal = r.indexOf(p[i]);
+    if (posReal === -1) {
+      breakdown.push({ tipo: 'fora', pts: 0, realPos: -1 });
+    } else if (posReal === i) {
+      pts += pontosPorPos[i]; exatos++;
+      breakdown.push({ tipo: 'exato', pts: pontosPorPos[i], realPos: posReal });
+    } else {
+      pts += 2;
+      breakdown.push({ tipo: 'parcial', pts: 2, realPos: posReal });
+    }
+  }
+  const perfeicao = exatos === 3;
+  if (perfeicao) pts += 5;
+  return { pts, exatos, breakdown, perfeicao, hasResult: true };
+}
 let jogadoresList = []; // [{nome, selecao}]
 
 // Lista de seleções disponíveis (vem dos jogos + lista padrão)
@@ -1637,66 +1695,219 @@ function artLocked(){
   return Date.now() >= firstOit.kickoff;
 }
 
-function openChampModal(){
+// ═══════════════════════════════════════════════════
+// PALPITE DE CAMPEÃO — padrão fullscreen page (igual artilheiros)
+// ═══════════════════════════════════════════════════
+
+// Lista de todos os times (extraída dos jogos + getTeamList existente)
+function _allTeams() {
+  const s = new Set();
+  (matches||[]).forEach(m => {
+    if (m.home && m.home !== '—') s.add(m.home);
+    if (m.away && m.away !== '—') s.add(m.away);
+  });
+  return Array.from(s).sort((a,b) => a.localeCompare(b, 'pt-BR'));
+}
+
+function openChampPage() {
   const locked = champLocked();
-  // Preenche com palpite atual
-  for(let i=1;i<=3;i++){
-    const inp = document.getElementById('champ-in-'+i);
-    if(inp){
-      inp.value = myChamp ? (myChamp['time'+i]||'') : '';
-      inp.disabled = locked;
-      inp.readOnly = locked;
-      if (locked) inp.style.opacity = '0.9';
-      else inp.style.opacity = '';
+  const pontuado = !!(resultadoFinal && (resultadoFinal.campeao || resultadoFinal.vice || resultadoFinal.terceiro));
+
+  // Inicializa pick local com o palpite atual
+  champLocalPick = myChamp
+    ? {time1: myChamp.time1||'', time2: myChamp.time2||'', time3: myChamp.time3||''}
+    : {time1:'', time2:'', time3:''};
+
+  // Slot ativo: primeiro vazio
+  champActiveSlot = !champLocalPick.time1 ? 1
+                  : !champLocalPick.time2 ? 2
+                  : !champLocalPick.time3 ? 3 : 1;
+
+  const searchEl = document.getElementById('champ-search');
+  if (searchEl) searchEl.value = '';
+
+  renderChampSlots();
+  renderChampTeams();
+
+  // Se pontuado, mostra o card de pontos ganhos
+  const pontosEl = document.getElementById('champ-pontos');
+  if (pontosEl) {
+    if (pontuado) {
+      pontosEl.innerHTML = renderChampPontos();
+      pontosEl.style.display = 'block';
+    } else {
+      pontosEl.style.display = 'none';
     }
-    const sug = document.getElementById('champ-sug-'+i);
-    if(sug){ sug.classList.remove('show'); sug.innerHTML=''; }
   }
-  // Esconde botão salvar quando encerrado + mostra banner "encerrado"
-  const btnSalvar = document.querySelector('#champ-modal .btn-green');
-  if (btnSalvar) btnSalvar.style.display = locked ? 'none' : '';
+
+  // Se encerrado, esconde busca+lista+botão salvar e mostra banner
+  if (searchEl) searchEl.style.display = locked ? 'none' : '';
+  const listEl = document.getElementById('champ-teams-list');
+  if (listEl) listEl.style.display = locked ? 'none' : '';
+  const saveBtn = document.getElementById('champ-save-btn');
+  if (saveBtn) saveBtn.style.display = locked ? 'none' : '';
   const banner = document.getElementById('champ-locked-banner');
   if (banner) banner.style.display = locked ? 'block' : 'none';
-  document.getElementById('champ-modal').style.display='flex';
+
+  document.body.style.overflow = 'hidden';
+  document.getElementById('champ-page').style.display = 'flex';
+  const body = document.querySelector('#champ-page .fs-body');
+  if (body) body.scrollTop = 0;
 }
 
-function closeChampModal(){
-  document.getElementById('champ-modal').style.display='none';
+function closeChampPage() {
+  document.body.style.overflow = '';
+  document.getElementById('champ-page').style.display = 'none';
 }
 
-function champSuggest(slot){
-  const inp = document.getElementById('champ-in-'+slot);
-  const box = document.getElementById('champ-sug-'+slot);
-  if(!inp || !box) return;
-  const q = inp.value.trim().toLowerCase();
-  if(!q){ box.classList.remove('show'); box.innerHTML=''; return; }
-  const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  const matches_ = getTeamList().filter(t => norm(t).includes(norm(q))).slice(0,8);
-  if(!matches_.length){ box.classList.remove('show'); box.innerHTML=''; return; }
-  box.innerHTML = matches_.map(t =>
-    `<div class="champ-sug-item" onclick="champPick(${slot}, '${t.replace(/'/g,"\\'")}')">${getFlag(t)} ${t}</div>`
-  ).join('');
-  box.classList.add('show');
+// Renderiza os 3 slots (padrão idêntico ao art-slots)
+function renderChampSlots() {
+  const cont = document.getElementById('champ-slots');
+  if (!cont) return;
+  const pontuado = !!(resultadoFinal && (resultadoFinal.campeao || resultadoFinal.vice || resultadoFinal.terceiro));
+  // Se pontuado, oculta slots aqui (aparece dentro do card de pontos)
+  if (pontuado) { cont.innerHTML = ''; return; }
+
+  const medals = ['🥇','🥈','🥉'];
+  const pts = ['10pts','7pts','4pts'];
+  const nomes = ['1º','2º','3º'];
+  const values = [champLocalPick.time1, champLocalPick.time2, champLocalPick.time3];
+
+  cont.innerHTML = [0,1,2].map(i => {
+    const val = values[i];
+    const filled = !!val;
+    const active = (champActiveSlot === i+1);
+    const cls = 'art-slot' + (filled?' filled':'') + (active?' active':'');
+    const flag = filled ? getFlag(val) : '<span style="opacity:.4;">🏳</span>';
+    const nameHtml = filled
+      ? `<div class="art-slot-name">${val}</div>`
+      : `<div class="art-slot-empty">Escolher →</div>`;
+    return `<div class="${cls}" onclick="setChampActiveSlot(${i+1})">
+      <div class="art-slot-medal">${medals[i]}</div>
+      <div class="art-slot-pos">${nomes[i]} · ${pts[i]}</div>
+      <div class="art-slot-flag">${flag}</div>
+      ${nameHtml}
+    </div>`;
+  }).join('');
 }
 
-function champPick(slot, time){
-  const inp = document.getElementById('champ-in-'+slot);
-  const box = document.getElementById('champ-sug-'+slot);
-  if(inp) inp.value = time;
-  if(box){ box.classList.remove('show'); box.innerHTML=''; }
+function setChampActiveSlot(slot) {
+  if (champLocked()) return;
+  champActiveSlot = slot;
+  renderChampSlots();
 }
 
-function saveChamp(){
-  const t1 = document.getElementById('champ-in-1').value.trim();
-  const t2 = document.getElementById('champ-in-2').value.trim();
-  const t3 = document.getElementById('champ-in-3').value.trim();
-  if(!t1 || !t2 || !t3){ showToast('Escolha as 3 seleções'); return; }
-  if(t1===t2 || t1===t3 || t2===t3){ showToast('Escolha 3 seleções diferentes'); return; }
+// Renderiza a lista de times (com filtro por busca)
+function renderChampTeams() {
+  const cont = document.getElementById('champ-teams-list');
+  if (!cont) return;
+  const term = (document.getElementById('champ-search')||{}).value || '';
+  const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const t = norm(term);
+  const taken = new Set([
+    norm(champLocalPick.time1),
+    norm(champLocalPick.time2),
+    norm(champLocalPick.time3),
+  ].filter(x => x));
+
+  let lista = _allTeams();
+  if (t) lista = lista.filter(x => norm(x).includes(t));
+
+  const html = lista.map(nome => {
+    const nomeLow = norm(nome);
+    const jaEscolhido = taken.has(nomeLow);
+    const cls = 'art-player' + (jaEscolhido ? ' taken' : '');
+    const style = jaEscolhido ? 'opacity:.4;cursor:not-allowed;' : '';
+    const onclick = jaEscolhido ? '' : `onclick="pickChampTeam('${nome.replace(/'/g,"\\'")}')"`;
+    return `<div class="${cls}" style="${style}" ${onclick}>
+      <div class="art-player-flag" style="font-size:22px;">${getFlag(nome)}</div>
+      <div class="art-player-info">
+        <div class="art-player-name">${nome}</div>
+        ${jaEscolhido ? '<div class="art-player-sub" style="color:var(--gold);">✓ já escolhido</div>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+  cont.innerHTML = html || '<div class="empty-state" style="padding:20px;">Nenhuma seleção encontrada</div>';
+}
+
+function pickChampTeam(nome) {
+  if (champLocked()) return;
+  champLocalPick['time'+champActiveSlot] = nome;
+  // Avança pro próximo slot vazio
+  if (!champLocalPick.time1) champActiveSlot = 1;
+  else if (!champLocalPick.time2) champActiveSlot = 2;
+  else if (!champLocalPick.time3) champActiveSlot = 3;
+  else champActiveSlot = Math.min(champActiveSlot + 1, 3);
+  renderChampSlots();
+  renderChampTeams();
+}
+
+// Renderiza card de pontos ganhos (quando Resultado_Final tem dados)
+function renderChampPontos() {
+  if (!resultadoFinal) return '';
+  const palpite = [champLocalPick.time1||'', champLocalPick.time2||'', champLocalPick.time3||''];
+  const real = [resultadoFinal.campeao||'', resultadoFinal.vice||'', resultadoFinal.terceiro||''];
+  return renderPontosSection(palpite, real, {
+    labelsPos: ['🥇 1º · 10pts', '🥈 2º · 7pts', '🥉 3º · 4pts'],
+    badgesBg: ['rgba(255,214,0,.15);color:#ffd600', 'rgba(122,144,184,.15);color:#b8c4d8', 'rgba(205,127,50,.15);color:#cd7f32'],
+    getFlag: (nome) => getFlag(nome),
+    realLabelExato: (i) => ['✓ Foi o campeão','✓ Vice campeão','✓ Terceiro lugar'][i],
+    realLabelParcial: (posReal) => `Ficou em ${['1º','2º','3º'][posReal]} (posição errada)`,
+    realLabelFora: () => 'Não ficou no pódio'
+  });
+}
+
+// Renderização compartilhada (Campeão e Artilheiro usam)
+function renderPontosSection(palpite, real, opts) {
+  const bonus = calcBonusPodio(palpite, real);
+  if (!bonus.hasResult) return '';
+
+  const html = [];
+  for (let i = 0; i < 3; i++) {
+    const b = bonus.breakdown[i];
+    const nome = palpite[i] || '—';
+    const flag = opts.getFlag(nome);
+    let real_desc, cls, pts_txt;
+    if (b.tipo === 'exato')   { cls = 'exato';   real_desc = opts.realLabelExato(i); pts_txt = '+' + b.pts; }
+    else if (b.tipo === 'parcial') { cls = 'parcial'; real_desc = opts.realLabelParcial(b.realPos); pts_txt = '+' + b.pts; }
+    else if (b.tipo === 'fora')    { cls = 'fora';    real_desc = opts.realLabelFora(); pts_txt = '0'; }
+    else                           { cls = 'fora';    real_desc = 'Sem palpite';        pts_txt = '0'; }
+
+    html.push(`<div class="pb-slot ${cls}">
+      <span class="pb-slot-badge" style="background:${opts.badgesBg[i]};">${opts.labelsPos[i]}</span>
+      <div class="pb-slot-team">${flag} ${nome}<div class="pb-slot-real">${real_desc}</div></div>
+      <span class="pb-slot-pts">${pts_txt}</span>
+    </div>`);
+  }
+
+  const totalCls = bonus.perfeicao ? 'pb-total perfect' : 'pb-total';
+  const totalLbl = bonus.perfeicao ? '🎉 Perfeito! Você ganhou' : '✅ Você ganhou';
+  const bonusHtml = bonus.perfeicao ? `<div class="pb-total-bonus">${bonus.pts-5} pts + 5 bônus perfeição ✨</div>` : '';
+
+  html.push(`<div class="${totalCls}">
+    <div class="pb-total-lbl">${totalLbl}</div>
+    <div class="pb-total-num">${bonus.pts} <span style="font-size:15px;color:var(--muted);">pts</span></div>
+    ${bonusHtml}
+  </div>`);
+
+  return html.join('');
+}
+
+function saveChamp() {
+  if (champLocked()) {
+    showToast('🔒 Palpite encerrado — as oitavas começaram');
+    return;
+  }
+  const t1 = champLocalPick.time1;
+  const t2 = champLocalPick.time2;
+  const t3 = champLocalPick.time3;
+  if (!t1 || !t2 || !t3) { showToast('⚠️ Escolha as 3 seleções'); return; }
+  if (t1===t2 || t1===t3 || t2===t3) { showToast('Escolha 3 seleções diferentes'); return; }
 
   myChamp = {time1:t1, time2:t2, time3:t3};
   S.set('my_champ', myChamp);
   renderChampCard();
-  closeChampModal();
+  closeChampPage();
   showToast('🏆 Palpite de campeão salvo!');
 
   api({action:'saveCampeao', usuario:userEmail||userName, display_name:userName, time1:t1, time2:t2, time3:t3}).catch(()=>{});
@@ -1802,6 +2013,8 @@ async function syncMyArt() {
 
 function openArtilheirosPage() {
   const locked = artLocked();
+  const pontuado = !!(resultadoFinal && (resultadoFinal.artilheiro1 || resultadoFinal.artilheiro2 || resultadoFinal.artilheiro3));
+
   // Carrega lista se ainda não tem
   if (jogadoresList.length === 0) {
     jogadoresList = S.get('jogadores_cache', []);
@@ -1829,6 +2042,22 @@ function openArtilheirosPage() {
   renderArtSlots();
   renderArtPlayers();
 
+  // Card de pontos ganhos (se pontuado)
+  const pontosEl = document.getElementById('art-pontos');
+  if (pontosEl) {
+    if (pontuado) {
+      pontosEl.innerHTML = renderArtPontos();
+      pontosEl.style.display = 'block';
+      // Se pontuado, esconde os slots normais (o breakdown já os mostra)
+      const slotsEl = document.getElementById('art-slots');
+      if (slotsEl) slotsEl.style.display = 'none';
+    } else {
+      pontosEl.style.display = 'none';
+      const slotsEl = document.getElementById('art-slots');
+      if (slotsEl) slotsEl.style.display = '';
+    }
+  }
+
   // Se encerrado, esconde busca + botão salvar e mostra banner
   const searchEl = document.getElementById('art-search');
   if (searchEl) searchEl.style.display = locked ? 'none' : '';
@@ -1843,6 +2072,28 @@ function openArtilheirosPage() {
   document.getElementById('art-page').style.display = 'flex';
   const body = document.querySelector('#art-page .fs-body');
   if (body) body.scrollTop = 0;
+}
+
+// Renderiza card de pontos ganhos dos artilheiros
+function renderArtPontos() {
+  if (!resultadoFinal) return '';
+  // Extrai só o nome do jogador (sem "· Seleção") se estiver no formato "Nome · Seleção"
+  const cleanName = (n) => String(n||'').split('·')[0].trim();
+  const palpite = [cleanName(artLocalPick.jogador1), cleanName(artLocalPick.jogador2), cleanName(artLocalPick.jogador3)];
+  const real = [cleanName(resultadoFinal.artilheiro1||''), cleanName(resultadoFinal.artilheiro2||''), cleanName(resultadoFinal.artilheiro3||'')];
+  // Extrai seleção de jogadoresList pra pegar a bandeira
+  const flagOf = (jNome) => {
+    const j = jogadoresList.find(x => cleanName(x.nome) === jNome);
+    return j ? getFlag(j.selecao) : '⚽';
+  };
+  return renderPontosSection(palpite, real, {
+    labelsPos: ['🥇 1º · 10pts', '🥈 2º · 7pts', '🥉 3º · 4pts'],
+    badgesBg: ['rgba(255,214,0,.15);color:#ffd600', 'rgba(122,144,184,.15);color:#b8c4d8', 'rgba(205,127,50,.15);color:#cd7f32'],
+    getFlag: flagOf,
+    realLabelExato: (i) => ['✓ Foi o artilheiro','✓ Ficou em 2º (posição exata)','✓ Ficou em 3º (posição exata)'][i],
+    realLabelParcial: (posReal) => `Ficou em ${['1º','2º','3º'][posReal]} (posição errada)`,
+    realLabelFora: () => 'Não ficou no top 3'
+  });
 }
 
 function closeArtilheirosPage() {
